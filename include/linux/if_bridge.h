@@ -51,6 +51,11 @@ struct br_ip_list {
 #define BR_DEFAULT_AGEING_TIME	(300 * HZ)
 
 extern void brioctl_set(int (*ioctl_hook)(struct net *, unsigned int, void __user *));
+extern struct net_device *br_port_dev_get(struct net_device *dev,
+					  unsigned char *addr);
+extern void br_refresh_fdb_entry(struct net_device *dev, const char *addr);
+extern void br_dev_update_stats(struct net_device *dev,
+				struct rtnl_link_stats64 *nlstats);
 
 #if IS_ENABLED(CONFIG_BRIDGE) && IS_ENABLED(CONFIG_BRIDGE_IGMP_SNOOPING)
 int br_multicast_list_adjacent(struct net_device *dev,
