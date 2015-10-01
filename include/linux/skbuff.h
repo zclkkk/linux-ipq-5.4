@@ -887,6 +887,10 @@ struct sk_buff {
 	/* only useable after checking ->active_extensions != 0 */
 	struct skb_ext		*extensions;
 #endif
+
+#ifdef CONFIG_DEBUG_OBJECTS_SKBUFF
+	void			*free_addr;
+#endif
 };
 
 #ifdef __KERNEL__
