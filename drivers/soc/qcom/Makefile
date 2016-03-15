@@ -31,3 +31,6 @@ obj-$(CONFIG_MSM_RPM_LOG)	+=	rpm_log.o
 obj-$(CONFIG_IPQ_SUBSYSTEM_RAMDUMP) += ramdump.o
 obj-$(CONFIG_QTI_TZ_LOG) += tz_log.o
 obj-$(CONFIG_QTI_CTXT_SAVE) += ctx-save.o
+ifdef CONFIG_QCOM_SCM
+obj-$(CONFIG_ARM64) += cpu_ops.o cpu_pwr_ctl.o
+endif
