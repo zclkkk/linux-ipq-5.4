@@ -534,5 +534,45 @@ void __init skb_recycler_init(void)
 		pr_err("Failed to preallocate SKBs for recycle list\n");
 #endif
 	cpuhp_setup_state_nocalls(CPUHP_NET_DEV_DEAD, "net/skbuff_recycler:dead:",NULL, skb_cpu_callback);
+	skbuff_debugobj_register_callback();
 	skb_recycler_init_procfs();
+}
+
+void skb_recycler_print_all_lists(void)
+{
+	unsigned long flags;
+	int cpu;
+#ifdef CONFIG_SKB_RECYCLER_MULTI_CPU
+	int i;
+
+	spin_lock_irqsave(&glob_recycler.lock, flags);
+	for (i = 0; i < SKB_RECYCLE_MAX_SHARED_POOLS; i++)
+		skbuff_debugobj_print_skb_list((&glob_recycler.pool[i])->next,
+					       "Global Pool");
+	spin_unlock_irqrestore(&glob_recycler.lock, flags);
+
+	preempt_disable();
+	local_irq_save(flags);
+	for_each_possible_cpu(cpu) {
+		unsigned long flags;
+		struct sk_buff_head *h;
+
+		h = &per_cpu(recycle_spare_list, cpu);
+		skbuff_debugobj_print_skb_list(h->next, "Recycle Spare");
+	}
+	local_irq_restore(flags);
+	preempt_enable();
+#endif
+
+	preempt_disable();
+	local_irq_save(flags);
+	for_each_possible_cpu(cpu) {
+		unsigned long flags;
+		struct sk_buff_head *h;
+
+		h = &per_cpu(recycle_list, cpu);
+		skbuff_debugobj_print_skb_list(h->next, "Recycle List");
+	}
+	local_irq_restore(flags);
+	preempt_enable();
 }
