@@ -42,6 +42,8 @@ struct ppp_channel_ops {
 	 * the channel subtype
 	 */
 	int (*get_channel_protocol)(struct ppp_channel *);
+	/* Get channel protocol version */
+	int (*get_channel_protocol_ver)(struct ppp_channel *);
 	/* Hold the channel from being destroyed */
 	void (*hold)(struct ppp_channel *);
 	/* Release hold on the channel */
@@ -65,6 +67,9 @@ struct ppp_channel {
  */
 extern int ppp_channel_get_protocol(struct ppp_channel *);
 
+/* Call this get protocol version */
+extern int ppp_channel_get_proto_version(struct ppp_channel *);
+
 /* Call this to hold a channel */
 extern bool ppp_channel_hold(struct ppp_channel *);
 
@@ -79,6 +84,9 @@ extern void ppp_release_channels(struct ppp_channel *channels[],
 extern int ppp_hold_channels(struct net_device *dev,
 			     struct ppp_channel *channels[],
 			     unsigned int chan_sz);
+
+/* Test if ppp xmit lock is locked */
+extern bool ppp_is_xmit_locked(struct net_device *dev);
 
 /* Hold PPP channels for the PPP device */
 extern int __ppp_hold_channels(struct net_device *dev,

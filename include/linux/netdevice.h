@@ -925,7 +925,6 @@ struct dev_ifalias {
 struct devlink;
 struct tlsdev_ops;
 
-
 struct flow_offload;
 struct flow_offload_hw_path;
 
@@ -1962,7 +1961,6 @@ struct net_device {
 #endif
 	unsigned int		promiscuity;
 	unsigned int		allmulti;
-
 
 	/* Protocol-specific pointers */
 
