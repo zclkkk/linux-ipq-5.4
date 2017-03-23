@@ -3737,6 +3737,77 @@ out:
 	return ret;
 }
 
+static int regulator_dev_set_voltage_unlocked(struct regulator_dev *rdev,
+					int min_uV, int max_uV)
+{
+	int ret = 0;
+	int best_supply_uV = 0;
+	int supply_change_uV = 0;
+
+	if (!(rdev->constraints->valid_ops_mask & REGULATOR_CHANGE_VOLTAGE))
+		return ret;
+
+	if (!rdev->desc->ops->set_voltage &&
+		!rdev->desc->ops->set_voltage_sel)
+		return -EINVAL;
+
+	ret = regulator_check_voltage(rdev, &min_uV, &max_uV);
+	if (ret < 0)
+		return ret;
+
+	ret = regulator_check_consumers(rdev, &min_uV, &max_uV, 0);
+	if (ret < 0)
+		return ret;
+
+	if (rdev->supply && (rdev->desc->min_dropout_uV ||
+				!rdev->desc->ops->get_voltage)) {
+		int current_supply_uV;
+		int selector;
+
+		selector = regulator_map_voltage(rdev, min_uV, max_uV);
+		if (selector < 0)
+			return selector;
+
+		best_supply_uV = _regulator_list_voltage(rdev,
+						selector, 0);
+		if (best_supply_uV < 0)
+			return best_supply_uV;
+
+		best_supply_uV += rdev->desc->min_dropout_uV;
+		current_supply_uV = regulator_get_voltage_rdev(rdev->supply->rdev);
+		if (current_supply_uV < 0)
+			return current_supply_uV;
+
+		supply_change_uV = best_supply_uV - current_supply_uV;
+	}
+
+	if (supply_change_uV > 0) {
+		ret = regulator_set_voltage_unlocked(rdev->supply,
+			best_supply_uV, INT_MAX, 0);
+		if (ret) {
+			dev_err(&rdev->dev, "Failed to increase supply voltage: %d\n",
+				ret);
+			return ret;
+		}
+	}
+
+	ret = _regulator_do_set_voltage(rdev, min_uV, max_uV);
+	if (ret < 0)
+		return ret;
+
+	if (supply_change_uV < 0) {
+		ret = regulator_set_voltage_unlocked(rdev->supply,
+				best_supply_uV, INT_MAX, 0);
+		if (ret)
+			dev_warn(&rdev->dev, "Failed to decrease supply voltage: %d\n",
+				ret);
+		/* No need to fail here */
+		ret = 0;
+	}
+
+	return ret;
+}
+
 /**
  * regulator_set_voltage - set regulator output voltage
  * @regulator: regulator source
