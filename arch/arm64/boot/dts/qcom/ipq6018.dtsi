@@ -331,7 +331,7 @@
 			interrupts = <GIC_SPI 3 IRQ_TYPE_EDGE_RISING>;
 			reg = <0x0b017000 0x40>;
 			clocks = <&sleep_clk>;
-			timeout-sec = <10>;
+			max-timeout-sec = <32>;
 		};
 
 		apcs_glb: mailbox@b111000 {
