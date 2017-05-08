@@ -69,7 +69,7 @@ int br_pass_frame_up(struct sk_buff *skb)
 	br_multicast_count(br, NULL, skb, br_multicast_igmp_type(skb),
 			   BR_MCAST_DIR_TX);
 
-	return NF_HOOK(NFPROTO_BRIDGE, NF_BR_LOCAL_IN,
+	return BR_HOOK(NFPROTO_BRIDGE, NF_BR_LOCAL_IN,
 		       dev_net(indev), NULL, skb, indev, NULL,
 		       br_netif_receive_skb);
 }
@@ -364,7 +364,7 @@ rx_handler_result_t br_handle_frame(struct sk_buff **pskb)
 		 *   - returns = 0 (stolen/nf_queue)
 		 * Thus return 1 from the okfn() to signal the skb is ok to pass
 		 */
-		if (NF_HOOK(NFPROTO_BRIDGE, NF_BR_LOCAL_IN,
+		if (BR_HOOK(NFPROTO_BRIDGE, NF_BR_LOCAL_IN,
 			    dev_net(skb->dev), NULL, skb, skb->dev, NULL,
 			    br_handle_local_finish) == 1) {
 			return RX_HANDLER_PASS;
@@ -379,7 +379,7 @@ forward:
 		if (ether_addr_equal(p->br->dev->dev_addr, dest))
 			skb->pkt_type = PACKET_HOST;
 
-		if (NF_HOOK(NFPROTO_BRIDGE, NF_BR_PRE_ROUTING,
+		if (BR_HOOK(NFPROTO_BRIDGE, NF_BR_PRE_ROUTING,
 			dev_net(skb->dev), NULL, skb, skb->dev, NULL,
 			br_handle_local_finish) == 1) {
 			return RX_HANDLER_PASS;
