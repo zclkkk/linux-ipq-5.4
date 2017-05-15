@@ -186,7 +186,6 @@ struct net_device_stats {
 	unsigned long	tx_compressed;
 };
 
-
 #include <linux/cache.h>
 #include <linux/skbuff.h>
 
@@ -287,7 +286,6 @@ enum netdev_state_t {
 	__LINK_STATE_LINKWATCH_PENDING,
 	__LINK_STATE_DORMANT,
 };
-
 
 /*
  * This structure holds boot-time configured netdevice settings. They
@@ -1555,6 +1553,12 @@ enum netdev_priv_flags {
  * These flags are used to check for device type and can be
  * set and used by the drivers
  *
+ * @IFF_EXT_TUN_TAP: device is a TUN/TAP device
+ * @IFF_EXT_PPP_L2TPV2: device is a L2TPV2 device
+ * @IFF_EXT_PPP_L2TPV3: device is a L2TPV3 device
+ * @IFF_EXT_PPP_PPTP: device is a PPTP device
+ * @IFF_EXT_GRE_V4_TAP: device is a GRE IPv4 TAP device
+ * @IFF_EXT_GRE_V6_TAP: device is a GRE IPv6 TAP device
  */
 enum netdev_priv_flags_ext {
 	IFF_EXT_TUN_TAP			= 1<<0,
@@ -2609,7 +2613,6 @@ netdev_notifier_info_to_extack(const struct netdev_notifier_info *info)
 }
 
 int call_netdevice_notifiers(unsigned long val, struct net_device *dev);
-
 
 extern rwlock_t				dev_base_lock;		/* Device list lock */
 
@@ -3882,7 +3885,6 @@ static inline bool netif_dormant(const struct net_device *dev)
 {
 	return test_bit(__LINK_STATE_DORMANT, &dev->state);
 }
-
 
 /**
  *	netif_oper_up - test if device is operational
