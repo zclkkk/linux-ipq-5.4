@@ -269,7 +269,7 @@
 			mmc-ddr-1_8v;
 			mmc-hs200-1_8v;
 			bus-width = <4>;
-
+			vqmmc-supply = <&ldo11>;
 			status = "disabled";
 		};
 
