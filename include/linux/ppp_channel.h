@@ -19,6 +19,11 @@
 #include <linux/skbuff.h>
 #include <linux/poll.h>
 #include <net/net_namespace.h>
+#include <linux/notifier.h>
+
+/* PPP channel connection event types */
+#define PPP_CHANNEL_DISCONNECT	0
+#define PPP_CHANNEL_CONNECT	1
 
 struct ppp_channel;
 
@@ -114,6 +119,12 @@ extern int ppp_unit_number(struct ppp_channel *);
 
 /* Get the device name associated with a channel, or NULL if none */
 extern char *ppp_dev_name(struct ppp_channel *);
+
+/* Register the PPP channel connect notifier */
+extern void ppp_channel_connection_register_notify(struct notifier_block *nb);
+
+/* Unregister the PPP channel connect notifier */
+extern void ppp_channel_connection_unregister_notify(struct notifier_block *nb);
 
 /*
  * SMP locking notes:

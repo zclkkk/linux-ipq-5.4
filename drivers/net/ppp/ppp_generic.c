@@ -271,6 +271,24 @@ struct ppp_net {
 #define seq_before(a, b)	((s32)((a) - (b)) < 0)
 #define seq_after(a, b)		((s32)((a) - (b)) > 0)
 
+/*
+ * Registration/Unregistration methods
+ * for PPP channel connect and disconnect event notifications.
+ */
+RAW_NOTIFIER_HEAD(ppp_channel_connection_notifier_list);
+
+void ppp_channel_connection_register_notify(struct notifier_block *nb)
+{
+	raw_notifier_chain_register(&ppp_channel_connection_notifier_list, nb);
+}
+EXPORT_SYMBOL_GPL(ppp_channel_connection_register_notify);
+
+void ppp_channel_connection_unregister_notify(struct notifier_block *nb)
+{
+	raw_notifier_chain_unregister(&ppp_channel_connection_notifier_list, nb);
+}
+EXPORT_SYMBOL_GPL(ppp_channel_connection_unregister_notify);
+
 /* Prototypes. */
 static int ppp_unattached_ioctl(struct net *net, struct ppp_file *pf,
 			struct file *file, unsigned int cmd, unsigned long arg);
@@ -3223,6 +3241,7 @@ ppp_connect_channel(struct channel *pch, int unit)
 	struct ppp_net *pn;
 	int ret = -ENXIO;
 	int hdrlen;
+	int notify = 0;
 
 	pn = ppp_pernet(pch->chan_net);
 
@@ -3254,6 +3273,8 @@ ppp_connect_channel(struct channel *pch, int unit)
 	++ppp->n_channels;
 	pch->ppp = ppp;
 	refcount_inc(&ppp->file.refcnt);
+	notify = 1;
+
 	ppp_unlock(ppp);
 	ret = 0;
 
@@ -3261,6 +3282,14 @@ ppp_connect_channel(struct channel *pch, int unit)
 	write_unlock_bh(&pch->upl);
  out:
 	mutex_unlock(&pn->all_ppp_mutex);
+
+	if (notify && ppp && ppp->dev) {
+		dev_hold(ppp->dev);
+		raw_notifier_call_chain(&ppp_channel_connection_notifier_list,
+					   PPP_CHANNEL_CONNECT, ppp->dev);
+		dev_put(ppp->dev);
+	}
+
 	return ret;
 }
 
@@ -3278,6 +3307,13 @@ ppp_disconnect_channel(struct channel *pch)
 	pch->ppp = NULL;
 	write_unlock_bh(&pch->upl);
 	if (ppp) {
+		if (ppp->dev) {
+			dev_hold(ppp->dev);
+			raw_notifier_call_chain(&ppp_channel_connection_notifier_list,
+					   PPP_CHANNEL_DISCONNECT, ppp->dev);
+			dev_put(ppp->dev);
+		}
+
 		/* remove it from the ppp unit's list */
 		ppp_lock(ppp);
 		list_del(&pch->clist);
