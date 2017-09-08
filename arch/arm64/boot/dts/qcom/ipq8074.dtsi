@@ -1214,6 +1214,7 @@
 			qcom,wlan-dataplane-offload-enabled;
 			qcom,pppoe-enabled;
 			qcom,vxlan-enabled;
+			npu-supply = <&npu_vreg>;
 		};
 
 		nss1: nss@40800000 {
