@@ -2014,6 +2014,9 @@ static int do_test(const char *alg, u32 type, u32 mask, int m, u32 num_mb)
 	case 157:
 		ret += tcrypt_test("authenc(hmac(sha1),ecb(cipher_null))");
 		break;
+	case 180:
+		ret += tcrypt_test("authenc(hmac(sha256),cbc(aes))");
+		break;
 	case 181:
 		ret += tcrypt_test("authenc(hmac(sha1),cbc(des))");
 		break;
