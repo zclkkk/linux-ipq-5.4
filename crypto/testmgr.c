@@ -349,11 +349,15 @@ static const struct testvec_config default_cipher_testvec_configs[] = {
 };
 
 static const struct testvec_config default_hash_testvec_configs[] = {
+#ifndef CONFIG_CRYPTO_DISABLE_AHASH_TYPE1_TESTS
+	/* Update in testmgr requires the result back whereas HW hides result from the user */
 	{
 		.name = "init+update+final aligned buffer",
 		.src_divs = { { .proportion_of_total = 10000 } },
 		.finalization_type = FINALIZATION_TYPE_FINAL,
-	}, {
+	},
+#endif
+	{
 		.name = "init+finup aligned buffer",
 		.src_divs = { { .proportion_of_total = 10000 } },
 		.finalization_type = FINALIZATION_TYPE_FINUP,
@@ -361,11 +365,16 @@ static const struct testvec_config default_hash_testvec_configs[] = {
 		.name = "digest aligned buffer",
 		.src_divs = { { .proportion_of_total = 10000 } },
 		.finalization_type = FINALIZATION_TYPE_DIGEST,
-	}, {
+	},
+#ifndef CONFIG_CRYPTO_DISABLE_AHASH_TYPE1_TESTS
+	/* Update in testmgr requires the result back whereas HW hides result from the user */
+	{
 		.name = "init+update+final misaligned buffer",
 		.src_divs = { { .proportion_of_total = 10000, .offset = 1 } },
 		.finalization_type = FINALIZATION_TYPE_FINAL,
-	}, {
+	},
+#endif
+	{
 		.name = "digest buffer aligned only to alignmask",
 		.src_divs = {
 			{
@@ -375,7 +384,10 @@ static const struct testvec_config default_hash_testvec_configs[] = {
 			},
 		},
 		.finalization_type = FINALIZATION_TYPE_DIGEST,
-	}, {
+	},
+#ifndef CONFIG_CRYPTO_DISABLE_AHASH_TYPE2_TESTS
+	/* Update in testmgr requires the result back whereas HW hides result from the user */
+	{
 		.name = "init+update+update+final two even splits",
 		.src_divs = {
 			{ .proportion_of_total = 5000 },
@@ -385,7 +397,9 @@ static const struct testvec_config default_hash_testvec_configs[] = {
 			},
 		},
 		.finalization_type = FINALIZATION_TYPE_FINAL,
-	}, {
+	},
+#endif
+	{
 		.name = "digest uneven misaligned splits, may sleep",
 		.req_flags = CRYPTO_TFM_REQ_MAY_SLEEP,
 		.src_divs = {
@@ -406,7 +420,10 @@ static const struct testvec_config default_hash_testvec_configs[] = {
 			},
 		},
 		.finalization_type = FINALIZATION_TYPE_DIGEST,
-	}, {
+	},
+#ifndef CONFIG_CRYPTO_DISABLE_AHASH_TYPE3_TESTS
+	/* import/export are not supported by HW */
+	{
 		.name = "import/export",
 		.src_divs = {
 			{
@@ -419,6 +436,7 @@ static const struct testvec_config default_hash_testvec_configs[] = {
 		},
 		.finalization_type = FINALIZATION_TYPE_FINAL,
 	}
+#endif
 };
 
 static unsigned int count_test_sg_divisions(const struct test_sg_division *divs)
