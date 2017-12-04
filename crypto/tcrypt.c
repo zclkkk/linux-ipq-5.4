@@ -1922,6 +1922,14 @@ static int do_test(const char *alg, u32 type, u32 mask, int m, u32 num_mb)
 		ret += tcrypt_test("streebog512");
 		break;
 
+	case 55:
+		ret += tcrypt_test("ecb(aes)");
+		break;
+
+	case 56:
+		ret += tcrypt_test("rfc3686(ctr(aes))");
+		break;
+
 	case 100:
 		ret += tcrypt_test("hmac(md5)");
 		break;
