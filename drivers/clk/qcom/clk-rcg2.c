@@ -200,10 +200,10 @@ clk_rcg2_find_best_freq(struct clk_hw *hw, const struct freq_tbl *f,
 
 	switch (policy) {
 	case FLOOR:
-		f = qcom_find_freq_floor(rcg->freq_tbl, rate);
+		f = qcom_find_freq_floor(f, rate);
 		break;
 	case CEIL:
-		f = qcom_find_freq(rcg->freq_tbl, rate);
+		f = qcom_find_freq(f, rate);
 		break;
 	default:
 		return best_ftable;
