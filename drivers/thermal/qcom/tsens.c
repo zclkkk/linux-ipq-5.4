@@ -12,6 +12,17 @@
 #include <linux/thermal.h>
 #include "tsens.h"
 
+static int tsens_panic_notify(void *data)
+{
+	const struct tsens_sensor *s = data;
+	struct tsens_priv *priv = s->priv;
+
+	if (priv->ops->panic_notify)
+		return priv->ops->panic_notify(priv, s->id);
+
+	return -ENOTSUPP;
+}
+
 static int tsens_get_temp(void *data, int *temp)
 {
 	const struct tsens_sensor *s = data;
@@ -105,6 +116,7 @@ MODULE_DEVICE_TABLE(of, tsens_table);
 
 static const struct thermal_zone_of_device_ops tsens_of_ops = {
 	.get_temp = tsens_get_temp,
+	.panic_notify = tsens_panic_notify,
 	.get_trend = tsens_get_trend,
 	.set_trip_temp = tsens_set_trip_temp,
 	.set_trip_activate = tsens_activate_trip_type,

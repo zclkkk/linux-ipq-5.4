@@ -69,6 +69,7 @@ struct tsens_ops {
 	int (*calibrate)(struct tsens_priv *priv);
 	int (*get_temp)(struct tsens_priv *priv, int i, int *temp);
 	/* optional callbacks */
+	int (*panic_notify)(struct tsens_priv *, int);
 	int (*enable)(struct tsens_priv *priv, int i);
 	void (*disable)(struct tsens_priv *priv);
 	int (*suspend)(struct tsens_priv *priv);
@@ -317,6 +318,7 @@ struct tsens_priv {
 	const struct reg_field		*fields;
 	const struct tsens_ops		*ops;
 	struct work_struct		tsens_work;
+	void __iomem			*iomem_base;
 	struct tsens_sensor		sensor[0];
 };
 

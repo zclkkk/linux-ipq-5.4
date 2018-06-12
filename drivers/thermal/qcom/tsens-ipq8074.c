@@ -468,6 +468,40 @@ static int init_ipq807x(struct tsens_priv *tmdev)
 	return 0;
 }
 
+static int panic_notify_ipq807x(struct tsens_priv *tmdev, int id)
+{
+	u32 code, trdy;
+	const struct tsens_sensor *s = &tmdev->sensor[id];
+	unsigned int try = 0;
+
+	if (!s)
+		return -EINVAL;
+
+	if ((s->id < 0) || (s->id > (MAX_SENSOR - 1)))
+		return -EINVAL;
+
+	for(try = 0; try < 100; try++)
+	{
+		try++;
+		trdy = readl(tmdev->iomem_base + TSENS_TM_TRDY);
+
+		if (!(trdy & TSENS_TRDY_MASK))
+			continue;
+
+		code = readl(tmdev->iomem_base + s->status);
+
+		/* Check whether the temp is valid */
+		if (!(code & TSENS_TM_SN_STATUS_VALID_BIT))
+			continue;
+
+		pr_emerg("The reading for sensor %d is 0x%08x\n", s->id, code);
+		return 0;
+	}
+
+	pr_emerg("Couldn't get reading for sensor %d\n", s->id);
+	return -EINVAL;
+}
+
 static int get_temp_ipq807x(struct tsens_priv *tmdev, int id, int *temp)
 {
 	int ret, last_temp;
@@ -544,4 +578,5 @@ const struct tsens_ops ops_ipq807x = {
 	.get_temp	= get_temp_ipq807x,
 	.set_trip_temp	= set_trip_temp_ipq807x,
 	.set_trip_activate = set_trip_activate_ipq807x,
+	.panic_notify = panic_notify_ipq807x,
 };

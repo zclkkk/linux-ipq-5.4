@@ -109,6 +109,17 @@ static int of_thermal_set_trips(struct thermal_zone_device *tz,
 	return data->ops->set_trips(data->sensor_data, low, high);
 }
 
+static int of_thermal_panic_notify(struct thermal_zone_device *tz)
+{
+	struct __thermal_zone *data = tz->devdata;
+
+	if (!data->ops || !data->ops->panic_notify
+			|| (data->mode == THERMAL_DEVICE_DISABLED))
+		return -EINVAL;
+
+	return data->ops->panic_notify(data->sensor_data);
+}
+
 /**
  * of_thermal_get_ntrips - function to export number of available trip
  *			   points.
@@ -468,6 +479,7 @@ thermal_zone_of_add_sensor(struct device_node *zone,
 	tz->sensor_data = data;
 
 	tzd->ops->get_temp = of_thermal_get_temp;
+	tzd->ops->panic_notify = of_thermal_panic_notify;
 	tzd->ops->get_trend = of_thermal_get_trend;
 
 	/*
