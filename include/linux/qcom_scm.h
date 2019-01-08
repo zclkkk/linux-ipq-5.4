@@ -154,6 +154,9 @@ struct qcom_scm_vmperm {
 #define FUSEPROV_INVALID_HASH           0x09
 #define FUSEPROV_SECDAT_LOCK_BLOWN      0xB
 
+#define SCM_SVC_EXTWDT         0x5
+#define SCM_CMD_EXTWDT         0x2
+
 #if IS_ENABLED(CONFIG_QCOM_SCM)
 extern int qcom_scm_set_cold_boot_addr(void *entry, const cpumask_t *cpus);
 extern int qcom_scm_set_warm_boot_addr(void *entry, const cpumask_t *cpus);
@@ -227,6 +230,8 @@ extern int qti_qcekey_release_xpu_prot(void);
 extern int qti_scm_set_resettype(u32 reset_type);
 extern int qti_config_sec_ice(void *buf, int size);
 extern int qti_scm_pshold(void);
+extern int qcom_scm_extwdt(u32 svc_id, u32 cmd_id, unsigned int regaddr,
+			   unsigned int val);
 #else
 
 #include <linux/errno.h>
@@ -304,5 +309,10 @@ int qti_set_qcekey_sec(void *buf, int size) { return -ENODEV; }
 int qti_qcekey_release_xpu_prot(void) { return -ENODEV; }
 static inline int qcom_scm_set_resettype(u32 reset_type) { return -ENODEV; }
 static int qti_scm_pshold(void) { return -ENODEV; }
+extern int qcom_scm_extwdt(u32 svc_id, u32 cmd_id, unsigned int regaddr,
+			   unsigned int val)
+{
+	return -ENODEV;
+}
 #endif
 #endif

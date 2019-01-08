@@ -807,6 +807,14 @@ int qti_scm_pshold(void)
 }
 EXPORT_SYMBOL(qti_scm_pshold);
 
+int qcom_scm_extwdt(u32 svc_id, u32 cmd_id, unsigned int regaddr,
+						unsigned int val)
+{
+	return __qcom_scm_extwdt(__scm->dev, svc_id, cmd_id,
+						regaddr, val);
+}
+EXPORT_SYMBOL(qcom_scm_extwdt);
+
 static int qcom_scm_probe(struct platform_device *pdev)
 {
 	struct device_node *np = (&pdev->dev)->of_node;

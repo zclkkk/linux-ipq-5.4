@@ -13,6 +13,9 @@
 #include <linux/watchdog.h>
 #include <linux/of_device.h>
 #include <linux/sched/clock.h>
+#include <linux/qcom_scm.h>
+
+#define TCSR_WONCE_REG 0x193d010
 
 enum wdt_reg {
 	WDT_RST,
@@ -194,6 +197,17 @@ static void qcom_clk_disable_unprepare(void *data)
 	clk_disable_unprepare(data);
 }
 
+static int qcom_fiq_extwdt(unsigned int regaddr, unsigned int value)
+{
+	int ret;
+
+	ret = qcom_scm_extwdt(SCM_SVC_EXTWDT, SCM_CMD_EXTWDT, regaddr, value);
+	if (ret)
+		pr_err("Setting value to TCSR_WONCE register failed\n");
+
+	return ret;
+}
+
 static int qcom_wdt_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -204,6 +218,8 @@ static int qcom_wdt_probe(struct platform_device *pdev)
 	u32 percpu_offset;
 	int irq, ret;
 	struct clk *clk;
+	unsigned int retn, extwdt_val = 0, regaddr;
+	u32 val;
 
 	regs = of_device_get_match_data(dev);
 	if (!regs) {
@@ -300,6 +316,16 @@ static int qcom_wdt_probe(struct platform_device *pdev)
 		return ret;
 
 	platform_set_drvdata(pdev, wdt);
+
+	if (!of_property_read_u32(np, "extwdt-val", &val)) {
+		extwdt_val = val;
+
+		regaddr = TCSR_WONCE_REG;
+		retn = qcom_fiq_extwdt(regaddr, extwdt_val);
+		if (retn)
+			dev_err(&pdev->dev, "FIQ scm_call failed\n");
+	}
+
 	return 0;
 }
 

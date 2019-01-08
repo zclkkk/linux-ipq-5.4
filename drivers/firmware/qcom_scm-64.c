@@ -947,3 +947,19 @@ int __qti_scm_pshold(struct device *dev)
 {
 	return -ENOTSUPP;
 }
+
+int __qcom_scm_extwdt(struct device *dev, u32 svc_id, u32 cmd_id,
+			unsigned int regaddr, unsigned int val)
+{
+	struct qcom_scm_desc desc = {0};
+	struct arm_smccc_res res;
+	int ret;
+
+	desc.args[0] = (u64)regaddr;
+	desc.args[1] = val;
+	desc.arginfo = SCM_ARGS(2, QCOM_SCM_RW, QCOM_SCM_VAL);
+	ret = qcom_scm_call(dev, ARM_SMCCC_OWNER_SIP, QCOM_SCM_SVC_IO,
+			    QCOM_SCM_EXTWDT_CMD, &desc, &res);
+
+	return ret ? : res.a1;
+}
