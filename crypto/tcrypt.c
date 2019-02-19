@@ -617,7 +617,6 @@ static void test_aead_speed(const char *algo, int enc, unsigned int secs,
 			printk(KERN_INFO "test %u (%d bit key, %d byte blocks): ",
 					i, *keysize * 8, *b_size);
 
-
 			memset(tvmem[0], 0xff, PAGE_SIZE);
 
 			if (ret) {
@@ -2051,6 +2050,10 @@ static int do_test(const char *alg, u32 type, u32 mask, int m, u32 num_mb)
 		ret += tcrypt_test("ecb(sm4)");
 		ret += tcrypt_test("cbc(sm4)");
 		ret += tcrypt_test("ctr(sm4)");
+		break;
+
+	case 192:
+		ret += tcrypt_test("authenc(hmac(sha512),cbc(aes))");
 		break;
 
 	case 193:
