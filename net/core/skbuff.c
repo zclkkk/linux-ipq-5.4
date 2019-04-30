@@ -435,6 +435,7 @@ struct sk_buff *__netdev_alloc_skb(struct net_device *dev,
 	struct page_frag_cache *nc;
 	struct sk_buff *skb;
 	bool pfmemalloc;
+	bool page_frag_alloc_enable = true;
 	void *data;
 
 	unsigned int len = length;
@@ -469,8 +470,12 @@ struct sk_buff *__netdev_alloc_skb(struct net_device *dev,
 #else
 	len += NET_SKB_PAD;
 
+#ifdef CONFIG_ALLOC_SKB_PAGE_FRAG_DISABLE
+	page_frag_alloc_enable = false;
+#endif
 	if ((len > SKB_WITH_OVERHEAD(PAGE_SIZE)) ||
-	    (gfp_mask & (__GFP_DIRECT_RECLAIM | GFP_DMA))) {
+	    (gfp_mask & (__GFP_DIRECT_RECLAIM | GFP_DMA)) ||
+	    !page_frag_alloc_enable) {
 		skb = __alloc_skb(len, gfp_mask, SKB_ALLOC_RX, NUMA_NO_NODE);
 		if (!skb)
 			goto skb_fail;
