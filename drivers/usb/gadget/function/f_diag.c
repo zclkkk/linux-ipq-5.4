@@ -28,6 +28,7 @@
 #include <linux/workqueue.h>
 #include <linux/debugfs.h>
 #include <linux/kmemleak.h>
+#include "u_diag.h"
 
 #define MAX_INST_NAME_LEN	40
 
@@ -45,12 +46,6 @@ struct dload_struct {
 	uint32_t	pid;
 	char		serial_number[SERIAL_NUMBER_LENGTH];
 	struct magic_num_struct magic_struct;
-};
-
-/* for configfs support */
-struct diag_opts {
-	struct usb_function_instance func_inst;
-	char *name;
 };
 
 static inline struct diag_opts *to_diag_opts(struct config_item *item)
