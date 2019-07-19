@@ -4020,6 +4020,7 @@ static ssize_t diagchar_write(struct file *file, const char __user *buf,
 		token = diag_get_remote(token);
 	else
 		token = 0;
+#ifdef CONFIG_DIAG_OVER_USB
 	if ((driver->logging_mode[token] == DIAG_USB_MODE &&
 		!driver->usb_connected) ||
 		(driver->logging_mode[token] == DIAG_PCIE_MODE &&
@@ -4033,6 +4034,7 @@ static ssize_t diagchar_write(struct file *file, const char __user *buf,
 			return -EIO;
 		}
 	}
+#endif
 
 	payload_buf = buf + sizeof(int);
 	payload_len = count - sizeof(int);
@@ -4061,6 +4063,7 @@ static ssize_t diagchar_write(struct file *file, const char __user *buf,
 		 * stream. If USB is not connected and we are not in memory
 		 * device mode, we should not process these logs/events.
 		 */
+#ifdef CONFIG_DIAG_OVER_USB
 		if (pkt_type && ((driver->logging_mode[DIAG_LOCAL_PROC] ==
 			DIAG_USB_MODE &&
 			!driver->usb_connected)  ||
@@ -4068,6 +4071,7 @@ static ssize_t diagchar_write(struct file *file, const char __user *buf,
 			DIAG_PCIE_MODE &&
 			!driver->pcie_connected)))
 			return err;
+#endif
 	}
 
 	switch (pkt_type) {
