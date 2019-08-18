@@ -2573,6 +2573,9 @@ static void vxlan_xmit_one(struct sk_buff *skb, struct net_device *dev,
 		ndst = &rt->dst;
 		skb_tunnel_check_pmtu(skb, ndst, VXLAN_HEADROOM);
 
+		/* Reset the skb_iif to Tunnels interface index */
+		skb->skb_iif = dev->ifindex;
+
 		tos = ip_tunnel_ecn_encap(RT_TOS(tos), old_iph, skb);
 		ttl = ttl ? : ip4_dst_hoplimit(&rt->dst);
 		err = vxlan_build_skb(skb, ndst, sizeof(struct iphdr),
@@ -2620,6 +2623,9 @@ static void vxlan_xmit_one(struct sk_buff *skb, struct net_device *dev,
 				      vni, md, flags, udp_sum);
 		if (err < 0)
 			goto tx_error;
+
+		/* Reset the skb_iif to Tunnels interface index */
+		skb->skb_iif = dev->ifindex;
 
 		udp_tunnel6_xmit_skb(ndst, sock6->sock->sk, skb, dev,
 				     &local_ip.sin6.sin6_addr,
