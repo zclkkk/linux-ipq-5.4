@@ -228,6 +228,12 @@ config CRYPTO_DISABLE_HW_UNSUPPORTED_TESTS
 	help
 	  Disable hw unsupported test cases
 
+config CRYPTO_DISABLE_AHASH_LARGE_KEY_TEST
+	bool "Disable AHASH test cases with auth key greater than block size"
+	default y
+	help
+	  Disable large key ahash tests
+
 config CRYPTO_SIMD
 	tristate
 	select CRYPTO_CRYPTD
