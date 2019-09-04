@@ -535,6 +535,18 @@ static struct vxlan_fdb *vxlan_find_mac(struct vxlan_dev *vxlan,
 	return f;
 }
 
+/* Find and update age of fdb entry corresponding to MAC. */
+void vxlan_fdb_update_mac(struct vxlan_dev *vxlan, const u8 *mac, uint32_t vni)
+{
+	u32 hash_index;
+
+	hash_index = fdb_head_index(vxlan, mac, vni);
+	spin_lock_bh(&vxlan->hash_lock[hash_index]);
+	vxlan_find_mac(vxlan, mac, vni);
+	spin_unlock_bh(&vxlan->hash_lock[hash_index]);
+}
+EXPORT_SYMBOL(vxlan_fdb_update_mac);
+
 /* caller should hold vxlan->hash_lock */
 static struct vxlan_rdst *vxlan_fdb_find_rdst(struct vxlan_fdb *f,
 					      union vxlan_addr *ip, __be16 port,
