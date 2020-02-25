@@ -11,6 +11,7 @@
 #include <linux/err.h>
 #include <linux/qcom_scm.h>
 #include <linux/dma-mapping.h>
+#include <linux/delay.h>
 
 #include "qcom_scm.h"
 
@@ -23,6 +24,10 @@
 #define QCOM_SCM_FLAG_WARMBOOT_CPU1	0x02
 #define QCOM_SCM_FLAG_WARMBOOT_CPU2	0x10
 #define QCOM_SCM_FLAG_WARMBOOT_CPU3	0x40
+
+#define N_EXT_SCM_ARGS		7
+#define FIRST_EXT_ARG_IDX	3
+#define N_REGISTER_ARGS		(MAX_QCOM_SCM_ARGS - N_EXT_SCM_ARGS + 1)
 
 struct qcom_scm_entry {
 	int flag;
@@ -287,6 +292,175 @@ static s32 qcom_scm_call_atomic2(u32 svc, u32 cmd, u32 arg1, u32 arg2)
 			: "r" (r0), "r" (r1), "r" (r2), "r" (r3)
 			: "r12");
 	return r0;
+}
+
+#define R0_STR "r0"
+#define R1_STR "r1"
+#define R2_STR "r2"
+#define R3_STR "r3"
+#define R4_STR "r4"
+#define R5_STR "r5"
+#define R6_STR "r6"
+
+static int __scm_call_armv8_32(u32 w0, u32 w1, u32 w2, u32 w3, u32 w4, u32 w5,
+				u64 *ret1, u64 *ret2, u64 *ret3)
+{
+	register u32 r0 asm("r0") = w0;
+	register u32 r1 asm("r1") = w1;
+	register u32 r2 asm("r2") = w2;
+	register u32 r3 asm("r3") = w3;
+	register u32 r4 asm("r4") = w4;
+	register u32 r5 asm("r5") = w5;
+	register u32 r6 asm("r6") = 0;
+
+	do {
+		asm volatile(
+			__asmeq("%0", R0_STR)
+			__asmeq("%1", R1_STR)
+			__asmeq("%2", R2_STR)
+			__asmeq("%3", R3_STR)
+			__asmeq("%4", R0_STR)
+			__asmeq("%5", R1_STR)
+			__asmeq("%6", R2_STR)
+			__asmeq("%7", R3_STR)
+			__asmeq("%8", R4_STR)
+			__asmeq("%9", R5_STR)
+			__asmeq("%10", R6_STR)
+#ifdef REQUIRES_SEC
+			".arch_extension sec\n"
+#endif
+			"smc	#0\n"
+			: "=r" (r0), "=r" (r1), "=r" (r2), "=r" (r3)
+			: "r" (r0), "r" (r1), "r" (r2), "r" (r3), "r" (r4),
+			 "r" (r5), "r" (r6));
+
+	} while (r0 == QCOM_SCM_INTERRUPTED);
+
+	if (ret1)
+		*ret1 = r1;
+	if (ret2)
+		*ret2 = r2;
+	if (ret3)
+		*ret3 = r3;
+
+	return r0;
+}
+
+static enum scm_interface_version {
+	SCM_UNKNOWN,
+	SCM_LEGACY,
+	SCM_ARMV8_32,
+} scm_version = SCM_UNKNOWN;
+
+/* This function is used to find whether TZ is in AARCH64 mode.
+ * If this function returns 1, then its in AARCH64 mode and
+ * calling conventions for AARCH64 TZ is different, we need to
+ * use them.
+ */
+bool is_scm_armv8(void)
+{
+	int ret;
+	u64 ret1, x0;
+
+	if (likely(scm_version != SCM_UNKNOWN))
+		return (scm_version == SCM_ARMV8_32);
+
+	/* Try SMC32 call */
+	ret1 = 0;
+	x0 = SCM_SIP_FNID(QCOM_SCM_SVC_INFO, QCOM_IS_CALL_AVAIL_CMD) |
+			QTI_SMC_ATOMIC_MASK;
+
+	ret = __scm_call_armv8_32(x0, SCM_ARGS(1), x0, 0, 0, 0,
+				  &ret1, NULL, NULL);
+	if (ret || !ret1)
+		scm_version = SCM_LEGACY;
+	else
+		scm_version = SCM_ARMV8_32;
+
+	pr_debug("scm_call: scm version is %x\n", scm_version);
+
+	return (scm_version == SCM_ARMV8_32);
+}
+
+/**
+ * qti_scm_call2() - Invoke a syscall in the secure world
+ * @fn_id: The function ID for this syscall
+ * @desc: Descriptor structure containing arguments and return values
+ *
+ * Sends a command to the SCM and waits for the command to finish processing.
+ * This should *only* be called in pre-emptible context.
+ *
+ */
+static int qti_scm_call2(u32 fn_id, struct scm_desc *desc)
+{
+	int arglen = desc->arginfo & 0xf;
+	int ret = 0;
+	int retry_count = 0;
+	int i = 0;
+	u64 x0 = fn_id;
+	dma_addr_t args_phy = 0;
+	u32 *args_virt = NULL;
+	size_t alloc_len = 0;
+
+	desc->x5 = desc->args[FIRST_EXT_ARG_IDX];
+
+	if (unlikely(!is_scm_armv8()))
+		return -ENODEV;
+
+	if (unlikely(arglen > N_REGISTER_ARGS)) {
+		alloc_len = N_EXT_SCM_ARGS * sizeof(u32);
+		args_virt = kzalloc(PAGE_ALIGN(alloc_len), GFP_KERNEL);
+
+		if (!args_virt)
+			return -ENOMEM;
+
+		desc->extra_arg_buf = args_virt;
+
+		for (i = 0; i < N_EXT_SCM_ARGS; i++)
+			args_virt[i] = cpu_to_le32(desc->args[i +
+						      FIRST_EXT_ARG_IDX]);
+
+		args_phy = dma_map_single(NULL, args_virt, alloc_len,
+					   DMA_TO_DEVICE);
+
+		if (dma_mapping_error(NULL, args_phy)) {
+			kfree(args_virt);
+			return -ENOMEM;
+		}
+
+		desc->x5 = args_phy;
+	}
+
+	do {
+		mutex_lock(&qcom_scm_lock);
+
+		desc->ret[0] = desc->ret[1] = desc->ret[2] = 0;
+
+		ret = __scm_call_armv8_32(x0, desc->arginfo,
+					  desc->args[0], desc->args[1],
+					  desc->args[2], desc->x5,
+					  &desc->ret[0], &desc->ret[1],
+					  &desc->ret[2]);
+		mutex_unlock(&qcom_scm_lock);
+
+		if (ret == QCOM_SCM_V2_EBUSY)
+			msleep(QCOM_SCM_EBUSY_WAIT_MS);
+	}  while (ret == QCOM_SCM_V2_EBUSY &&
+			(retry_count++ < QCOM_SCM_EBUSY_MAX_RETRY));
+
+	if (args_virt) {
+		dma_unmap_single(NULL, args_phy, alloc_len, DMA_TO_DEVICE);
+		kfree(args_virt);
+	}
+
+	if (ret < 0)
+		pr_err("scm_call failed: func id %#llx ret: %d syscall returns: %#llx, %#llx, %#llx\n",
+			x0, ret, desc->ret[0], desc->ret[1], desc->ret[2]);
+
+	if (ret < 0)
+		return qcom_scm_remap_error(ret);
+
+	return 0;
 }
 
 u32 qcom_scm_get_version(void)

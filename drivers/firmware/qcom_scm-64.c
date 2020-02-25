@@ -16,16 +16,6 @@
 
 #define QCOM_SCM_FNID(s, c) ((((s) & 0xFF) << 8) | ((c) & 0xFF))
 
-#define MAX_QCOM_SCM_ARGS 10
-#define MAX_QCOM_SCM_RETS 3
-
-enum qcom_scm_arg_types {
-	QCOM_SCM_VAL,
-	QCOM_SCM_RO,
-	QCOM_SCM_RW,
-	QCOM_SCM_BUFVAL,
-};
-
 #define QCOM_SCM_ARGS_IMPL(num, a, b, c, d, e, f, g, h, i, j, ...) (\
 			   (((a) & 0x3) << 4) | \
 			   (((b) & 0x3) << 6) | \
@@ -54,9 +44,6 @@ struct qcom_scm_desc {
 
 static u64 qcom_smccc_convention = -1;
 static DEFINE_MUTEX(qcom_scm_lock);
-
-#define QCOM_SCM_EBUSY_WAIT_MS 30
-#define QCOM_SCM_EBUSY_MAX_RETRY 20
 
 #define N_EXT_QCOM_SCM_ARGS 7
 #define FIRST_EXT_ARG_IDX 3

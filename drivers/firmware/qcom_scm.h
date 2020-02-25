@@ -101,4 +101,54 @@ extern int  __qcom_scm_assign_mem(struct device *dev,
 				  phys_addr_t src, size_t src_sz,
 				  phys_addr_t dest, size_t dest_sz);
 
+#define SCM_SIP_FNID(s, c) (((((s) & 0xFF) << 8) | ((c) & 0xFF)) | 0x02000000)
+#define QTI_SMC_ATOMIC_MASK		0x80000000
+#define SCM_ARGS_IMPL(num, a, b, c, d, e, f, g, h, i, j, ...) (\
+			(((a) & 0xff) << 4) | \
+			(((b) & 0xff) << 6) | \
+			(((c) & 0xff) << 8) | \
+			(((d) & 0xff) << 10) | \
+			(((e) & 0xff) << 12) | \
+			(((f) & 0xff) << 14) | \
+			(((g) & 0xff) << 16) | \
+			(((h) & 0xff) << 18) | \
+			(((i) & 0xff) << 20) | \
+			(((j) & 0xff) << 22) | \
+			(num & 0xffff))
+
+#define SCM_ARGS(...) SCM_ARGS_IMPL(__VA_ARGS__, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+
+#define MAX_QCOM_SCM_ARGS 10
+#define MAX_QCOM_SCM_RETS 3
+
+enum qcom_scm_arg_types {
+	QCOM_SCM_VAL,
+	QCOM_SCM_RO,
+	QCOM_SCM_RW,
+	QCOM_SCM_BUFVAL,
+};
+
+
+/**
+ * struct scm_desc
+ * @arginfo: Metadata describing the arguments in args[]
+ * @args: The array of arguments for the secure syscall
+ * @ret: The values returned by the secure syscall
+ * @extra_arg_buf: The buffer containing extra arguments
+		   (that don't fit in available registers)
+ * @x5: The 4rd argument to the secure syscall or physical address of
+	extra_arg_buf
+ */
+struct scm_desc {
+	u32 arginfo;
+	u64 args[MAX_QCOM_SCM_ARGS];
+	u64 ret[MAX_QCOM_SCM_RETS];
+
+	/* private */
+	void *extra_arg_buf;
+	u64 x5;
+};
+
+#define QCOM_SCM_EBUSY_WAIT_MS 30
+#define QCOM_SCM_EBUSY_MAX_RETRY 20
 #endif
