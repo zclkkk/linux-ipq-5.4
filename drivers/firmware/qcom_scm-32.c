@@ -644,14 +644,24 @@ int __qcom_scm_pas_init_image(struct device *dev, u32 peripheral,
 		__le32 proc;
 		__le32 image_addr;
 	} request;
+	struct scm_desc desc = {0};
 
-	request.proc = cpu_to_le32(peripheral);
-	request.image_addr = cpu_to_le32(metadata_phys);
+	if (!is_scm_armv8()) {
+		request.proc = cpu_to_le32(peripheral);
+		request.image_addr = cpu_to_le32(metadata_phys);
 
-	ret = qcom_scm_call(dev, QCOM_SCM_SVC_PIL,
-			    QCOM_SCM_PAS_INIT_IMAGE_CMD,
-			    &request, sizeof(request),
-			    &scm_ret, sizeof(scm_ret));
+		ret = qcom_scm_call(dev, QCOM_SCM_SVC_PIL,
+				    QCOM_SCM_PAS_INIT_IMAGE_CMD,
+				    &request, sizeof(request),
+					&scm_ret, sizeof(scm_ret));
+	} else {
+		desc.args[0] = peripheral;
+		desc.args[1] = metadata_phys;
+		desc.arginfo = SCM_ARGS(2, QCOM_SCM_VAL, QCOM_SCM_RW);
+		ret = qti_scm_call2(SCM_SIP_FNID(QCOM_SCM_SVC_PIL,
+					QCOM_SCM_PAS_INIT_IMAGE_CMD), &desc);
+		scm_ret = desc.ret[0];
+	}
 
 	return ret ? : le32_to_cpu(scm_ret);
 }
@@ -684,12 +694,21 @@ int __qcom_scm_pas_auth_and_reset(struct device *dev, u32 peripheral)
 	__le32 out;
 	__le32 in;
 	int ret;
+	struct scm_desc desc = {0};
 
-	in = cpu_to_le32(peripheral);
-	ret = qcom_scm_call(dev, QCOM_SCM_SVC_PIL,
-			    QCOM_SCM_PAS_AUTH_AND_RESET_CMD,
-			    &in, sizeof(in),
-			    &out, sizeof(out));
+	if (!is_scm_armv8()) {
+		in = cpu_to_le32(peripheral);
+		ret = qcom_scm_call(dev, QCOM_SCM_SVC_PIL,
+					QCOM_SCM_PAS_AUTH_AND_RESET_CMD,
+					&in, sizeof(in),
+					&out, sizeof(out));
+	} else {
+		desc.args[0] = peripheral;
+		desc.arginfo = SCM_ARGS(1);
+		ret = qti_scm_call2(SCM_SIP_FNID(QCOM_SCM_SVC_PIL,
+					QCOM_SCM_PAS_AUTH_AND_RESET_CMD), &desc);
+		out = desc.ret[0];
+	}
 
 	return ret ? : le32_to_cpu(out);
 }
