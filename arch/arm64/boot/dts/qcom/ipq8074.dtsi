@@ -15,6 +15,10 @@
 		scm {
 			compatible = "qcom,scm-ipq8074", "qcom,scm";
 		};
+
+		qfprom {
+			compatible = "qcom,qfprom-sec";
+		};
 	};
 
 	tcsr_mutex: hwlock@193d000 {
