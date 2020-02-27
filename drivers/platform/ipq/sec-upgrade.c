@@ -353,7 +353,7 @@ store_sec_auth(struct device *dev,
 		goto free_mem;
 	}
 
-	ret = vfs_getattr(&file->f_path, &st);
+	ret = vfs_getattr(&file->f_path, &st, STATX_SIZE, AT_STATX_SYNC_AS_STAT);
 	if (ret) {
 		pr_err("get file attributes failed\n");
 		goto file_close;
@@ -395,7 +395,7 @@ store_sec_auth(struct device *dev,
 
 	memset_io(file_buf, 0x0, img_size);
 
-	ret = kernel_read(file, 0, file_buf, size);
+	ret = kernel_read(file, file_buf, size, 0);
 	if (ret != size) {
 		pr_err("%s file read failed\n", file_name);
 		goto un_map;
@@ -451,7 +451,7 @@ store_sec_dat(struct device *dev, struct device_attribute *attr,
 		goto out;
 	}
 
-	ret = vfs_getattr(&fptr->f_path, &st);
+	ret = vfs_getattr(&fptr->f_path, &st, STATX_SIZE, AT_STATX_SYNC_AS_STAT);
 	if (ret) {
 		pr_err("Getting file attributes failed\n");
 		goto file_close;
@@ -471,7 +471,7 @@ store_sec_dat(struct device *dev, struct device_attribute *attr,
 		ptr = page_address(req_page);
 	}
 	memset_io(ptr, 0, size);
-	ret = kernel_read(fptr, 0, ptr, size);
+	ret = kernel_read(fptr, ptr, size, 0);
 	if (ret != size) {
 		pr_err("File read failed\n");
 		goto free_page;
