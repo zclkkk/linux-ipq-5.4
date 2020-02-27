@@ -807,3 +807,157 @@ int __qcom_scm_io_writel(struct device *dev, phys_addr_t addr, unsigned int val)
 	return qcom_scm_call_atomic2(QCOM_SCM_SVC_IO, QCOM_SCM_IO_WRITE,
 				     addr, val);
 }
+
+int __qti_qfprom_show_authenticate(struct device *dev, char *buf)
+{
+	int ret;
+
+	if (!is_scm_armv8()) {
+		ret = qcom_scm_call(dev, QTI_SCM_SVC_FUSE,
+					QTI_QFPROM_IS_AUTHENTICATE_CMD, NULL,
+					0, buf, sizeof(char));
+	} else {
+		__le32 scm_ret;
+		struct scm_desc desc = {0};
+		dma_addr_t auth_phys;
+		void *auth_buf;
+
+		auth_buf = dma_alloc_coherent(dev, sizeof(*buf),
+						&auth_phys, GFP_KERNEL);
+		if (!auth_buf) {
+			dev_err(dev, "Allocation for auth buffer failed\n");
+			return -ENOMEM;
+		}
+		desc.args[0] = (u64)auth_phys;
+		desc.args[1] = sizeof(char);
+		desc.arginfo = SCM_ARGS(2, QCOM_SCM_RO);
+		ret = qti_scm_call2(SCM_SIP_FNID(QTI_SCM_SVC_FUSE,
+					QTI_QFPROM_IS_AUTHENTICATE_CMD), &desc);
+		scm_ret = desc.ret[0];
+		memcpy(buf, auth_buf, sizeof(char));
+		dma_free_coherent(dev, sizeof(*buf), auth_buf, auth_phys);
+
+		if (!ret)
+			return le32_to_cpu(scm_ret);
+	}
+
+	return ret;
+}
+
+int __qti_qfprom_write_version(struct device *dev, void *wrip, int size)
+{
+	if (!is_scm_armv8())
+		return  qcom_scm_call(dev, QTI_SCM_SVC_FUSE,
+						QTI_QFPROM_ROW_WRITE_CMD,
+						wrip, size, NULL, 0);
+	else
+		return -ENOTSUPP;
+}
+
+int __qti_qfprom_read_version(struct device *dev, uint32_t sw_type,
+			uint32_t value, uint32_t qfprom_ret_ptr)
+{
+	int ret;
+
+	if (!is_scm_armv8()) {
+		struct qfprom_read {
+			uint32_t sw_type;
+			uint32_t value;
+			uint32_t qfprom_ret_ptr;
+		} rdip;
+
+		rdip.sw_type = sw_type;
+		rdip.value = value;
+		rdip.qfprom_ret_ptr = qfprom_ret_ptr;
+
+		ret = qcom_scm_call(dev, QTI_SCM_SVC_FUSE,
+			QTI_QFPROM_ROW_READ_CMD, &rdip, sizeof(rdip), NULL, 0);
+
+	} else {
+		__le32 scm_ret;
+		struct scm_desc desc = {0};
+
+		desc.args[0] = sw_type;
+		desc.args[1] = (u64)value;
+		desc.args[2] = sizeof(uint32_t);
+		desc.args[3] = (u64)qfprom_ret_ptr;
+		desc.args[4] = sizeof(uint32_t);
+
+		desc.arginfo = SCM_ARGS(5, QCOM_SCM_VAL, QCOM_SCM_RW,
+							QCOM_SCM_VAL,
+							QCOM_SCM_RW,
+							QCOM_SCM_VAL);
+		ret = qti_scm_call2(SCM_SIP_FNID(QTI_SCM_SVC_FUSE,
+					QTI_QFPROM_ROW_READ_CMD), &desc);
+		scm_ret = desc.ret[0];
+
+		if (!ret)
+			return le32_to_cpu(scm_ret);
+	}
+
+	return ret;
+
+}
+
+int __qti_sec_upgrade_auth(struct device *dev, unsigned int scm_cmd_id,
+							unsigned int sw_type,
+							unsigned int img_size,
+							unsigned int load_addr)
+{
+	int ret;
+	struct {
+		unsigned type;
+		unsigned size;
+		unsigned addr;
+	} cmd_buf;
+
+	if (!is_scm_armv8()) {
+		cmd_buf.type = sw_type;
+		cmd_buf.size = img_size;
+		cmd_buf.addr = load_addr;
+		ret = qcom_scm_call(dev, QCOM_SCM_SVC_BOOT,
+					scm_cmd_id, &cmd_buf,
+					sizeof(cmd_buf), NULL, 0);
+	} else {
+		__le32 scm_ret;
+		struct scm_desc desc = {0};
+
+		desc.args[0] = sw_type;
+		desc.args[1] = img_size;
+		desc.args[2] = (u64)load_addr;
+		desc.arginfo = SCM_ARGS(3, QCOM_SCM_VAL, QCOM_SCM_VAL,
+								QCOM_SCM_RW);
+		ret = qti_scm_call2(SCM_SIP_FNID(QCOM_SCM_SVC_BOOT,
+							scm_cmd_id), &desc);
+		scm_ret = desc.ret[0];
+
+		if (!ret)
+			return le32_to_cpu(scm_ret);
+	}
+
+	return ret;
+}
+
+int __qti_fuseipq_scm_call(struct device *dev, u32 svc_id, u32 cmd_id,
+			    void *cmd_buf, size_t size)
+{
+	int ret;
+	struct scm_desc desc = {0};
+	uint64_t *status;
+
+	if (is_scm_armv8()) {
+
+		desc.arginfo = SCM_ARGS(1, QCOM_SCM_RO);
+		desc.args[0] = *((unsigned int *)cmd_buf);
+
+		ret = qti_scm_call2(SCM_SIP_FNID(svc_id, cmd_id), &desc);
+		status = (uint64_t *)(*(((uint32_t *)cmd_buf) + 1));
+		*status = desc.ret[0];
+
+	} else {
+
+		return -ENOTSUPP;
+	}
+
+	return ret ? : le32_to_cpu(desc.ret[0]);
+}

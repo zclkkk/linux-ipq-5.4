@@ -151,4 +151,23 @@ struct scm_desc {
 
 #define QCOM_SCM_EBUSY_WAIT_MS 30
 #define QCOM_SCM_EBUSY_MAX_RETRY 20
+
+#define QTI_SCM_SVC_FUSE		0x8
+#define QTI_SCM_SVC_SEC_AUTH		0x1
+#define QTI_QFPROM_IS_AUTHENTICATE_CMD	0x7
+#define QTI_QFPROM_ROW_READ_CMD	0x8
+#define QTI_QFPROM_ROW_WRITE_CMD	0x9
+#define QTI_SCM_CMD_SEC_AUTH		0x15
+extern int __qti_qfprom_show_authenticate(struct device *dev, char *buf);
+extern int __qti_qfprom_write_version(struct device *dev, void *wrip,
+					int size);
+extern int __qti_qfprom_read_version(struct device *dev, uint32_t sw_type,
+					uint32_t value,
+					uint32_t qfprom_ret_ptr);
+extern int __qti_sec_upgrade_auth(struct device *dev, unsigned int scm_cmd_id,
+							unsigned int sw_type,
+							unsigned int img_size,
+							unsigned int load_addr);
+extern int __qti_fuseipq_scm_call(struct device *dev, u32 svc_id, u32 cmd_id,
+					void *cmd_buf, size_t size);
 #endif

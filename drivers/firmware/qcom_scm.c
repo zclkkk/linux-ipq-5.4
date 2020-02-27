@@ -502,6 +502,69 @@ int qcom_scm_assign_mem(phys_addr_t mem_addr, size_t mem_sz,
 }
 EXPORT_SYMBOL(qcom_scm_assign_mem);
 
+/**
+ * qcom_qfprom_show_authenticate() - Check secure boot fuse is enabled
+ */
+int qti_qfprom_show_authenticate(void)
+{
+	int ret;
+	char buf;
+
+	ret = __qti_qfprom_show_authenticate(__scm->dev, &buf);
+
+	if (ret) {
+		pr_err("%s: Error in QFPROM read : %d\n", __func__, ret);
+		return -1;
+	}
+
+	return buf == 1 ? 1 : 0;
+}
+EXPORT_SYMBOL(qti_qfprom_show_authenticate);
+
+int qti_qfprom_write_version(void *wrip, int size)
+{
+	return __qti_qfprom_write_version(__scm->dev, wrip, size);
+}
+
+int qti_qfprom_read_version(uint32_t sw_type,
+			uint32_t value, uint32_t qfprom_ret_ptr)
+{
+	return __qti_qfprom_read_version(__scm->dev, sw_type, value,
+						qfprom_ret_ptr);
+}
+
+int qti_sec_upgrade_auth(unsigned int scm_cmd_id, unsigned int sw_type,
+				unsigned int img_size, unsigned int load_addr)
+{
+	return __qti_sec_upgrade_auth(__scm->dev, scm_cmd_id, sw_type,
+						img_size, load_addr);
+}
+EXPORT_SYMBOL(qti_sec_upgrade_auth);
+
+/**
+ * qti_scm_sec_auth_available() - Check if SEC_AUTH is supported.
+ *
+ * Return true if SEC_AUTH is supported, false if not.
+ */
+bool qti_scm_sec_auth_available(unsigned int scm_cmd_id)
+{
+	int ret;
+
+	ret = __qcom_scm_is_call_available(__scm->dev, QTI_SCM_SVC_SEC_AUTH,
+								scm_cmd_id);
+
+	return ret > 0 ? true : false;
+}
+EXPORT_SYMBOL(qti_scm_sec_auth_available);
+
+int qti_fuseipq_scm_call(struct device *dev, u32 svc_id, u32 cmd_id,
+			  void *cmd_buf, size_t size)
+{
+	return __qti_fuseipq_scm_call(dev, svc_id, cmd_id,
+				       cmd_buf, size);
+}
+EXPORT_SYMBOL(qti_fuseipq_scm_call);
+
 static int qcom_scm_probe(struct platform_device *pdev)
 {
 	struct qcom_scm *scm;

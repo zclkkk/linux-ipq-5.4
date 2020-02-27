@@ -54,7 +54,7 @@ qfprom_show_authenticate(struct device *dev,
 {
 	int ret;
 
-	ret = qcom_qfprom_show_authenticate();
+	ret = qti_qfprom_show_authenticate();
 	if (ret == -1)
 		return ret;
 
@@ -94,7 +94,7 @@ int write_version(struct device *dev, uint32_t type, uint32_t version)
 		goto err_write;
 	}
 
-	ret = qcom_qfprom_write_version(&wrip, sizeof(wrip));
+	ret = qti_qfprom_write_version(&wrip, sizeof(wrip));
 
 	dma_unmap_single(dev, wrip.qfprom_ret_ptr,
 			sizeof(*qfprom_api_status), DMA_FROM_DEVICE);
@@ -136,7 +136,7 @@ int read_version(struct device *dev, int type, uint32_t **version_ptr)
 	ret2 = dma_mapping_error(dev, rdip.qfprom_ret_ptr);
 
 	if (ret1 == 0 && ret2 == 0) {
-		ret = qcom_qfprom_read_version(type, rdip.value,
+		ret = qti_qfprom_read_version(type, rdip.value,
 			rdip.qfprom_ret_ptr);
 	}
 	if (ret1 == 0) {
@@ -385,7 +385,7 @@ store_sec_auth(struct device *dev,
 
 	ret = of_property_read_u32(np, "scm-cmd-id", &scm_cmd_id);
 	if (ret)
-		scm_cmd_id = QCOM_KERNEL_AUTH_CMD;
+		scm_cmd_id = QTI_KERNEL_AUTH_CMD;
 
 	file_buf = ioremap_nocache(img_addr, img_size);
 	if (file_buf == NULL) {
@@ -401,7 +401,7 @@ store_sec_auth(struct device *dev,
 		goto un_map;
 	}
 
-	ret = qcom_sec_upgrade_auth(scm_cmd_id, sw_type, size, img_addr);
+	ret = qti_sec_upgrade_auth(scm_cmd_id, sw_type, size, img_addr);
 	if (ret) {
 		pr_err("sec_upgrade_auth failed with return=%d\n", ret);
 		goto un_map;
@@ -497,7 +497,7 @@ store_sec_dat(struct device *dev, struct device_attribute *attr,
 	fuse_blow.address = dma_req_addr;
 	fuse_blow.status = fuse_status;
 
-	ret = qcom_fuseipq_scm_call(dev, QCOM_SCM_SVC_FUSE,
+	ret = qti_fuseipq_scm_call(dev, QTI_SCM_SVC_FUSE,
 				    TZ_BLOW_FUSE_SECDAT, &fuse_blow,
 				    sizeof(fuse_blow));
 	if (ret) {
@@ -660,7 +660,7 @@ static int qfprom_probe(struct platform_device *pdev)
 	 * Registering sec_auth under "/sys/sec_authenticate"
 	   only if board is secured
 	 */
-	ret = qcom_qfprom_show_authenticate();
+	ret = qti_qfprom_show_authenticate();
 	if (ret == -1)
 		return ret;
 
@@ -668,12 +668,12 @@ static int qfprom_probe(struct platform_device *pdev)
 
 		err = of_property_read_u32(np, "scm-cmd-id", &scm_cmd_id);
 		if (err)
-			scm_cmd_id = QCOM_KERNEL_AUTH_CMD;
+			scm_cmd_id = QTI_KERNEL_AUTH_CMD;
 
 		/*
 		 * Checking if secure sysupgrade scm_call is supported
 		 */
-		if (!qcom_scm_sec_auth_available(scm_cmd_id)) {
+		if (!qti_scm_sec_auth_available(scm_cmd_id)) {
 			pr_info("qcom_scm_sec_auth_available is not supported\n");
 		} else {
 			sec_kobj = kobject_create_and_add("sec_upgrade", NULL);

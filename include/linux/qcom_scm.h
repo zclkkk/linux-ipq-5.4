@@ -34,6 +34,13 @@ struct qcom_scm_vmperm {
 #define QCOM_SCM_PERM_RW (QCOM_SCM_PERM_READ | QCOM_SCM_PERM_WRITE)
 #define QCOM_SCM_PERM_RWX (QCOM_SCM_PERM_RW | QCOM_SCM_PERM_EXEC)
 
+#define QTI_SCM_SVC_FUSE		0x8
+#define QTI_KERNEL_AUTH_CMD		0x15
+#define TZ_BLOW_FUSE_SECDAT             0x20
+#define FUSEPROV_SUCCESS                0x0
+#define FUSEPROV_INVALID_HASH           0x09
+#define FUSEPROV_SECDAT_LOCK_BLOWN      0xB
+
 #if IS_ENABLED(CONFIG_QCOM_SCM)
 extern int qcom_scm_set_cold_boot_addr(void *entry, const cpumask_t *cpus);
 extern int qcom_scm_set_warm_boot_addr(void *entry, const cpumask_t *cpus);
@@ -60,6 +67,17 @@ extern int qcom_scm_iommu_secure_ptbl_size(u32 spare, size_t *size);
 extern int qcom_scm_iommu_secure_ptbl_init(u64 addr, u32 size, u32 spare);
 extern int qcom_scm_io_readl(phys_addr_t addr, unsigned int *val);
 extern int qcom_scm_io_writel(phys_addr_t addr, unsigned int val);
+extern int qti_qfprom_show_authenticate(void);
+extern int qti_qfprom_write_version(void *wrip, int size);
+extern int qti_qfprom_read_version(uint32_t sw_type,
+					uint32_t value,
+					uint32_t qfprom_ret_ptr);
+extern int qti_sec_upgrade_auth(unsigned int scm_cmd_id, unsigned int sw_type,
+					unsigned int img_size,
+					unsigned int load_addr);
+extern bool qti_scm_sec_auth_available(unsigned int scm_cmd_id);
+extern int qti_fuseipq_scm_call(struct device *dev, u32 svc_id, u32 cmd_id,
+					void *cmd_buf, size_t size);
 #else
 
 #include <linux/errno.h>
@@ -99,5 +117,28 @@ static inline int qcom_scm_iommu_secure_ptbl_size(u32 spare, size_t *size) { ret
 static inline int qcom_scm_iommu_secure_ptbl_init(u64 addr, u32 size, u32 spare) { return -ENODEV; }
 static inline int qcom_scm_io_readl(phys_addr_t addr, unsigned int *val) { return -ENODEV; }
 static inline int qcom_scm_io_writel(phys_addr_t addr, unsigned int val) { return -ENODEV; }
+static inline int qti_qfprom_show_authenticate(void) { return -ENODEV; }
+static inline int qti_qfprom_write_version(void *wrip, int size) { return -ENODEV; }
+static inline int qti_qfprom_read_version(uint32_t sw_type,
+						uint32_t value,
+						uint32_t qfprom_ret_ptr)
+{
+	return -ENODEV;
+}
+static inline int qti_sec_upgrade_auth(unsigned int scm_cmd_id, unsigned int sw_type,
+					unsigned int img_size,
+					unsigned int load_addr)
+{
+	return -ENODEV;
+}
+static inline bool qti_scm_sec_auth_available(unsigned int scm_cmd_id)
+{
+	return -ENODEV;
+}
+static inline int qti_fuseipq_scm_call(struct device *dev, u32 svc_id, u32 cmd_id,
+						void *cmd_buf, size_t size)
+{
+	return -ENODEV;
+}
 #endif
 #endif

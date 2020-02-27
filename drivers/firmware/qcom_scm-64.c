@@ -489,3 +489,88 @@ int __qcom_scm_io_writel(struct device *dev, phys_addr_t addr, unsigned int val)
 	return qcom_scm_call(dev, QCOM_SCM_SVC_IO, QCOM_SCM_IO_WRITE,
 			     &desc, &res);
 }
+
+int __qti_qfprom_show_authenticate(struct device *dev, char *buf)
+{
+	int ret;
+	struct arm_smccc_res res;
+	struct qcom_scm_desc desc = {0};
+	dma_addr_t auth_phys;
+	void *auth_buf;
+
+	auth_buf = dma_alloc_coherent(dev, sizeof(*buf),
+					&auth_phys, GFP_KERNEL);
+	if (!auth_buf) {
+		dev_err(dev, "Allocation for auth buffer failed\n");
+		return -ENOMEM;
+	}
+	desc.args[0] = (u64)auth_phys;
+	desc.args[1] = sizeof(char);
+	desc.arginfo = QCOM_SCM_ARGS(2, QCOM_SCM_RO);
+	ret = qcom_scm_call(dev, QTI_SCM_SVC_FUSE,
+				QTI_QFPROM_IS_AUTHENTICATE_CMD, &desc, &res);
+	memcpy(buf, auth_buf, sizeof(char));
+	dma_free_coherent(dev, sizeof(*buf), auth_buf, auth_phys);
+	return ret ? : res.a1;
+}
+
+int __qti_qfprom_write_version(struct device *dev, void *wrip, int size)
+{
+	return -ENOTSUPP;
+}
+
+int __qti_qfprom_read_version(struct device *dev, uint32_t sw_type,
+				uint32_t value, uint32_t qfprom_ret_ptr)
+{
+	int ret;
+	struct arm_smccc_res res;
+	struct qcom_scm_desc desc = {0};
+
+	desc.args[0] = sw_type;
+	desc.args[1] = (u64)value;
+	desc.args[2] = sizeof(uint32_t);
+	desc.args[3] = (u64)qfprom_ret_ptr;
+	desc.args[4] = sizeof(uint32_t);
+
+	desc.arginfo = QCOM_SCM_ARGS(5, QCOM_SCM_VAL, QCOM_SCM_RW, QCOM_SCM_VAL,
+					QCOM_SCM_RW, QCOM_SCM_VAL);
+	ret = qcom_scm_call(dev, QTI_SCM_SVC_FUSE, QTI_QFPROM_ROW_READ_CMD,
+				&desc, &res);
+
+	return ret ? : res.a1;
+}
+
+int __qti_sec_upgrade_auth(struct device *dev, unsigned int scm_cmd_id,
+							unsigned int sw_type,
+							unsigned int img_size,
+							unsigned int load_addr)
+{
+	int ret;
+	struct arm_smccc_res res;
+	struct qcom_scm_desc desc = {0};
+
+	desc.args[0] = sw_type;
+	desc.args[1] = img_size;
+	desc.args[2] = (u64)load_addr;
+	desc.arginfo = QCOM_SCM_ARGS(3, QCOM_SCM_VAL, QCOM_SCM_VAL,
+					QCOM_SCM_RW);
+	ret = qcom_scm_call(dev, QCOM_SCM_SVC_BOOT, scm_cmd_id, &desc, &res);
+
+	return ret ? : res.a1;
+}
+
+int __qti_fuseipq_scm_call(struct device *dev, u32 svc_id, u32 cmd_id,
+			    void *cmd_buf, size_t size)
+{
+	int ret;
+	struct arm_smccc_res res;
+	struct qcom_scm_desc desc = {0};
+	uint64_t *status;
+
+	desc.arginfo = QCOM_SCM_ARGS(1, QCOM_SCM_RO);
+	desc.args[0] = *((unsigned int *)cmd_buf);
+	ret = qcom_scm_call(dev, svc_id, cmd_id, &desc, &res);
+	status = (uint64_t *)(*(((uint64_t *)cmd_buf) + 1));
+	*status = res.a1;
+	return ret ? : res.a1;
+}
