@@ -258,6 +258,17 @@ config QCOM_SCM_DOWNLOAD_MODE_DEFAULT
 
 	  Say Y here to enable "download mode" by default.
 
+config QTI_SCM_RESTART_REASON
+	bool "Write restart reason on reboot"
+	depends on ARCH_QCOM
+	help
+	Say y here to enable writing restart reason. This adds a reboot handler
+	to write the restart reason command to distinguish between normal and
+	abnormal reboots. This also registers for panic notification so that
+	magic cookies can be set for download mode.
+
+	If unsure, say N
+
 config TI_SCI_PROTOCOL
 	tristate "TI System Control Interface (TISCI) Message Protocol"
 	depends on TI_MESSAGE_MANAGER
