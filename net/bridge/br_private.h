@@ -18,6 +18,7 @@
 #include <linux/if_vlan.h>
 #include <linux/rhashtable.h>
 #include <linux/refcount.h>
+#include <linux/export.h>
 
 #define BR_HASH_BITS 8
 #define BR_HASH_SIZE (1 << BR_HASH_BITS)
@@ -1262,5 +1263,13 @@ struct nd_msg *br_is_nd_neigh_msg(struct sk_buff *skb, struct nd_msg *m);
 
 #define __br_get(__hook, __default, __args ...) \
 		(__hook ? (__hook(__args)) : (__default))
+
+static inline void __br_notify(int group, int type, const void *data)
+{
+	br_notify_hook_t *notify_hook = rcu_dereference(br_notify_hook);
+
+	if (notify_hook)
+		notify_hook(group, type, data);
+}
 
 #endif
