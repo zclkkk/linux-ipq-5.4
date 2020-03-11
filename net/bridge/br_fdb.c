@@ -351,6 +351,7 @@ void br_fdb_cleanup(struct work_struct *work)
 	unsigned long delay = hold_time(br);
 	unsigned long work_delay = delay;
 	unsigned long now = jiffies;
+	u8 mac_addr[6];
 
 	/* this part is tricky, in order to avoid blocking learning and
 	 * consequently forwarding, we rely on rcu to delete objects with
@@ -368,9 +369,10 @@ void br_fdb_cleanup(struct work_struct *work)
 		} else {
 			spin_lock_bh(&br->hash_lock);
 			if (!hlist_unhashed(&f->fdb_node)) {
+			    ether_addr_copy(mac_addr, f->key.addr.addr);
+			    fdb_delete(br, f, true);
 			    atomic_notifier_call_chain(&br_fdb_update_notifier_list, 0,
-						       (void *)f->key.addr.addr);
-				fdb_delete(br, f, true);
+						       (void *)mac_addr);
 			}
 			spin_unlock_bh(&br->hash_lock);
 		}
@@ -606,7 +608,8 @@ void br_fdb_update(struct net_bridge *br, struct net_bridge_port *source,
 					fdb->added_by_external_learn = 0;
 
 				atomic_notifier_call_chain(
-					&br_fdb_update_notifier_list, 0, addr);
+					&br_fdb_update_notifier_list,
+					0, (void *)addr);
 			}
 			if (now != fdb->updated)
 				fdb->updated = now;
