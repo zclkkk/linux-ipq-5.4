@@ -1167,7 +1167,7 @@ static int nandc_param(struct qcom_nand_host *host)
 	nandc_set_reg(nandc, NAND_ADDR1, 0);
 	nandc_set_reg(nandc, NAND_DEV0_CFG0, 0 << CW_PER_PAGE
 					| 512 << UD_SIZE_BYTES
-					| 5 << NUM_ADDR_CYCLES
+					| 1 << NUM_ADDR_CYCLES
 					| 0 << SPARE_SIZE_BYTES);
 	nandc_set_reg(nandc, NAND_DEV0_CFG1, 7 << NAND_RECOVERY_CYCLES
 					| 0 << CS_ACTIVE_BSY
