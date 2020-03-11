@@ -823,6 +823,8 @@ struct sk_buff {
 	__u8			decrypted:1;
 #endif
 	__u8			gro_skip:1;
+	__u8			fast_forwarded:1;
+	/* 1 or 3 bit hole */
 
 #ifdef CONFIG_NET_SCHED
 	__u16			tc_index;	/* traffic control index */
