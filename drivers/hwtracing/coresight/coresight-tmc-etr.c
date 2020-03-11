@@ -2021,7 +2021,7 @@ int tmc_etr_switch_mode(struct tmc_drvdata *drvdata, const char *out_mode)
 		return 0;
 	}
 
-	tmc_disable_etr_sink(drvdata->csdev);
+	_tmc_disable_etr_sink(drvdata->csdev);
 	old_mode = drvdata->out_mode;
 	drvdata->out_mode = new_mode;
 	if (tmc_enable_etr_sink_sysfs(drvdata->csdev)) {
