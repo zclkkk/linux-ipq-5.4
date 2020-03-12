@@ -633,6 +633,7 @@ const struct nla_policy nl80211_policy[NUM_NL80211_ATTR] = {
 	[NL80211_ATTR_EHT_CAPABILITY] = { .type = NLA_BINARY,
 					 .len = NL80211_EHT_MAX_CAPABILITY_LEN },
 	[NL80211_ATTR_EHT_PUNCTURE_BITMAP] = { .type = NLA_U32 },
+	[NL80211_ATTR_CONTROL_PORT_NO_PREAUTH] = { .type = NLA_FLAG },
 };
 
 /* policy for the key attributes */
