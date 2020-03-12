@@ -2475,6 +2475,13 @@ static int qcom_nand_attach_chip(struct nand_chip *chip)
 	cwperpage = mtd->writesize / NANDC_STEP_SIZE;
 
 	/*
+	 * Read the required ecc strength from NAND device and overwrite the
+	 * device tree ecc strength
+	 */
+	if (chip->base.eccreq.strength >= 8)
+		ecc->strength = 8;
+
+	/*
 	 * Each CW has 4 available OOB bytes which will be protected with ECC
 	 * so remaining bytes can be used for ECC.
 	 */
