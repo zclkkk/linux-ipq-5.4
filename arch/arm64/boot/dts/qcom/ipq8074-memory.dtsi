@@ -59,7 +59,7 @@
 	 * |        |              |                         |
 	 * |        |              |                         |
 	 * |        |              |                         |
-	 * |   Q6   |  0x4B000000  |          85MB           |
+	 * |   Q6   |  0x4B000000  |          95MB           |
 	 * |        |              |                         |
 	 * |        |              |                         |
 	 * |        |              |                         |
@@ -80,6 +80,12 @@
 			reg = <0x0 0x40000000 0x0 0x01000000>;
 		};
 
+		tzapp: tzapp@4a400000 {
+			no-map;
+			reg = <0x0 0x4a400000 0x0 0x00200000>;
+		};
+
+
 		uboot@4a600000 {
 			no-map;
 			reg = <0x0 0x4a600000 0x0 0x00400000>;
@@ -90,34 +96,20 @@
 			reg = <0x0 0x4aa00000 0x0 0x00100000>;
 		};
 
-		smem_region:smem@4ab00000 {
+		smem_region: smem@4ab00000 {
 			no-map;
 			reg = <0x0 0x4ab00000 0x0 0x00100000>;
 		};
 
-		tz@4ac00000 {	/* TZ */
+		tz@4ac00000 {
 			no-map;
 			reg = <0x0 0x4ac00000 0x0 0x00400000>;
 		};
 
-		wcnss@4b000000 {
+		q6_region: wcnss@4b000000 {
 			no-map;
-			reg = <0x0 0x4b000000 0x0 0x05500000>;
+			reg = <0x0 0x4b000000 0x0 0x05f00000>;
 		};
 
-		tzapp:tzapp@4a400000 {	/* TZAPPS */
-			no-map;
-			reg = <0x0 0x4a400000 0x0 0x00200000>;
-		};
-
-		wifi_dump@50500000 {
-			no-map;
-			reg = <0x0 0x50500000 0x0 0x600000>;
-		};
-
-		wigig_dump@50700000 {
-			no-map;
-			reg = <0x0 0x50700000 0x0 0x400000>;
-		};
 	};
 };
