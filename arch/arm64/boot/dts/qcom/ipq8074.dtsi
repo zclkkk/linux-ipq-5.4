@@ -362,6 +362,49 @@
 			};
 		};
 
+		usb3_0: usb3@8A00000 {
+			compatible = "qcom,ipq807x-dwc3", "qcom,dwc3";
+			reg = <0x8AF8800 0x400>;
+			status = "disabled";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+
+			clocks = <&gcc GCC_SYS_NOC_USB0_AXI_CLK>,
+				<&gcc GCC_USB0_MASTER_CLK>,
+				<&gcc GCC_USB0_SLEEP_CLK>,
+				<&gcc GCC_USB0_MOCK_UTMI_CLK>;
+			clock-names = "sys_noc_axi",
+				"master",
+				"sleep",
+				"mock_utmi";
+
+			assigned-clocks = <&gcc GCC_SYS_NOC_USB0_AXI_CLK>,
+					  <&gcc GCC_USB0_MASTER_CLK>,
+					  <&gcc GCC_USB0_MOCK_UTMI_CLK>;
+			assigned-clock-rates = <133330000>,
+					       <133330000>,
+					       <20000000>;
+
+			resets = <&gcc GCC_USB0_BCR>;
+
+			dwc_0: dwc3@8A00000 {
+				compatible = "snps,dwc3";
+				reg = <0x8A00000 0xcd00>;
+				interrupts = <GIC_SPI 140 IRQ_TYPE_LEVEL_HIGH>;
+				phys = <&qusb_phy_0>, <&usb0_ssphy>;
+				tx-fifo-resize;
+				snps,dis_ep_cache_eviction;
+				snps,is-utmi-l1-suspend;
+				snps,hird-threshold = /bits/ 8 <0x0>;
+				snps,dis_u2_susphy_quirk;
+				snps,dis_u3_susphy_quirk;
+				snps,quirk-ref-clock-period = <0x32>;
+				dr_mode = "host";
+			};
+		};
+
+
 		qusb_phy_1: qusb@59000 {
 		    compatible = "qcom,ipq8074-qusb2-phy";
 		    reg = <0x059000 0x180>;
@@ -401,6 +444,48 @@
 				clocks = <&gcc GCC_USB1_PIPE_CLK>;
 				clock-names = "pipe0";
 				clock-output-names = "gcc_usb1_pipe_clk_src";
+			};
+		};
+
+		usb3_1: usb3@8C00000 {
+			compatible = "qcom,ipq807x-dwc3", "qcom,dwc3";
+			reg = <0x8CF8800 0x400>;
+			status = "disabled";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+
+			clocks = <&gcc GCC_SYS_NOC_USB1_AXI_CLK>,
+				<&gcc GCC_USB1_MASTER_CLK>,
+				<&gcc GCC_USB1_SLEEP_CLK>,
+				<&gcc GCC_USB1_MOCK_UTMI_CLK>;
+			clock-names = "sys_noc_axi",
+				"master",
+				"sleep",
+				"mock_utmi";
+
+			assigned-clocks = <&gcc GCC_SYS_NOC_USB1_AXI_CLK>,
+					  <&gcc GCC_USB1_MASTER_CLK>,
+					  <&gcc GCC_USB1_MOCK_UTMI_CLK>;
+			assigned-clock-rates = <133330000>,
+					       <133330000>,
+					       <20000000>;
+
+			resets = <&gcc GCC_USB1_BCR>;
+
+			dwc_1: dwc3@8C00000 {
+				compatible = "snps,dwc3";
+				reg = <0x8C00000 0xcd00>;
+				interrupts = <GIC_SPI 99 IRQ_TYPE_LEVEL_HIGH>;
+				phys = <&qusb_phy_1>, <&usb1_ssphy>;
+				tx-fifo-resize;
+				snps,dis_ep_cache_eviction;
+				snps,is-utmi-l1-suspend;
+				snps,hird-threshold = /bits/ 8 <0x0>;
+				snps,dis_u2_susphy_quirk;
+				snps,dis_u3_susphy_quirk;
+				snps,quirk-ref-clock-period = <0x32>;
+				dr_mode = "host";
 			};
 		};
 

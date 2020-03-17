@@ -89,11 +89,19 @@
 			status = "ok";
 		};
 
+		usb3@8A00000 {
+			status = "ok";
+		};
+
 		qusb@59000 {
 			status = "ok";
 		};
 
 		ssphy@58000 {
+			status = "ok";
+		};
+
+		usb3@8C00000 {
 			status = "ok";
 		};
 	};
