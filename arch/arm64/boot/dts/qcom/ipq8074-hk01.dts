@@ -80,5 +80,13 @@
 			status = "ok";
 			perst-gpio = <&tlmm 61 0x1>;
 		};
+
+		qusb@79000 {
+			status = "ok";
+		};
+
+		qusb@59000 {
+			status = "ok";
+		};
 	};
 };
