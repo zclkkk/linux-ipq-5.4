@@ -45,6 +45,10 @@
 			 status = "ok";
 		};
 
+		sdhci@7824900 {
+			status = "ok";
+		};
+
 		dma@7984000 {
 			 status = "ok";
 		};
