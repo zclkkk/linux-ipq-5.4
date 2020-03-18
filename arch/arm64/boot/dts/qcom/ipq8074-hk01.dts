@@ -21,6 +21,15 @@
 	};
 
 	soc {
+		pinctrl@1000000 {
+			sd_pins: sd-pinmux {
+				pins = "gpio63";
+				function = "sd_card";
+				drive-strength = <8>;
+				bias-pull-up;
+			};
+		};
+
 		serial@78b3000 {
 			status = "ok";
 		};
@@ -46,6 +55,14 @@
 		};
 
 		sdhci@7824900 {
+			status = "ok";
+		};
+
+		sdhci@7864900 {
+			pinctrl-0 = <&sd_pins>;
+			pinctrl-names = "default";
+			cd-gpios = <&tlmm 63 GPIO_ACTIVE_LOW>;
+
 			status = "ok";
 		};
 

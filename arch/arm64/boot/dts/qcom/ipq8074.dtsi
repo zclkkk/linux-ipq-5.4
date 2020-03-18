@@ -5,6 +5,7 @@
 
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/clock/qcom,gcc-ipq8074.h>
+#include <dt-bindings/gpio/gpio.h>
 #include "ipq8074-memory.dtsi"
 
 / {
@@ -226,6 +227,27 @@
 			mmc-hs400-1_8v;
 			bus-width = <8>;
 			non-removable;
+
+			status = "disabled";
+		};
+
+		sdhc_2: sdhci@7864900 {
+			compatible = "qcom,sdhci-msm-v4";
+			reg = <0x7864900 0x500>, <0x7864000 0x800>;
+			reg-names = "hc_mem", "core_mem";
+
+			interrupts = <GIC_SPI 125 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 221 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "hc_irq", "pwr_irq";
+
+			clocks = <&xo>,
+				<&gcc GCC_SDCC2_AHB_CLK>,
+				<&gcc GCC_SDCC2_APPS_CLK>;
+			clock-names = "xo", "iface", "core";
+			max-frequency = <192000000>;
+			mmc-ddr-1_8v;
+			mmc-hs200-1_8v;
+			bus-width = <4>;
 
 			status = "disabled";
 		};
