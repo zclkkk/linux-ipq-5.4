@@ -63,24 +63,6 @@
 			};
 		};
 
-		phy@86000 {
-			status = "ok";
-		};
-
-		phy@8e000 {
-			status = "ok";
-		};
-
-		pci@20000000 {
-			status = "ok";
-			perst-gpio = <&tlmm 58 0x1>;
-		};
-
-		pci@10000000 {
-			status = "ok";
-			perst-gpio = <&tlmm 61 0x1>;
-		};
-
 		qusb@79000 {
 			status = "ok";
 		};
