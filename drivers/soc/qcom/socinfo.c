@@ -14,6 +14,7 @@
 #include <linux/string.h>
 #include <linux/sys_soc.h>
 #include <linux/types.h>
+#include <soc/qcom/socinfo.h>
 
 /*
  * SoC version type with major number in the upper 16 bits and minor
@@ -198,6 +199,21 @@ static const struct soc_id soc_id[] = {
 	{ 310, "MSM8996AU" },
 	{ 311, "APQ8096AU" },
 	{ 312, "APQ8096SG" },
+	{ CPU_IPQ8074, "IPQ8074" },
+	{ CPU_IPQ8072, "IPQ8072" },
+	{ CPU_IPQ8076, "IPQ8076" },
+	{ CPU_IPQ8078, "IPQ8078" },
+	{ CPU_IPQ8070, "IPQ8070" },
+	{ CPU_IPQ8071, "IPQ8071" },
+	{ CPU_IPQ8072A, "IPQ8072A" },
+	{ CPU_IPQ8074A, "IPQ8074A" },
+	{ CPU_IPQ8076A, "IPQ8076A" },
+	{ CPU_IPQ8078A, "IPQ8078A" },
+	{ CPU_IPQ8070A, "IPQ8070A" },
+	{ CPU_IPQ8071A, "IPQ8071A" },
+	{ CPU_IPQ8172, "IPQ8172" },
+	{ CPU_IPQ8173, "IPQ8173" },
+	{ CPU_IPQ8174, "IPQ8174" },
 };
 
 static const char *socinfo_machine(struct device *dev, unsigned int id)
@@ -425,7 +441,7 @@ static int qcom_socinfo_probe(struct platform_device *pdev)
 	if (!qs)
 		return -ENOMEM;
 
-	qs->attr.family = "Snapdragon";
+	qs->attr.family = "IPQ";
 	qs->attr.machine = socinfo_machine(&pdev->dev,
 					   le32_to_cpu(info->id));
 	qs->attr.revision = devm_kasprintf(&pdev->dev, GFP_KERNEL, "%u.%u",
@@ -439,6 +455,9 @@ static int qcom_socinfo_probe(struct platform_device *pdev)
 	qs->soc_dev = soc_device_register(&qs->attr);
 	if (IS_ERR(qs->soc_dev))
 		return PTR_ERR(qs->soc_dev);
+
+	pr_info("CPU: %s, SoC Version: %s\n", qs->attr.machine,
+						qs->attr.revision);
 
 	socinfo_debugfs_init(qs, info);
 
