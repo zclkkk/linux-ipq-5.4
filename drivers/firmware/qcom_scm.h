@@ -170,4 +170,36 @@ extern int __qti_sec_upgrade_auth(struct device *dev, unsigned int scm_cmd_id,
 							unsigned int load_addr);
 extern int __qti_fuseipq_scm_call(struct device *dev, u32 svc_id, u32 cmd_id,
 					void *cmd_buf, size_t size);
+
+/*
+ * SCM command ids used in qti_scm_dload / qti_scm_sdi calls
+ *
+ * SCM_CMD_TZ_FORCE_DLOAD_ID - Set the magic cookie(See Below)
+ * SCM_CMD_TZ_CONFIG_HW_FOR_RAM_DUMP_ID - Used for SDI related calls
+ * SCM_CMD_TZ_SET_DLOAD_FOR_SECURE_BOOT - Set the magic cookie in secure boot
+ */
+#define SCM_CMD_TZ_FORCE_DLOAD_ID		0x10
+#define SCM_CMD_TZ_CONFIG_HW_FOR_RAM_DUMP_ID	0x9
+#define SCM_CMD_TZ_SET_DLOAD_FOR_SECURE_BOOT	0x14
+
+/*
+ * TCSR_BOOT_MISC_REG - TCSR register where the magic cookie will be written
+ *
+ * Based on the magic cookies CLEAR_MAGIC, SET_MAGIC, SET_MAGIC_WARMRESET,
+ * corresponding value DLOAD_MODE_DISABLE, DLOAD_MODE_ENABLE,
+ * DLOAD_MODE_ENABLE_WARMRESET will be written into the TCSR register.
+ *
+ * SET_MAGIC_WARMRESET is a unique case, where IMEM content will be preserved
+ * in the crash dump disabled case.
+ */
+#define TCSR_BOOT_MISC_REG			0x193d100ull
+#define CLEAR_MAGIC				0x0
+#define DLOAD_MODE_DISABLE			0x00ull
+#define SET_MAGIC				0x1
+#define DLOAD_MODE_ENABLE			0x10ull
+#define SET_MAGIC_WARMRESET			0x2
+#define DLOAD_MODE_ENABLE_WARMRESET		0x20ull
+extern int __qti_scm_dload(struct device *dev, u32 svc_id, u32 cmd_id,
+				void *cmd_buf);
+extern int __qti_scm_sdi(struct device *dev, u32 svc_id, u32 cmd_id);
 #endif

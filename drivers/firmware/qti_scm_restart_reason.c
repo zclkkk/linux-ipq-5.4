@@ -23,6 +23,7 @@
 #include <linux/platform_device.h>
 #include <linux/notifier.h>
 #include <linux/reboot.h>
+#include <linux/qcom_scm.h>
 #include "qcom_scm.h"
 
 static int dload_dis;
@@ -31,7 +32,7 @@ static void scm_restart_dload_mode_enable(void)
 {
 	if (!dload_dis) {
 		unsigned int magic_cookie = SET_MAGIC;
-		qcom_scm_dload(QCOM_SCM_SVC_BOOT, SCM_CMD_TZ_FORCE_DLOAD_ID,
+		qti_scm_dload(QCOM_SCM_SVC_BOOT, SCM_CMD_TZ_FORCE_DLOAD_ID,
 				&magic_cookie);
 	}
 }
@@ -40,13 +41,13 @@ static void scm_restart_dload_mode_disable(void)
 {
 	unsigned int magic_cookie = CLEAR_MAGIC;
 
-	qcom_scm_dload(QCOM_SCM_SVC_BOOT, SCM_CMD_TZ_FORCE_DLOAD_ID,
+	qti_scm_dload(QCOM_SCM_SVC_BOOT, SCM_CMD_TZ_FORCE_DLOAD_ID,
 			&magic_cookie);
 };
 
 static void scm_restart_sdi_disable(void)
 {
-	qcom_scm_sdi(QCOM_SCM_SVC_BOOT, SCM_CMD_TZ_CONFIG_HW_FOR_RAM_DUMP_ID);
+	qti_scm_sdi(QCOM_SCM_SVC_BOOT, SCM_CMD_TZ_CONFIG_HW_FOR_RAM_DUMP_ID);
 }
 
 static int scm_restart_panic(struct notifier_block *this,
@@ -100,7 +101,7 @@ static int scm_restart_reason_probe(struct platform_device *pdev)
 		dload_dis_sec = 0;
 
 	if (dload_dis_sec) {
-		qcom_scm_dload(QCOM_SCM_SVC_BOOT,
+		qti_scm_dload(QCOM_SCM_SVC_BOOT,
 			SCM_CMD_TZ_SET_DLOAD_FOR_SECURE_BOOT, NULL);
 	}
 
@@ -110,7 +111,7 @@ static int scm_restart_reason_probe(struct platform_device *pdev)
 		if (!dload_warm_reset)
 			scm_restart_dload_mode_disable();
 		else
-			qcom_scm_dload(QCOM_SCM_SVC_BOOT,
+			qti_scm_dload(QCOM_SCM_SVC_BOOT,
 				       SCM_CMD_TZ_FORCE_DLOAD_ID,
 				       &magic_cookie);
 		scm_restart_sdi_disable();

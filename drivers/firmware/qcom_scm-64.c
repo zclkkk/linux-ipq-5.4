@@ -574,3 +574,39 @@ int __qti_fuseipq_scm_call(struct device *dev, u32 svc_id, u32 cmd_id,
 	*status = res.a1;
 	return ret ? : res.a1;
 }
+
+int __qti_scm_dload(struct device *dev, u32 svc_id, u32 cmd_id, void *cmd_buf)
+{
+	struct qcom_scm_desc desc = {0};
+	struct arm_smccc_res res;
+	int ret;
+	unsigned int enable;
+
+	enable = cmd_buf ? *((unsigned int *)cmd_buf) : 0;
+	desc.args[0] = TCSR_BOOT_MISC_REG;
+	if (enable == SET_MAGIC_WARMRESET)
+		desc.args[1] = DLOAD_MODE_ENABLE_WARMRESET;
+	else
+		desc.args[1] = enable ? DLOAD_MODE_ENABLE : DLOAD_MODE_DISABLE;
+	desc.arginfo = QCOM_SCM_ARGS(2, QCOM_SCM_VAL, QCOM_SCM_VAL);
+	ret = qcom_scm_call(dev, QCOM_SCM_SVC_IO, QCOM_SCM_IO_WRITE,
+								&desc, &res);
+
+	return ret ? : res.a1;
+}
+
+int __qti_scm_sdi(struct device *dev, u32 svc_id, u32 cmd_id)
+{
+	struct qcom_scm_desc desc = {0};
+	struct arm_smccc_res res;
+	int ret;
+
+	desc.args[0] = 1ull; /* Disable wdog debug */
+	desc.args[1] = 0ull; /* SDI Enable */
+	desc.arginfo = QCOM_SCM_ARGS(2, QCOM_SCM_VAL, QCOM_SCM_VAL);
+	ret = qcom_scm_call(dev, QCOM_SCM_SVC_BOOT,
+				SCM_CMD_TZ_CONFIG_HW_FOR_RAM_DUMP_ID, &desc,
+				&res);
+
+	return ret ? : res.a1;
+}

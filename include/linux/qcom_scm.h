@@ -78,6 +78,8 @@ extern int qti_sec_upgrade_auth(unsigned int scm_cmd_id, unsigned int sw_type,
 extern bool qti_scm_sec_auth_available(unsigned int scm_cmd_id);
 extern int qti_fuseipq_scm_call(struct device *dev, u32 svc_id, u32 cmd_id,
 					void *cmd_buf, size_t size);
+extern int qti_scm_dload(u32 svc_id, u32 cmd_id, void *cmd_buf);
+extern int qti_scm_sdi(u32 svc_id, u32 cmd_id);
 #else
 
 #include <linux/errno.h>
@@ -140,5 +142,7 @@ static inline int qti_fuseipq_scm_call(struct device *dev, u32 svc_id, u32 cmd_i
 {
 	return -ENODEV;
 }
+static inline int qti_scm_dload(u32 svc_id, u32 cmd_id, void *cmd_buf) { return -ENODEV; }
+static inline int qti_scm_sdi(u32 svc_id, u32 cmd_id) { return -ENODEV; }
 #endif
 #endif

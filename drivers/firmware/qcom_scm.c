@@ -565,6 +565,38 @@ int qti_fuseipq_scm_call(struct device *dev, u32 svc_id, u32 cmd_id,
 }
 EXPORT_SYMBOL(qti_fuseipq_scm_call);
 
+int qti_scm_dload(u32 svc_id, u32 cmd_id, void *cmd_buf)
+{
+	int ret;
+
+	ret = qcom_scm_clk_enable();
+	if (ret)
+		return ret;
+
+	ret = __qti_scm_dload(__scm->dev, svc_id, cmd_id, cmd_buf);
+
+	qcom_scm_clk_disable();
+
+	return ret;
+
+}
+EXPORT_SYMBOL(qti_scm_dload);
+
+int qti_scm_sdi(u32 svc_id, u32 cmd_id)
+{
+	int ret;
+
+	ret = qcom_scm_clk_enable();
+	if (ret)
+		return ret;
+	ret = __qti_scm_sdi(__scm->dev, svc_id, cmd_id);
+
+	qcom_scm_clk_disable();
+
+	return ret;
+}
+EXPORT_SYMBOL(qti_scm_sdi);
+
 static int qcom_scm_probe(struct platform_device *pdev)
 {
 	struct qcom_scm *scm;
