@@ -901,4 +901,8 @@
 			#clock-cells = <0>;
 		};
 	};
+
+	qti,scm_restart_reason {
+		compatible = "qti,scm_restart_reason";
+	};
 };
