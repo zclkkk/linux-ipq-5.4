@@ -268,6 +268,9 @@ static void flow_offload_del(struct nf_flowtable *flow_table,
 	else if (flow->flags & FLOW_OFFLOAD_TEARDOWN)
 		flow_offload_fixup_ct_timeout(e->ct);
 
+	if (!(flow->flags & FLOW_OFFLOAD_TEARDOWN))
+		flow_offload_fixup_ct_state(e->ct);
+
 	flow_offload_free(flow);
 }
 
