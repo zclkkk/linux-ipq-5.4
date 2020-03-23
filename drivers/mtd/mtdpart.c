@@ -745,6 +745,7 @@ run_parsers_by_type(struct mtd_part *slave, enum mtd_parser_type type)
 
 static void split_firmware(struct mtd_info *master, struct mtd_part *part)
 {
+	run_parsers_by_type(part, MTD_PARSER_TYPE_FIRMWARE);
 }
 
 static void mtd_partition_split(struct mtd_info *master, struct mtd_part *part)
@@ -753,6 +754,12 @@ static void mtd_partition_split(struct mtd_info *master, struct mtd_part *part)
 
 	if (rootfs_found)
 		return;
+
+	if (!strcmp(part->mtd.name, "rootfs")) {
+		run_parsers_by_type(part, MTD_PARSER_TYPE_ROOTFS);
+
+		rootfs_found = 1;
+	}
 
 	if (IS_ENABLED(CONFIG_MTD_SPLIT_FIRMWARE) &&
 	    !strcmp(part->mtd.name, SPLIT_FIRMWARE_NAME) &&
