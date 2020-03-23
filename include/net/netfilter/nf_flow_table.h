@@ -80,9 +80,10 @@ struct flow_offload_tuple_rhash {
 struct flow_offload {
 	struct flow_offload_tuple_rhash		tuplehash[FLOW_OFFLOAD_DIR_MAX];
 	u32					flags;
+	u32					timeout;
 	union {
 		/* Your private driver data here. */
-		u32		timeout;
+		void *priv;
 	};
 };
 
