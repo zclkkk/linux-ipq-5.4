@@ -198,10 +198,29 @@ static const struct rhashtable_params nf_flow_offload_rhash_params = {
 	.automatic_shrinking	= true,
 };
 
+#define        DAY     (86400 * HZ)
+
+/* Set an arbitrary timeout large enough not to ever expire, this save
+ * us a check for the IPS_OFFLOAD_BIT from the packet path via
+ * nf_ct_is_expired().
+ */
+static void nf_ct_offload_timeout(struct flow_offload *flow)
+{
+	struct flow_offload_entry *entry;
+	struct nf_conn *ct;
+
+	entry = container_of(flow, struct flow_offload_entry, flow);
+	ct = entry->ct;
+
+	if (nf_ct_expires(ct) < DAY / 2)
+		ct->timeout = nfct_time_stamp + DAY;
+}
+
 int flow_offload_add(struct nf_flowtable *flow_table, struct flow_offload *flow)
 {
 	int err;
 
+	nf_ct_offload_timeout(flow);
 	flow->timeout = (u32)jiffies + NF_FLOW_TIMEOUT;
 
 	err = rhashtable_insert_fast(&flow_table->rhashtable,
@@ -304,6 +323,7 @@ nf_flow_table_iterate(struct nf_flowtable *flow_table,
 	rhashtable_walk_start(&hti);
 
 	while ((tuplehash = rhashtable_walk_next(&hti))) {
+
 		if (IS_ERR(tuplehash)) {
 			if (PTR_ERR(tuplehash) != -EAGAIN) {
 				err = PTR_ERR(tuplehash);
@@ -328,10 +348,17 @@ static void nf_flow_offload_gc_step(struct flow_offload *flow, void *data)
 {
 	struct nf_flowtable *flow_table = data;
 	struct flow_offload_entry *e;
+	bool teardown;
 
 	e = container_of(flow, struct flow_offload_entry, flow);
-	if (nf_flow_has_expired(flow) || nf_ct_is_dying(e->ct) ||
-	    (flow->flags & (FLOW_OFFLOAD_DYING | FLOW_OFFLOAD_TEARDOWN)))
+
+	teardown = flow->flags & (FLOW_OFFLOAD_DYING |
+				  FLOW_OFFLOAD_TEARDOWN);
+
+	if (!teardown)
+		nf_ct_offload_timeout(flow);
+
+	if (nf_flow_has_expired(flow) || teardown)
 		flow_offload_del(flow_table, flow);
 }
 
