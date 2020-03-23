@@ -4399,6 +4399,7 @@ static void st_micron_set_default_init(struct spi_nor *nor)
 
 static void winbond_set_default_init(struct spi_nor *nor)
 {
+	nor->flags |= SNOR_F_HAS_LOCK;
 	nor->params.set_4byte = winbond_set_4byte;
 }
 
@@ -4888,6 +4889,7 @@ int spi_nor_scan(struct spi_nor *nor, const char *name,
 	    JEDEC_MFR(nor->info) == SNOR_MFR_INTEL ||
 	    JEDEC_MFR(nor->info) == SNOR_MFR_MACRONIX ||
 	    JEDEC_MFR(nor->info) == SNOR_MFR_SST ||
+	    JEDEC_MFR(nor->info) == SNOR_MFR_WINBOND ||
 	    nor->info->flags & SPI_NOR_HAS_LOCK)
 		nor->clear_sr_bp = spi_nor_clear_sr_bp;
 
