@@ -4466,6 +4466,7 @@ static void spi_nor_info_init_params(struct spi_nor *nor)
 	struct spi_nor_erase_map *map = &params->erase_map;
 	const struct flash_info *info = nor->info;
 	struct device_node *np = spi_nor_get_flash_node(nor);
+	struct mtd_info *mtd = &nor->mtd;
 	u8 i, erase_mask;
 
 	/* Initialize legacy flash parameters and settings. */
@@ -4529,6 +4530,21 @@ static void spi_nor_info_init_params(struct spi_nor *nor)
 	 */
 	erase_mask = 0;
 	i = 0;
+#ifdef CONFIG_MTD_SPI_NOR_USE_4K_SECTORS
+	if ((info->flags & SECT_4K_PMC) && (mtd->size <=
+		   CONFIG_MTD_SPI_NOR_USE_4K_SECTORS_LIMIT * 1024)) {
+		erase_mask |= BIT(i);
+		spi_nor_set_erase_type(&map->erase_type[i], 4096u,
+				       SPINOR_OP_BE_4K_PMC);
+		i++;
+	} else if ((info->flags & SECT_4K) && (mtd->size <=
+	    CONFIG_MTD_SPI_NOR_USE_4K_SECTORS_LIMIT * 1024)) {
+		erase_mask |= BIT(i);
+		spi_nor_set_erase_type(&map->erase_type[i], 4096u,
+				       SPINOR_OP_BE_4K);
+		i++;
+	}
+#else
 	if (info->flags & SECT_4K_PMC) {
 		erase_mask |= BIT(i);
 		spi_nor_set_erase_type(&map->erase_type[i], 4096u,
@@ -4540,6 +4556,7 @@ static void spi_nor_info_init_params(struct spi_nor *nor)
 				       SPINOR_OP_BE_4K);
 		i++;
 	}
+#endif
 	erase_mask |= BIT(i);
 	spi_nor_set_erase_type(&map->erase_type[i], info->sector_size,
 			       SPINOR_OP_SE);
