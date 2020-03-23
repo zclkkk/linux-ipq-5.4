@@ -370,7 +370,7 @@ static void nf_flow_offload_gc_step(struct flow_offload *flow, void *data)
 	if (!teardown)
 		nf_ct_offload_timeout(flow);
 
-	if (nf_flow_in_hw(flow) && !teardown)
+	if ((flow->flags & FLOW_OFFLOAD_KEEP) && !teardown)
 		return;
 
 	if (nf_flow_has_expired(flow) || teardown)
