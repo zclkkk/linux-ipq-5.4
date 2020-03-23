@@ -128,6 +128,10 @@ static inline void flow_offload_dead(struct flow_offload *flow)
 	flow->flags |= FLOW_OFFLOAD_DYING;
 }
 
+int nf_flow_table_iterate(struct nf_flowtable *flow_table,
+                      void (*iter)(struct flow_offload *flow, void *data),
+                      void *data);
+
 int nf_flow_snat_port(const struct flow_offload *flow,
 		      struct sk_buff *skb, unsigned int thoff,
 		      u8 protocol, enum flow_offload_tuple_dir dir);
