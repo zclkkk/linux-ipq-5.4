@@ -200,4 +200,13 @@ config QCOM_APR
           application processor and QDSP6. APR is
           used by audio driver to configure QDSP6
           ASM, ADM and AFE modules.
+
+config MSM_RPM_LOG
+	tristate "QTI Resource Power Manager Log Driver"
+	help
+	 This option enables a driver which can read from a circular buffer
+	 of messages produced by the RPM. These messages provide diagnostic
+	 information about RPM operation. The driver outputs the messages
+	 via a debugfs node.
+
 endmenu
