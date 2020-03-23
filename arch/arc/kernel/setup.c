@@ -529,7 +529,7 @@ void __init handle_uboot_args(void)
 ignore_uboot_args:
 
 	if (use_embedded_dtb) {
-		machine_desc = setup_machine_fdt(__dtb_start);
+		machine_desc = setup_machine_fdt(&__image_dtb);
 		if (!machine_desc)
 			panic("Embedded DT invalid\n");
 	}
@@ -544,6 +544,8 @@ ignore_uboot_args:
 		strlcat(boot_command_line, uboot_arg, COMMAND_LINE_SIZE);
 	}
 }
+
+extern struct boot_param_header __image_dtb;
 
 void __init setup_arch(char **cmdline_p)
 {
