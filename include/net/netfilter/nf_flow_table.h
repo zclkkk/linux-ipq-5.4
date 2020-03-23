@@ -158,6 +158,8 @@ struct nf_flow_table_hw {
 int nf_flow_table_hw_register(const struct nf_flow_table_hw *offload);
 void nf_flow_table_hw_unregister(const struct nf_flow_table_hw *offload);
 
+void nf_flow_table_acct(struct flow_offload *flow, struct sk_buff *skb, int dir);
+
 extern struct work_struct nf_flow_offload_hw_work;
 
 #define MODULE_ALIAS_NF_FLOWTABLE(family)	\
