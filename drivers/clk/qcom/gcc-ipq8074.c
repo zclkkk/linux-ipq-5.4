@@ -4488,10 +4488,10 @@ static struct clk_branch gcc_pcie0_axi_s_bridge_clk = {
 };
 
 static struct clk_branch gcc_snoc_bus_timeout2_ahb_clk = {
-	.halt_reg = 0x4700c,
+	.halt_reg = 0x47014,
 	.halt_bit = 31,
 	.clkr = {
-		.enable_reg = 0x4700c,
+		.enable_reg = 0x47014,
 		.enable_mask = BIT(0),
 		.hw.init = &(struct clk_init_data){
 			.name = "gcc_snoc_bus_timeout2_ahb_clk",
@@ -4506,10 +4506,10 @@ static struct clk_branch gcc_snoc_bus_timeout2_ahb_clk = {
 };
 
 static struct clk_branch gcc_snoc_bus_timeout3_ahb_clk = {
-	.halt_reg = 0x47014,
+	.halt_reg = 0x4701C,
 	.halt_bit = 31,
 	.clkr = {
-		.enable_reg = 0x47014,
+		.enable_reg = 0x4701C,
 		.enable_mask = BIT(0),
 		.hw.init = &(struct clk_init_data){
 			.name = "gcc_snoc_bus_timeout3_ahb_clk",
