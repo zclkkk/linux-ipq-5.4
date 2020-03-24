@@ -4998,6 +4998,7 @@ static const struct qcom_reset_map gcc_ipq8074_resets[] = {
 	[GCC_PCIE0_AXI_SLAVE_ARES] = { 0x75040, 4 },
 	[GCC_PCIE0_AHB_ARES] = { 0x75040, 5 },
 	[GCC_PCIE0_AXI_MASTER_STICKY_ARES] = { 0x75040, 6 },
+	[GCC_PCIE0_AXI_SLAVE_STICKY_ARES] = { 0x75040, 7 },
 	[GCC_PCIE1_PIPE_ARES] = { 0x76040, 0 },
 	[GCC_PCIE1_SLEEP_ARES] = { 0x76040, 1 },
 	[GCC_PCIE1_CORE_STICKY_ARES] = { 0x76040, 2 },
