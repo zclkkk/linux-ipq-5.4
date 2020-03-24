@@ -107,5 +107,23 @@
 		usb3@8C00000 {
 			status = "ok";
 		};
+
+		phy@84000 {
+			status = "ok";
+		};
+
+		pci@20000000 {
+			perst-gpio = <&tlmm 58 1>;
+			status = "ok";
+		};
+
+		phy@8e000 {
+			status = "ok";
+		};
+
+		pci@10000000 {
+			perst-gpio = <&tlmm 61 0x1>;
+			status = "ok";
+		};
 	};
 };

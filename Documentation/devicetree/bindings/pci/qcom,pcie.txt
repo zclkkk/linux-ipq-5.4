@@ -9,7 +9,8 @@
 			- "qcom,pcie-apq8084" for apq8084
 			- "qcom,pcie-msm8996" for msm8996 or apq8096
 			- "qcom,pcie-ipq4019" for ipq4019
-			- "qcom,pcie-ipq8074" for ipq8074
+			- "qcom,pcie-ipq8074" for ipq8074 gen2 port
+			- "qcom,pcie-gen3-ipq8074" for ipq8074 gen3 port
 			- "qcom,pcie-qcs404" for qcs404
 
 - reg:
@@ -116,6 +117,10 @@
 			- "axi_s"	AXI Slave clock
 			- "ahb"		AHB clock
 			- "aux"		Auxiliary clock
+		    For gen3 PCIE port, the following entries are additionally
+		    required:
+			- "axi_bridge"	AXI Bridge clock
+			- "rchng"	RCHNG clock
 
 - clock-names:
 	Usage: required for qcs404
@@ -176,6 +181,9 @@
 			- "axi_s"		AXI Slave reset
 			- "ahb"			AHB Reset
 			- "axi_m_sticky"	AXI Master Sticky reset
+		    For gen3 PCIE port, the following entries are additionally
+		    required:
+			- "axi_s_sticky"	AXI Slave Sticky reset
 
 - reset-names:
 	Usage: required for qcs404
