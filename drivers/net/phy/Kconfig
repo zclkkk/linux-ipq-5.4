@@ -585,3 +585,9 @@ endif # PHYLIB
 config MICREL_KS8995MA
 	tristate "Micrel KS8995MA 5-ports 10/100 managed Ethernet switch"
 	depends on SPI
+
+config MDIO_QCA
+	tristate "Qualcomm Atheros ipq MDIO interface"
+	---help---
+	  This driver supports the MDIO interface found in Qualcomm
+	  Atheros ipq Soc chip.
