@@ -567,6 +567,36 @@
 			};
 		};
 
+		phy@86000 {
+			compatible = "qcom,ipq8074-qmp-pcie-gen2-phy";
+			reg = <0x86000 0x1c4>; /* Serdes PLL */
+			status = "disabled";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+
+			clocks = <&gcc GCC_PCIE0_AUX_CLK>,
+				<&gcc GCC_PCIE0_AHB_CLK>;
+			clock-names = "aux", "cfg_ahb";
+
+			resets = <&gcc GCC_PCIE0_PHY_BCR>,
+				<&gcc GCC_PCIE0PHY_PHY_BCR>;
+			reset-names = "phy",
+				      "common";
+
+			pcie_phy2: lane@86200 {
+				reg = <0x86200 0x130>, /* Serdes Tx */
+				      <0x86400 0x200>, /* Serdes Rx */
+				      <0x86800 0x1f8>; /* PCS: Lane0, COM, PCIE */
+				#phy-cells = <0>;
+
+				clocks = <&gcc GCC_PCIE0_PIPE_CLK>;
+				clock-names = "pipe0";
+				clock-output-names = "gcc_pcie0_pipe_clk_src";
+				#clock-cells = <0>;
+			};
+		};
+
 		pcie0: pci@20000000 {
 			compatible = "qcom,pcie-gen3-ipq8074";
 			reg = <0x20000000 0xf1d>,
@@ -583,8 +613,8 @@
 			#address-cells = <3>;
 			#size-cells = <2>;
 
-			phys = <&pcie_phy0>;
-			phy-names = "pciephy-gen3";
+			phys = <&pcie_phy0>, <&pcie_phy2>;
+			phy-names = "pciephy-gen3", "pciephy-gen2";
 
 			ranges = <0x81000000 0 0x20200000 0x20200000
 				  0 0x10000>, /* downstream I/O */
