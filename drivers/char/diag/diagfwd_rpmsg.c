@@ -31,6 +31,9 @@
 
 #define PERI_RPMSG rpmsg_info->peripheral
 
+static void __diag_rpmsg_register(void);
+static void __diag_rpmsg_unregister(void);
+
 struct diag_rpmsg_read_work {
 	struct diag_rpmsg_info *rpmsg_info;
 	const void *ptr_read_done;
@@ -778,6 +781,7 @@ int diag_rpmsg_init(void)
 	uint8_t peripheral;
 	struct diag_rpmsg_info *rpmsg_info = NULL;
 
+	__diag_rpmsg_register();
 	for (peripheral = 0; peripheral < NUM_PERIPHERALS; peripheral++) {
 		if (peripheral != PERIPHERAL_WDSP)
 			continue;
@@ -829,6 +833,7 @@ void diag_rpmsg_early_exit(void)
 		__diag_rpmsg_exit(&rpmsg_cntl[peripheral]);
 		mutex_unlock(&driver->rpmsginfo_mutex[peripheral]);
 	}
+	__diag_rpmsg_unregister();
 }
 
 void diag_rpmsg_exit(void)
@@ -922,5 +927,14 @@ static struct rpmsg_driver diag_rpmsg_drv = {
 	.callback	= diag_rpmsg_notify_cb,
 	.remove		= diag_rpmsg_remove,
 };
-module_rpmsg_driver(diag_rpmsg_drv);
+
+static void __diag_rpmsg_register(void)
+{
+	register_rpmsg_driver(&diag_rpmsg_drv);
+}
+
+static void __diag_rpmsg_unregister(void)
+{
+	unregister_rpmsg_driver(&diag_rpmsg_drv);
+}
 

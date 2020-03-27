@@ -26,8 +26,6 @@
 #ifdef CONFIG_DIAG_OVER_USB
 #include <linux/usb/usbdiag.h>
 #endif
-#include <soc/qcom/socinfo.h>
-#include <soc/qcom/restart.h>
 #include "diagmem.h"
 #include "diagchar.h"
 #include "diagfwd.h"
@@ -91,6 +89,7 @@ static int has_device_tree(void)
 
 int chk_config_get_id(void)
 {
+#ifdef CONFIG_QCOM_SOCINFO
 	switch (socinfo_get_msm_cpu()) {
 	case MSM_CPU_8960:
 	case MSM_CPU_8960AB:
@@ -115,6 +114,9 @@ int chk_config_get_id(void)
 			return 0;
 		}
 	}
+#else
+	return 0;
+#endif
 }
 
 /*
@@ -125,7 +127,7 @@ int chk_apps_only(void)
 {
 	if (driver->use_device_tree)
 		return 1;
-
+#ifdef CONFIG_QCOM_SOCINFO
 	switch (socinfo_get_msm_cpu()) {
 	case MSM_CPU_8960:
 	case MSM_CPU_8960AB:
@@ -135,6 +137,9 @@ int chk_apps_only(void)
 	default:
 		return 0;
 	}
+#else
+	return 0;
+#endif
 }
 
 /*
@@ -911,7 +916,11 @@ int diag_cmd_get_mobile_id(unsigned char *src_buf, int src_len,
 	rsp.padding[1] = 0;
 	rsp.padding[2] = 0;
 	rsp.family = 0;
+#ifdef CONFIG_QCOM_SOCINFO
 	rsp.chip_id = (uint32_t)socinfo_get_id();
+#else
+	rsp.chip_id = 0;
+#endif
 
 	memcpy(dest_buf, &rsp, sizeof(rsp));
 	write_len += sizeof(rsp);
@@ -1202,7 +1211,6 @@ int diag_process_apps_pkt(unsigned char *buf, int len, int pid)
 		diag_send_rsp(driver->apps_rsp_buf, 1, pid);
 		msleep(5000);
 		/* call download API */
-		msm_set_restart_mode(RESTART_DLOAD);
 		pr_crit("diag: download mode set, Rebooting SoC..\n");
 		kernel_restart(NULL);
 		/* Not required, represents that command isn't sent to modem */
@@ -1623,7 +1631,7 @@ static void diag_md_timer_work_fn(struct work_struct *work)
 	mutex_unlock(&driver->hdlc_disable_mutex);
 }
 
-static void hdlc_reset_timer_func(unsigned long data)
+static void hdlc_reset_timer_func(struct timer_list *timer)
 {
 	pr_debug("diag: In %s, re-enabling HDLC encoding\n",
 		       __func__);
@@ -1635,10 +1643,12 @@ static void hdlc_reset_timer_func(unsigned long data)
 	hdlc_timer_in_progress = 0;
 }
 
-void diag_md_hdlc_reset_timer_func(unsigned long pid)
+void diag_md_hdlc_reset_timer_func(struct timer_list *t)
 {
 	struct diag_md_hdlc_reset_work *hdlc_reset_work = NULL;
+	struct diag_md_session_t *session = NULL;
 
+	session = from_timer(session, t, hdlc_reset_timer);
 	pr_debug("diag: In %s, re-enabling HDLC encoding\n",
 		       __func__);
 	hdlc_reset_work = kmalloc(sizeof(*hdlc_reset_work), GFP_ATOMIC);
@@ -1649,7 +1659,7 @@ void diag_md_hdlc_reset_timer_func(unsigned long pid)
 		return;
 	}
 	if (hdlc_reset) {
-		hdlc_reset_work->pid = pid;
+		hdlc_reset_work->pid = session->pid;
 		INIT_WORK(&hdlc_reset_work->work, diag_md_timer_work_fn);
 		queue_work(driver->diag_wq, &(hdlc_reset_work->work));
 		queue_work(driver->diag_wq, &(driver->update_md_clients));
@@ -1989,7 +1999,7 @@ int diagfwd_init(void)
 			      GFP_KERNEL);
 	if (!hdlc_decode)
 		goto err;
-	setup_timer(&driver->hdlc_reset_timer, hdlc_reset_timer_func, 0);
+	timer_setup(&driver->hdlc_reset_timer, hdlc_reset_timer_func, 0);
 	kmemleak_not_leak(hdlc_decode);
 	driver->encoded_rsp_len = 0;
 	driver->rsp_buf_busy = 0;
