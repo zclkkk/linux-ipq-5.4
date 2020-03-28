@@ -1603,6 +1603,7 @@ static const struct of_device_id qcom_pcie_match[] = {
 	{ .compatible = "qcom,pcie-msm8996", .data = &qcom_pcie_2_3_2 },
 	{ .compatible = "qcom,pcie-ipq8074", .data = &qcom_pcie_2_5_0 },
 	{ .compatible = "qcom,pcie-gen3-ipq8074", .data = &qcom_pcie_2_9_0 },
+	{ .compatible = "qcom,pcie-ipq6018", .data = &qcom_pcie_2_9_0},
 	{ .compatible = "qcom,pcie-ipq4019", .data = &qcom_pcie_2_4_0 },
 	{ .compatible = "qcom,pcie-qcs404", .data = &qcom_pcie_2_4_0 },
 	{ }
