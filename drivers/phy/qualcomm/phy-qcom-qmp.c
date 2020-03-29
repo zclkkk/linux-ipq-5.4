@@ -19,6 +19,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/reset.h>
 #include <linux/slab.h>
+#include <soc/qcom/socinfo.h>
 
 #include <dt-bindings/phy/phy.h>
 
@@ -2418,6 +2419,9 @@ static const struct of_device_id qcom_qmp_phy_of_match_table[] = {
 		.compatible = "qcom,ipq8074-qmp-pcie-phy",
 		.data = &ipq8074_pciephy_cfg,
 	}, {
+		.compatible = "qcom,ipq8074-qmp-pcie-gen2-phy",
+		.data = &ipq8074_pciephy_cfg,
+	}, {
 		.compatible = "qcom,ipq8074-qmp-pcie-gen3-phy",
 		.data = &ipq8074_pciephy_gen3_cfg,
 	}, {
@@ -2458,6 +2462,7 @@ static int qcom_qmp_phy_probe(struct platform_device *pdev)
 	void __iomem *base;
 	int num, id;
 	int ret;
+	const int *soc_version_major;
 
 	qmp = devm_kzalloc(dev, sizeof(*qmp), GFP_KERNEL);
 	if (!qmp)
@@ -2470,6 +2475,19 @@ static int qcom_qmp_phy_probe(struct platform_device *pdev)
 	qmp->cfg = of_device_get_match_data(dev);
 	if (!qmp->cfg)
 		return -EINVAL;
+
+	soc_version_major = read_ipq_soc_version_major();
+	BUG_ON(!soc_version_major);
+
+	if (of_device_is_compatible(dev->of_node,
+				    "qcom,ipq8074-qmp-pcie-gen3-phy") &&
+				    *soc_version_major == 1) {
+		return -EACCES;
+	} else if (of_device_is_compatible(dev->of_node,
+					   "qcom,ipq8074-qmp-pcie-gen2-phy") &&
+					   *soc_version_major == 2) {
+		return -EACCES;
+	}
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	base = devm_ioremap_resource(dev, res);
