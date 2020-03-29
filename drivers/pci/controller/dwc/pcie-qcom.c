@@ -26,6 +26,7 @@
 #include <linux/reset.h>
 #include <linux/slab.h>
 #include <linux/types.h>
+#include <soc/qcom/socinfo.h>
 
 #include "pcie-designware.h"
 
@@ -1467,6 +1468,7 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 	struct dw_pcie *pci;
 	struct qcom_pcie *pcie;
 	struct qcom_pcie_of_data *data;
+	const int *soc_version_major;
 	int ret;
 
 	pcie = devm_kzalloc(dev, sizeof(*pcie), GFP_KERNEL);
@@ -1502,9 +1504,41 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 
 	if (of_device_is_compatible(pdev->dev.of_node,
 					"qcom,pcie-gen3-ipq8074")) {
-		pcie->phy = devm_phy_optional_get(dev, "pciephy-gen3");
-		if (IS_ERR(pcie->phy)) {
-			ret = PTR_ERR(pcie->phy);
+		/*
+		 * ipq8074 has 2 pcie ports. pcie port 1 is a gen3 port in
+		 * ipq8074 V2 and is a gen2 port in ipq8074 v1. Here we will
+		 * probe accordingly based on soc_version_major. Same DTS is
+		 * used for both V1 and V2 and so both gen2 and gen3 phys are
+		 * enabled by default for port 1 in DTS. pcie port 2 is a
+		 * gen2 port in both V1 and V2.
+		 */
+		soc_version_major = read_ipq_soc_version_major();
+		BUG_ON(!soc_version_major);
+		if (*soc_version_major == 2) {
+			pcie->phy = devm_phy_optional_get(dev, "pciephy-gen3");
+			if (IS_ERR(pcie->phy)) {
+				ret = PTR_ERR(pcie->phy);
+				goto err_pm_runtime_put;
+			}
+		} else if (*soc_version_major == 1) {
+			/*
+			 * Probe the pcie port as gen2 port if it is ipq8074 V1
+			 * since there are no gen3 ports in ipq8074 V1. The QCOM
+			 * IP core version for pcie gen2 ports in ipq8074 V1 is
+			 * 2.3.3 and its configuration matches with gen2 port in
+			 * ipq8074 V2 whose QCOM IP core version for pcie gen2
+			 * port is 2.5.0.
+			 */
+			pcie->phy = devm_phy_optional_get(dev, "pciephy-gen2");
+			if (IS_ERR(pcie->phy)) {
+				ret = PTR_ERR(pcie->phy);
+				goto err_pm_runtime_put;
+			}
+			pci->version = 0x430A;
+			pcie->ops = &ops_2_5_0;
+		} else {
+			dev_err(dev, "missing phy-names\n");
+			ret = -EIO;
 			goto err_pm_runtime_put;
 		}
 	} else {
