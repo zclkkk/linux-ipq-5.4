@@ -84,6 +84,7 @@ extern int qti_scm_sdi(u32 svc_id, u32 cmd_id);
 extern int qti_scm_tz_log(void *ker_buf, u32 buf_len);
 extern int qti_scm_hvc_log(void *ker_buf, u32 buf_len);
 extern int qti_scm_get_smmustate(void);
+extern bool is_scm_armv8(void);
 #else
 
 #include <linux/errno.h>
@@ -151,5 +152,6 @@ static inline int qti_scm_sdi(u32 svc_id, u32 cmd_id) { return -ENODEV; }
 static inline int qti_scm_tz_log(void *ker_buf, u32 buf_len) { return -ENODEV; }
 static inline int qti_scm_hvc_log(void *ker_buf, u32 buf_len) { return -ENODEV; }
 static inline int qti_scm_get_smmustate(void) { return -ENODEV; }
+static inline bool is_scm_armv8(void) { return false; }
 #endif
 #endif
