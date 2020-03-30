@@ -158,12 +158,11 @@ static int tz_log_open(struct inode *inode, struct file *file)
 	tz_hvc_log->copy_len = 0;
 
 	/* SCM call to TZ to get the tz log */
-	ret = qti_scm_tz_log(SCM_SVC_INFO, TZ_INFO_GET_DIAG_ID, ker_buf,
-				buf_len);
+	ret = qti_scm_tz_log(ker_buf, buf_len);
 	if (ret != 0) {
 		pr_err("Error in getting tz log\n");
 		mutex_unlock(&tz_hvc_log->lock);
-		return -EIO;
+		return ret;
 	}
 
 	if (tz_hvc_log->flags & TZ_KPSS) {
@@ -274,12 +273,11 @@ static int hvc_log_open(struct inode *inode, struct file *file)
 	buf_len = tz_hvc_log->buf_len;
 
 	/* SCM call to TZ to get the hvc log */
-	ret = qti_scm_hvc_log(SCM_SVC_INFO, tz_hvc_log->hyp_scm_cmd_id,
-							ker_buf, buf_len);
+	ret = qti_scm_hvc_log(ker_buf, buf_len);
 	if (ret != 0) {
 		pr_err("Error in getting hvc log\n");
 		mutex_unlock(&tz_hvc_log->lock);
-		return -EIO;
+		return ret;
 	}
 
 	phyp_diag_log = (hyp_diag_log_t *)ker_buf;

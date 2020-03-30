@@ -1062,3 +1062,57 @@ int __qti_scm_sdi(struct device *dev, u32 svc_id, u32 cmd_id)
 
 	return ret;
 }
+
+/**
+ * __qti_scm_tz_hvc_log() - Get trustzone diag log or hypervisor diag log
+ * @svc_id: SCM service id
+ * @cmd_id: SCM command id
+ * ker_buf: kernel buffer to store the diag log
+ * buf_len: kernel buffer length
+ *
+ * This function can be used to get either the trustzone diag log
+ * or the hypervisor diag log based on the command id passed to this
+ * function. The hypervisor log is only applicable for armv8 and above
+ * architectures.
+ */
+int __qti_scm_tz_hvc_log(struct device *dev, u32 svc_id, u32 cmd_id,
+			 void *ker_buf, u32 buf_len)
+{
+	int ret;
+	struct scm_desc desc = {0};
+	struct log_read {
+		uint32_t dma_buf;
+		uint32_t buf_len;
+	} rdip;
+	dma_addr_t dma_buf;
+
+	dma_buf = dma_map_single(dev, ker_buf, buf_len,
+			DMA_FROM_DEVICE);
+
+	ret = dma_mapping_error(dev, dma_buf);
+	if (ret != 0) {
+		pr_err("%s: DMA Mapping Error : %d\n", __func__, ret);
+		return ret;
+	}
+
+	if (is_scm_armv8()) {
+		desc.args[0] = dma_buf;
+		desc.args[1] = buf_len;
+		desc.arginfo = SCM_ARGS(2, QCOM_SCM_RW, QCOM_SCM_VAL);
+
+		ret = qti_scm_call2(dev, SCM_SIP_FNID(svc_id, cmd_id), &desc);
+
+		if (!ret)
+			ret = le32_to_cpu(desc.ret[0]);
+	} else {
+		rdip.buf_len = buf_len;
+		rdip.dma_buf = dma_buf;
+
+		ret = qcom_scm_call(dev, svc_id, cmd_id, &rdip,
+				sizeof(struct log_read), NULL, 0);
+	}
+
+	dma_unmap_single(dev, dma_buf, buf_len, DMA_FROM_DEVICE);
+
+	return ret;
+}
