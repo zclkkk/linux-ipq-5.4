@@ -1116,3 +1116,31 @@ int __qti_scm_tz_hvc_log(struct device *dev, u32 svc_id, u32 cmd_id,
 
 	return ret;
 }
+
+/**
+ * __qti_scm_get_smmustate () - Get SMMU state
+ * @svc_id: SCM service id
+ * @cmd_id: SCM command id
+ *
+ * Returns 0 - SMMU_DISABLE_NONE
+ *	   1 - SMMU_DISABLE_S2
+ *	   2 - SMMU_DISABLE_ALL on success.
+ *	  -1 - Failure
+ */
+int __qti_scm_get_smmustate(struct device *dev, u32 svc_id, u32 cmd_id)
+{
+	__le32 out;
+	int ret;
+	struct scm_desc desc = {0};
+
+	if (!is_scm_armv8()) {
+		ret = qcom_scm_call(dev, svc_id, cmd_id, NULL, 0, &out,
+				    sizeof(out));
+	} else {
+		desc.arginfo = SCM_ARGS(0);
+		ret = qti_scm_call2(dev, SCM_SIP_FNID(svc_id, cmd_id), &desc);
+		out = desc.ret[0];
+	}
+
+	return ret ? -1 : le32_to_cpu(out);
+}

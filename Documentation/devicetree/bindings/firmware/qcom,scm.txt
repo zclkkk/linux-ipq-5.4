@@ -33,6 +33,8 @@ Required properties:
 		   download mode control register (optional)
 - hvc-log-cmd-id: contains SCM command id to get the hypervisor diag log.
 		  If not defined, default value 0x7 will be used (optional)
+- smmu-state-cmd-id: contains SCM command id to get the SMMU state. If not
+		     defined, default value 0x19 will be used (optional)
 
 Example for MSM8916:
 
