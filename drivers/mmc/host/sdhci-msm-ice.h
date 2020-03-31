@@ -19,6 +19,7 @@
 #include <linux/of.h>
 #include <linux/blkdev.h>
 #include <crypto/ice.h>
+#include "sdhci-pltfm.h"
 
 #include "sdhci-msm.h"
 
@@ -117,7 +118,7 @@ void sdhci_msm_ice_print_regs(struct sdhci_host *host);
 inline int sdhci_msm_ice_get_dev(struct sdhci_host *host)
 {
 	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
-	struct sdhci_msm_host *msm_host = pltfm_host->priv;
+	struct sdhci_msm_host *msm_host = sdhci_pltfm_priv(pltfm_host);
 
 	if (msm_host) {
 		msm_host->ice.pdev = NULL;
