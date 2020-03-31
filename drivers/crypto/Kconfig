@@ -467,6 +467,7 @@ config CRYPTO_DEV_EXYNOS_HASH
 	  HASH algorithms will be disabled if EXYNOS_RNG
 	  is enabled due to hw conflict.
 
+source "drivers/crypto/msm/Kconfig"
 config CRYPTO_DEV_NX
 	bool "Support for IBM PowerPC Nest (NX) cryptographic acceleration"
 	depends on PPC64
