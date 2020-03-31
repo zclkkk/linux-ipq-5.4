@@ -952,3 +952,5 @@
 		compatible = "qti,scm_restart_reason";
 	};
 };
+
+#include "ipq8074-spmi-regulator.dtsi"
