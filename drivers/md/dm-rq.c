@@ -46,6 +46,15 @@ unsigned dm_get_reserved_rq_based_ios(void)
 }
 EXPORT_SYMBOL_GPL(dm_get_reserved_rq_based_ios);
 
+union map_info *dm_get_rq_mapinfo(struct request *rq)
+{
+	if (rq && rq->end_io_data) {
+		return &((struct dm_rq_target_io *)rq->end_io_data)->info;
+	}
+	return NULL;
+}
+EXPORT_SYMBOL_GPL(dm_get_rq_mapinfo);
+
 static unsigned dm_get_blk_mq_nr_hw_queues(void)
 {
 	return __dm_get_module_param(&dm_mq_nr_hw_queues, 1, 32);

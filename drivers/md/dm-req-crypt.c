@@ -21,6 +21,7 @@
 #include <linux/printk.h>
 #include <crypto/ice.h>
 #include <linux/qcom_scm.h>
+#include "../../block/blk.h"
 
 #define DM_MSG_PREFIX "req-crypt"
 
@@ -59,32 +60,12 @@ struct req_dm_split_req_io {
 };
 
 /*
- * If bio->bi_dev is a partition, remap the location
- */
-static inline void req_crypt_blk_partition_remap(struct bio *bio)
-{
-	struct block_device *bdev = bio->bi_bdev;
-
-	if (bio_sectors(bio) && bdev != bdev->bd_contains) {
-		struct hd_struct *p = bdev->bd_part;
-		/*
-		* Check for integer overflow, should never happen.
-		*/
-		if (p->start_sect > (UINT_MAX - bio->bi_iter.bi_sector))
-			BUG();
-
-		bio->bi_iter.bi_sector += p->start_sect;
-		bio->bi_bdev = bdev->bd_contains;
-	}
-}
-
-/*
  * The endio function is called from ksoftirqd context (atomic).
  * For ICE operation simply free up req_io and return from this
  * function
  */
 static int req_crypt_endio(struct dm_target *ti, struct request *clone,
-			    int error, union map_info *map_context)
+			    blk_status_t error, union map_info *map_context)
 {
 	struct req_dm_crypt_io *req_io = map_context->ptr;
 
@@ -93,19 +74,26 @@ static int req_crypt_endio(struct dm_target *ti, struct request *clone,
 	return error;
 }
 
+static void req_crypt_release_clone(struct request *clone,
+				union map_info *map_context)
+{
+	blk_put_request(clone);
+}
+
 /*
  * This function is called with interrupts disabled
  * The function remaps the clone for the underlying device.
  * it is returned to dm once mapping is done
  */
-static int req_crypt_map(struct dm_target *ti, struct request *clone,
-			 union map_info *map_context)
+static int req_crypt_map(struct dm_target *ti, struct request *rq,
+			 union map_info *map_context, struct request **__clone)
 {
 	struct req_dm_crypt_io *req_io = NULL;
 	int copy_bio_sector_to_req = 0;
 	struct bio *bio_src = NULL;
 	gfp_t gfp_flag = GFP_KERNEL;
 	struct crypto_config_dev *cd = ti->private;
+	struct request *clone;
 
 	if (in_interrupt() || irqs_disabled())
 		gfp_flag = GFP_NOWAIT;
@@ -120,16 +108,31 @@ static int req_crypt_map(struct dm_target *ti, struct request *clone,
 	/* Save the clone in the req_io, the callback to the worker
 	 * queue will get the req_io
 	 */
+
+	clone = blk_get_request(bdev_get_queue(cd->dev->bdev),
+		       rq->cmd_flags | REQ_NOMERGE,
+		       BLK_MQ_REQ_NOWAIT);
+	if (IS_ERR(clone)) {
+		/* EBUSY, ENODEV or EWOULDBLOCK: requeue */
+		DMERR("%s clone allocation failed\n", __func__);
+		return PTR_ERR(clone);
+	}
+
+	clone->bio = clone->biotail = NULL;
+	clone->cmd_flags |= REQ_FAILFAST_TRANSPORT;
+	*__clone = clone;
+
+	/* Save the clone in the req_io, the callback to the worker
+	 * queue will get the req_io
+	 */
 	req_io->cloned_request = clone;
 	map_context->ptr = req_io;
 	atomic_set(&req_io->pending, 0);
 
-	/* Get the queue of the underlying original device */
-	clone->q = bdev_get_queue(cd->dev->bdev);
 	clone->rq_disk = cd->dev->bdev->bd_disk;
 
-	__rq_for_each_bio(bio_src, clone) {
-		bio_src->bi_bdev = cd->dev->bdev;
+	__rq_for_each_bio(bio_src, rq) {
+		bio_set_dev(bio_src, cd->dev->bdev);
 		/* Currently the way req-dm works is that once the underlying
 		 * device driver completes the request by calling into the
 		 * block layer. The block layer completes the bios (clones) and
@@ -146,7 +149,7 @@ static int req_crypt_map(struct dm_target *ti, struct request *clone,
 		 * If this device has partitions, remap block n
 		 * of partition p to block n+start(p) of the disk.
 		 */
-		req_crypt_blk_partition_remap(bio_src);
+		blk_partition_remap(bio_src);
 		if (copy_bio_sector_to_req == 0) {
 			clone->__sector = bio_src->bi_iter.bi_sector;
 			copy_bio_sector_to_req++;
@@ -346,6 +349,7 @@ static int req_crypt_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	ti->num_flush_bios = 1;
 	ti->num_discard_bios = 1;
 
+	ti->per_io_data_size = sizeof(struct req_dm_crypt_io);
 	err = qcom_set_ice_config(argv);
 	if (err) {
 		DMERR("%s: ice configuration fail\n", __func__);
@@ -370,11 +374,13 @@ static int req_crypt_iterate_devices(struct dm_target *ti,
 
 static struct target_type req_crypt_target = {
 	.name   = "req-crypt",
+	.features = DM_TARGET_IMMUTABLE,
 	.version = {1, 0, 0},
 	.module = THIS_MODULE,
 	.ctr    = req_crypt_ctr,
 	.dtr    = req_crypt_dtr,
-	.map_rq = req_crypt_map,
+	.clone_and_map_rq = req_crypt_map,
+	.release_clone_rq = req_crypt_release_clone,
 	.rq_end_io = req_crypt_endio,
 	.iterate_devices = req_crypt_iterate_devices,
 };
