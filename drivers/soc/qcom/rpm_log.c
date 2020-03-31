@@ -234,7 +234,7 @@ static ssize_t msm_rpm_log_file_read(struct file *file, char __user *bufu,
 		return -ENOMEM;
 	if (!bufu || count == 0)
 		return -EINVAL;
-	if (!access_ok(VERIFY_WRITE, bufu, count))
+	if (!access_ok(bufu, count))
 		return -EFAULT;
 
 	mutex_lock(&buf->mutex);
