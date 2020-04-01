@@ -127,7 +127,6 @@ struct tz_hvc_log_struct {
 	int copy_len;
 	int flags;
 	int buf_len;
-	u32 hyp_scm_cmd_id;
 	struct mutex lock;
 };
 
@@ -432,12 +431,6 @@ static int qti_tzlog_probe(struct platform_device *pdev)
 	}
 
 	if (is_scm_armv8() && of_property_read_bool(np, "qti,hyp-enabled")) {
-
-		ret = of_property_read_u32(np, "hyp-scm-cmd-id",
-						&(tz_hvc_log->hyp_scm_cmd_id));
-		if (ret)
-			tz_hvc_log->hyp_scm_cmd_id = HVC_INFO_GET_DIAG_ID;
-
 		hvc_fileret = debugfs_create_file("hvc_log", 0444,
 			tz_hvc_log->tz_dirret, tz_hvc_log, &fops_hvc_log);
 		if (IS_ERR_OR_NULL(hvc_fileret)) {
