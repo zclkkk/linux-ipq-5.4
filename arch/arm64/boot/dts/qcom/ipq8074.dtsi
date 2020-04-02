@@ -1017,7 +1017,7 @@
 		};
 	};
 
-	cpus {
+	cpus: cpus {
 		#address-cells = <0x1>;
 		#size-cells = <0x0>;
 
@@ -1109,3 +1109,4 @@
 };
 
 #include "ipq8074-spmi-regulator.dtsi"
+#include "ipq8074-cpu.dtsi"
