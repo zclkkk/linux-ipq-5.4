@@ -81,6 +81,8 @@ struct qpic_data_type {
 	struct completion fifo_eof_comp;
 	struct completion completion;
 	struct dma_chan *chan;
+	struct clk *core_clk;
+	struct clk *aon_clk;
 };
 
 u32 qpic_send_frame(
