@@ -164,7 +164,7 @@ int mdss_qpic_alloc_fb_mem(struct msm_fb_data_type *mfd)
 	}
 
 	if (!qpic_res->cmd_buf_virt) {
-		qpic_res->cmd_buf_virt = dma_alloc_writecombine(
+		qpic_res->cmd_buf_virt = dma_alloc_wc(
 			&qpic_res->pdev->dev, QPIC_MAX_CMD_BUF_SIZE,
 			(dma_addr_t *)&qpic_res->cmd_buf_phys, GFP_KERNEL);
 		if (!qpic_res->cmd_buf_virt) {
@@ -185,7 +185,7 @@ int mdss_qpic_alloc_fb_mem(struct msm_fb_data_type *mfd)
 						GFP_KERNEL);
 		if (!qpic_res->fb_virt) {
 			pr_err("%s fb allocation failed", __func__);
-			dma_free_writecombine(&qpic_res->pdev->dev,
+			dma_free_wc(&qpic_res->pdev->dev,
 					      QPIC_MAX_CMD_BUF_SIZE,
 					      qpic_res->cmd_buf_virt,
 					      qpic_res->cmd_buf_phys);
@@ -690,7 +690,7 @@ static int mdss_qpic_remove(struct platform_device *pdev)
 					qpic_res->fb_size, put_page);
 
 	if (!qpic_res->cmd_buf_virt)
-		dma_free_writecombine(&qpic_res->pdev->dev,
+		dma_free_wc(&qpic_res->pdev->dev,
 				      QPIC_MAX_CMD_BUF_SIZE,
 				      qpic_res->cmd_buf_virt,
 				      qpic_res->cmd_buf_phys);
