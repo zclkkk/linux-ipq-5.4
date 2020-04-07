@@ -421,6 +421,27 @@
 			status = "disabled";
 		};
 
+		qpic_lcd: qti_mdss_qpic@7980000 {
+			compatible = "qti,mdss_qpic";
+			reg = <0x7980000 0x24000>;
+			interrupts = <GIC_SPI 151 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&gcc GCC_QPIC_CLK>,
+				<&gcc GCC_QPIC_AHB_CLK>;
+			clock-names = "core", "aon";
+			dmas = <&qpic_bam 6>;
+			dma-names = "chan";
+			status = "disabled";
+		};
+
+		qpic_lcd_panel: qti_mdss_qpic_panel {
+			compatible = "qti,mdss-qpic-panel";
+			label = "qpic lcd panel";
+			qti,mdss-pan-res = <800 480>;
+			qti,mdss-pan-bpp = <18>;
+			qti,refresh_rate = <60>;
+			status = "disabled";
+		};
+
 		qusb_phy_0: qusb@79000 {
 		    compatible = "qcom,ipq8074-qusb2-phy";
 		    reg = <0x079000 0x180>;

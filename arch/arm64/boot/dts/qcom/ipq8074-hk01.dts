@@ -679,5 +679,13 @@
 			used-pwm-indices = <1>, <0>, <0>, <0>;
 			status = "disabled";
 		};
+
+		qti_mdss_qpic@7980000 {
+			status = "ok";
+		};
+
+		qti_mdss_qpic_panel {
+			status = "ok";
+		};
 	};
 };
