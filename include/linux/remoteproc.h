@@ -42,6 +42,28 @@
 #include <linux/idr.h>
 #include <linux/of.h>
 
+/** enum subsystem notifiers
+ * @SUBSYS_BEFORE_SHUTDOWN remoteproc is about to get powerdown
+ * @SUBSYS_AFTER_SHUTDOWN remoteproc shutdown is complete
+ * @SUBSYS_BEFORE_POWERUP remoteproc is about to get power up
+ * @SUBSYS_AFTER_POWERUP remoteproc power up is complete
+ * @SUBSYS_RAMDUMP_NOTIFICATION ramdump can be collected
+ * @SUBSYS_POWERUP_FAILURE power up failed
+ * @SUBSYS_PREPARE_FOR_FATAL_SHUTDOWN remoteproc fatal exception receivced
+ */
+enum subsys_notif_type {
+	SUBSYS_BEFORE_SHUTDOWN,
+	SUBSYS_AFTER_SHUTDOWN,
+	SUBSYS_BEFORE_POWERUP,
+	SUBSYS_AFTER_POWERUP,
+	SUBSYS_RAMDUMP_NOTIFICATION,
+	SUBSYS_POWERUP_FAILURE,
+	SUBSYS_PROXY_VOTE,
+	SUBSYS_PROXY_UNVOTE,
+	SUBSYS_SOC_RESET,
+	SUBSYS_PREPARE_FOR_FATAL_SHUTDOWN,
+	SUBSYS_NOTIF_TYPE_COUNT
+};
 /**
  * struct resource_table - firmware resource table header
  * @ver: version number
@@ -383,6 +405,7 @@ struct rproc_ops {
 	int (*load)(struct rproc *rproc, const struct firmware *fw);
 	int (*sanity_check)(struct rproc *rproc, const struct firmware *fw);
 	u32 (*get_boot_addr)(struct rproc *rproc, const struct firmware *fw);
+	void (*report_panic)(struct rproc *rproc);
 };
 
 /**
@@ -514,6 +537,8 @@ struct rproc {
 	bool auto_boot;
 	struct list_head dump_segments;
 	int nb_vdev;
+	struct blocking_notifier_head nlist;
+	struct atomic_notifier_head atomic_nlist;
 };
 
 /**
@@ -635,4 +660,10 @@ void rproc_add_subdev(struct rproc *rproc, struct rproc_subdev *subdev);
 
 void rproc_remove_subdev(struct rproc *rproc, struct rproc_subdev *subdev);
 
+struct rproc *rproc_get_by_name(const char* name);
+int rproc_register_subsys_notifier(const char *name, struct notifier_block *nb,
+		struct notifier_block *atomic_nb);
+int rproc_unregister_subsys_notifier(const char *name, struct notifier_block *nb,
+		struct notifier_block *atomic_nb);
+void rproc_subsys_notify(struct rproc *rproc, int event, bool atomic);
 #endif /* REMOTEPROC_H */

@@ -36,6 +36,7 @@
 #include <linux/virtio_ring.h>
 #include <asm/byteorder.h>
 #include <linux/platform_device.h>
+#include <linux/delay.h>
 
 #include "remoteproc_internal.h"
 
@@ -43,6 +44,7 @@
 
 static DEFINE_MUTEX(rproc_list_mutex);
 static LIST_HEAD(rproc_list);
+struct workqueue_struct *rproc_wq;
 
 typedef int (*rproc_handle_resources_t)(struct rproc *rproc,
 				struct resource_table *table, int len);
@@ -53,6 +55,8 @@ static int rproc_alloc_carveout(struct rproc *rproc,
 				struct rproc_mem_entry *mem);
 static int rproc_release_carveout(struct rproc *rproc,
 				  struct rproc_mem_entry *mem);
+static int rproc_panic_handler(struct notifier_block *this,
+				unsigned long event, void *ptr);
 
 /* Unique indices for remoteproc devices */
 static DEFINE_IDA(rproc_dev_index);
@@ -61,6 +65,11 @@ static const char * const rproc_crash_names[] = {
 	[RPROC_MMUFAULT]	= "mmufault",
 	[RPROC_WATCHDOG]	= "watchdog",
 	[RPROC_FATAL_ERROR]	= "fatal error",
+};
+
+static struct notifier_block panic_nb = {
+	.notifier_call  = rproc_panic_handler,
+	.priority = 100,
 };
 
 /* translate rproc_crash_type to string */
@@ -1300,6 +1309,7 @@ static int rproc_start(struct rproc *rproc, const struct firmware *fw)
 	struct device *dev = &rproc->dev;
 	int ret;
 
+	rproc_subsys_notify(rproc, SUBSYS_BEFORE_POWERUP, false);
 	/* load the ELF segments to memory */
 	ret = rproc_load_segments(rproc, fw);
 	if (ret) {
@@ -1343,6 +1353,7 @@ static int rproc_start(struct rproc *rproc, const struct firmware *fw)
 		goto stop_rproc;
 	}
 
+	rproc_subsys_notify(rproc, SUBSYS_AFTER_POWERUP, false);
 	rproc->state = RPROC_RUNNING;
 
 	dev_info(dev, "remote processor %s is now up\n", rproc->name);
@@ -1467,6 +1478,7 @@ static int rproc_stop(struct rproc *rproc, bool crashed)
 	struct device *dev = &rproc->dev;
 	int ret;
 
+	rproc_subsys_notify(rproc, SUBSYS_BEFORE_SHUTDOWN, false);
 	/* Stop any subdevices for the remote processor */
 	rproc_stop_subdevices(rproc, crashed);
 
@@ -1481,6 +1493,8 @@ static int rproc_stop(struct rproc *rproc, bool crashed)
 	}
 
 	rproc_unprepare_subdevices(rproc);
+	rproc_subsys_notify(rproc, SUBSYS_AFTER_SHUTDOWN, false);
+	rproc_subsys_notify(rproc, SUBSYS_RAMDUMP_NOTIFICATION, false);
 
 	rproc->state = RPROC_OFFLINE;
 
@@ -2070,6 +2084,8 @@ struct rproc *rproc_alloc(struct device *dev, const char *name,
 	INIT_LIST_HEAD(&rproc->dump_segments);
 
 	INIT_WORK(&rproc->crash_handler, rproc_crash_handler_work);
+	ATOMIC_INIT_NOTIFIER_HEAD(&rproc->atomic_nlist);
+	BLOCKING_INIT_NOTIFIER_HEAD(&rproc->nlist);
 
 	rproc->state = RPROC_OFFLINE;
 
@@ -2191,6 +2207,108 @@ struct rproc *rproc_get_by_child(struct device *dev)
 }
 EXPORT_SYMBOL(rproc_get_by_child);
 
+static int rproc_panic_handler(struct notifier_block *this,
+				unsigned long event, void *ptr)
+{
+	struct rproc *r;
+
+	mutex_lock(&rproc_list_mutex);
+	list_for_each_entry(r, &rproc_list, node) {
+		if (r->ops->report_panic)
+			r->ops->report_panic(r);
+	}
+
+	return 0;
+}
+
+/**
+ * rproc_get_by_name() - acquire rproc instance by rproc name
+ * @name: name of the rproc device
+ *
+ * Returns the rproc instance, or NULL if not found.
+ */
+struct rproc *rproc_get_by_name(const char* name)
+{
+	struct rproc *rproc = NULL, *r;
+
+	mutex_lock(&rproc_list_mutex);
+	list_for_each_entry(r, &rproc_list, node) {
+		if(!strcmp(r->name, name)) {
+			rproc = r;
+			break;
+		}
+	}
+	mutex_unlock(&rproc_list_mutex);
+
+	return rproc;
+}
+
+/**
+ * rproc_register_subsys_notifier() - register for subsys start, stop events
+ * @name: name of the rproc device
+ * @nb - notifier bloc
+ * @atomic-nb - atomic notifier block
+ * Returns 0 on success else error
+ */
+int rproc_register_subsys_notifier(const char *name, struct notifier_block *nb,
+		struct notifier_block *atomic_nb)
+{
+	struct rproc *rproc = rproc_get_by_name(name);
+	int ret = 0;
+
+	if(!rproc)
+		return -ENODEV;
+
+	if (atomic_nb)
+		ret = atomic_notifier_chain_register(&rproc->atomic_nlist,
+								atomic_nb);
+	if (!ret)
+		ret = blocking_notifier_chain_register(&rproc->nlist, nb);
+
+	return ret;
+}
+
+/**
+ * rproc_unregister_subsys_notifier() - register for subsys start, stop events
+ * @name: name of the rproc device
+ * @nb - notifier bloc
+ * @atomic-nb - atomic notifier block
+ * Returns 0 on success else error
+ */
+int rproc_unregister_subsys_notifier(const char *name, struct notifier_block *nb,
+		struct notifier_block *atomic_nb)
+{
+	struct rproc *rproc = rproc_get_by_name(name);
+	int ret = 0;
+
+	if(!rproc)
+		return -ENODEV;
+
+	if (atomic_nb)
+		ret = atomic_notifier_chain_unregister(&rproc->atomic_nlist,
+								atomic_nb);
+	if (!ret)
+		ret = blocking_notifier_chain_unregister(&rproc->nlist, nb);
+
+	return ret;
+}
+
+/**
+ * rproc_subsys_notify() - notify sub system event
+ * @rproc rproc instance
+ * @event, event to be notified
+ * @atomic to be notified as task or atomic context
+ */
+void rproc_subsys_notify(struct rproc *rproc, int event, bool atomic)
+{
+	if (!atomic && (event == SUBSYS_AFTER_POWERUP))
+		msleep(100);
+
+	if (atomic)
+		atomic_notifier_call_chain(&rproc->atomic_nlist, event, NULL);
+	else
+		blocking_notifier_call_chain(&rproc->nlist, event, NULL);
+}
 /**
  * rproc_report_crash() - rproc crash reporter function
  * @rproc: remote processor
@@ -2209,20 +2327,25 @@ void rproc_report_crash(struct rproc *rproc, enum rproc_crash_type type)
 		return;
 	}
 
+	rproc_subsys_notify(rproc, SUBSYS_PREPARE_FOR_FATAL_SHUTDOWN, true);
 	dev_err(&rproc->dev, "crash detected in %s: type %s\n",
 		rproc->name, rproc_crash_to_string(type));
 
 	/* create a new task to handle the error */
-	schedule_work(&rproc->crash_handler);
+	queue_work(rproc_wq, &rproc->crash_handler);
 }
 EXPORT_SYMBOL(rproc_report_crash);
 
 static int __init remoteproc_init(void)
 {
+	rproc_wq = alloc_workqueue("rproc_wq", WQ_CPU_INTENSIVE, 0);
+	BUG_ON(!rproc_wq);
+
 	rproc_init_sysfs();
 	rproc_init_debugfs();
 
-	return 0;
+	return atomic_notifier_chain_register(&panic_notifier_list,
+						&panic_nb);
 }
 subsys_initcall(remoteproc_init);
 
@@ -2232,6 +2355,7 @@ static void __exit remoteproc_exit(void)
 
 	rproc_exit_debugfs();
 	rproc_exit_sysfs();
+	destroy_workqueue(rproc_wq);
 }
 module_exit(remoteproc_exit);
 
