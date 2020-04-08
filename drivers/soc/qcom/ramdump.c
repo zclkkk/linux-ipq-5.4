@@ -44,7 +44,6 @@ struct ramdump_device {
 	struct ramdump_segment *segments;
 	size_t elfcore_size;
 	char *elfcore_buf;
-	struct dma_attrs attrs;
 };
 
 DEFINE_SPINLOCK(g_dump_class_lock);
@@ -230,11 +229,7 @@ static ssize_t ramdump_read(struct file *filep, char __user *buf, size_t count,
 	copy_size = min(count, (size_t)MAX_IOREMAP_SIZE);
 	copy_size = min((unsigned long)copy_size, data_left);
 
-	init_dma_attrs(&rd_dev->attrs);
-	dma_set_attr(DMA_ATTR_SKIP_ZEROING, &rd_dev->attrs);
 	device_mem = vaddr;
-	//device_mem = vaddr ?: dma_remap(rd_dev->device.parent, NULL, addr,
-	//					copy_size, &rd_dev->attrs);
 	origdevice_mem = device_mem;
 
 	if (device_mem == NULL) {
@@ -284,8 +279,6 @@ static ssize_t ramdump_read(struct file *filep, char __user *buf, size_t count,
 	}
 
 	kfree(finalbuf);
-	//if (!vaddr && origdevice_mem)
-		//dma_unremap(rd_dev->device.parent, origdevice_mem, copy_size);
 
 	*pos += copy_size;
 
@@ -295,9 +288,6 @@ static ssize_t ramdump_read(struct file *filep, char __user *buf, size_t count,
 	return *pos - orig_pos;
 
 ramdump_done:
-	//if (!vaddr && origdevice_mem)
-		//dma_unremap(rd_dev->device.parent, origdevice_mem, copy_size);
-
 	kfree(finalbuf);
 	rd_dev->data_ready = 0;
 	*pos = 0;

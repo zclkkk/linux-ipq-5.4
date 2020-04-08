@@ -21,7 +21,7 @@ struct ramdump_segment {
 	unsigned long size;
 };
 
-#ifdef CONFIG_IPQ_SUBSYSTEM_RESTART
+#ifdef CONFIG_IPQ_SUBSYSTEM_RAMDUMP
 extern void *create_ramdump_device(const char *dev_name, struct device *parent);
 extern int create_ramdump_device_file(void *);
 extern void destroy_ramdump_device(void *dev);
