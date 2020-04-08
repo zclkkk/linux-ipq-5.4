@@ -16,4 +16,6 @@ source "drivers/platform/olpc/Kconfig"
 
 if ARCH_QCOM
 source "drivers/platform/ipq/Kconfig"
+
+source "drivers/platform/msm/Kconfig"
 endif
