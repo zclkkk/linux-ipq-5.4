@@ -4,38 +4,55 @@ This binding describes tzlog used to inspect log created by TZ. This driver
 also provides capability to capture SMMU and XPU faults found by TZ.
 
 Required properties:
- - compatible: must contain one of "qti,tzlog"
-				   "qti,tz64-hv-log"
-				   "qti,tz64log"
-					"qti,tzlog_ipq6018"
+ - compatible: should be "qti,tzlog"
  - interrupts: must contain interrupt used by TZ when XPU or SMMU faults are
 		found
+ - qti,tz-diag-buf-size: contains the TZ diag buffer size
+ - qti,tz-ring-off: contains the TZ diag buffer ring offset
+ - qti,tz-log-pos-info-off: contains the TZ diag buffer log position info offset
 
 Optional properties:
- - qti,tzbsp-diag-buf-size: contains the TZ diag buffer size. If not defined,
-				memory of 4K will be used.
- - qti,hyp-enabled: defines whether TZ supports Hypervisor mode or not.
+ - qti,tz_kpss: should be set in case of IPQ806x platform
+ - qti,hvc-enabled: defines whether TZ supports Hypervisor mode or not
+ - qti,get-smmu-state: when set, will be able to get the SMMU state
 
 Example:
 
-	qti,tzlog {
-		compatible = "qti,tz64log";
-		interrupts = <0 244 0>;
-	};
-
-	qti,tzlog {
-		compatible = "qti,tz64-hv-log";
-		interrupts = <0 244 0>;
-	};
-
+IPQ806x:
 	qti,tzlog {
 		compatible = "qti,tzlog";
+		qti,tz-diag-buf-size = <0x1000>;
+		qti,tz-ring-off = <7>;
+		qti,tz-log-pos-info-off = <0>;
+		qti,tz_kpss;
 	};
 
-	tzlog: qti,tzlog {
-		compatible = "qti,tzlog_ipq6018";
+IPQ40xx:
+	qti,tzlog {
+		compatible = "qti,tzlog";
+		qti,tz-diag-buf-size = <0x1000>;
+		qti,tz-ring-off = <7>;
+		qti,tz-log-pos-info-off = <522>;
+	};
+
+IPQ807x:
+	qti,tzlog {
+		compatible = "qti,tzlog";
 		interrupts = <GIC_SPI 244 IRQ_TYPE_EDGE_RISING>;
-		qti,tzbsp-diag-buf-size = <0x3000>;
-		qti,hyp-enabled;
-		hyp-scm-cmd-id = <0xA>;
+		qti,tz-diag-buf-size = <0x2000>;
+		qti,tz-ring-off = <7>;
+		qti,tz-log-pos-info-off = <579>;
+		qti,hvc-enabled;
+		qti,get-smmu-state;
+	};
+
+IPQ60xx:
+	qti,tzlog {
+		compatible = "qti,tzlog";
+		interrupts = <GIC_SPI 244 IRQ_TYPE_EDGE_RISING>;
+		qti,tz-diag-buf-size = <0x3000>;
+		qti,tz-ring-off = <7>;
+		qti,tz-log-pos-info-off = <810>;
+		qti,hvc-enabled;
+		qti,get-smmu-state;
 	};

@@ -34,116 +34,74 @@
 #include <linux/gfp.h>
 #include <linux/sizes.h>
 
-#define DEFAULT_TZBSP_DIAG_BUF_LEN	SZ_4K
+#define SMMU_DISABLE_NONE  0x0 /* SMMU Stage2 Enabled */
+#define SMMU_DISABLE_S2    0x1 /* SMMU Stage2 bypass */
+#define SMMU_DISABLE_ALL   0x2 /* SMMU Disabled */
+
+#define HVC_DIAG_RING_OFFSET		2
+#define HVC_DIAG_LOG_POS_INFO_OFFSET	3
+#define TZ_LEGACY_RING_OFFSET		7
+#define TZ_LEGACY_LOG_POS_INFO_OFFSET	522
+#define TZ_LEGACY_BUF_LEN		0x1000
 
 static unsigned int paniconaccessviolation = 0;
+module_param(paniconaccessviolation, uint, 0644);
+MODULE_PARM_DESC(paniconaccessviolation, "Panic on Access Violation detected: 0,1");
+
 static char *smmu_state;
 
-/* Maximum size for buffers to support AARCH64 TZ */
-#define TZ_64 BIT(0)
-#define TZ_KPSS BIT(1)
-#define TZ_HK BIT(2)
-#define TZ_CP BIT(3)
-
+/**
+ * struct tzbsp_log_pos_t - log position structure
+ * @wrap: ring buffer wrap-around ctr
+ * @offset: ring buffer current position
+ */
 struct tzbsp_log_pos_t {
-	uint16_t wrap;		/* Ring buffer wrap-around ctr */
-	uint16_t offset;	/* Ring buffer current position */
-};
-
-struct tzbsp_diag_log_t {
-	struct tzbsp_log_pos_t log_pos;	/* Ring buffer position mgmt */
-	uint8_t log_buf[1];		/* Open ended array to the end
-					 * of the 4K IMEM buffer
-					 */
-};
-
-struct tzbsp_diag_t {
-	uint32_t unused[7];	/* Unused variable is to support the
-				 * corresponding structure in trustzone
-				 */
-	uint32_t ring_off;
-	uint32_t unused1[514];
-	struct tzbsp_diag_log_t log;
-};
-
-struct tzbsp_diag_t_kpss {
-	uint32_t magic_num;	/* Magic Number */
-	uint32_t version;	/* Major.Minor version */
-	uint32_t skip1[5];
-	uint32_t ring_off;	/* Ring Buffer Offset */
-	uint32_t ring_len;	/* Ring Buffer Len */
-	uint32_t skip2[369];
-	uint8_t ring_buffer[];	/* TZ Ring Buffer */
-};
-
-/* Below structure to support AARCH64 TZ */
-struct ipq807x_tzbsp_diag_t_v8 {
-	uint32_t unused[7];	/* Unused variable is to support the
-				 * corresponding structure in trustzone
-				 * and size is varying based on AARCH64 TZ
-				 */
-	uint32_t ring_off;
-	uint32_t unused1[571];
-	struct tzbsp_diag_log_t log;
-};
-
-struct ipq6018_tzbsp_diag_t_v8 {
-	uint32_t unused[7];	/* Unused variable is to support the
-				 * corresponding structure in trustzone
-				 * and size is varying based on AARCH64 TZ
-				 */
-	uint32_t ring_off;
-	uint32_t unused1[802];
-	struct tzbsp_diag_log_t log;
-};
-
-typedef struct hyp_log_pos_s {
 	uint16_t wrap;
 	uint16_t offset;
-} hyp_log_pos_t;
+};
 
-/* Boot Info Table */
-typedef struct hyp_diag_boot_info_s {
-	uint32_t warm_entry_cnt;
-	uint32_t warm_exit_cnt;
-	uint32_t warmboot_marker;
-} hyp_diag_boot_info_t;
-
-typedef struct hyp_diag_log_s {
-	uint32_t magic_num;
-	uint32_t cpu_count;
-	uint32_t ring_off;
-	hyp_log_pos_t log_pos;
-	uint32_t  log_len;
-	uint32_t  s2_fault_counter;
-	hyp_diag_boot_info_t    boot_info[NR_CPUS];
-	char *log_buf_p;
-} hyp_diag_log_t;
-
+/**
+ * struct tz_hvc_log_struct - TZ / HVC log info structure
+ * @debugfs_dir: qti_debug_logs debugfs directory
+ * @ker_buf: kernel buffer shared with TZ to get the diag log
+ * @copy_buf: kernel buffer used to copy the diag log
+ * @copy_len: length of the diag log that has been copied into the buffer
+ * @tz_ring_off: offset in tz log buffer that contains the ring start offset
+ * @tz_log_pos_info_off: offset in tz log buffer that contains log position info
+ * @hvc_ring_off: offset in hvc log buffer that contains the ring start offset
+ * @hvc_log_pos_info_off: offset in hvc log buffer that contains log position info
+ * @buf_len: kernel buffer length
+ * @lock: mutex lock for synchronization
+ * @tz_kpss: boolean to handle ipq806x which has different diag log structure
+ */
 struct tz_hvc_log_struct {
-	struct dentry *tz_dirret;
+	struct dentry *debugfs_dir;
 	char *ker_buf;
 	char *copy_buf;
 	int copy_len;
-	int flags;
+	uint32_t tz_ring_off;
+	uint32_t tz_log_pos_info_off;
+	uint32_t hvc_ring_off;
+	uint32_t hvc_log_pos_info_off;
 	int buf_len;
 	struct mutex lock;
+	bool tz_kpss;
 };
 
-static int tz_log_open(struct inode *inode, struct file *file)
+static int tz_hvc_log_open(struct inode *inode, struct file *file)
 {
 	struct tz_hvc_log_struct *tz_hvc_log;
 	char *ker_buf;
-	char *tmp_buf;
+	char *copy_buf;
 	uint32_t buf_len;
-	uint16_t wrap;
-	struct tzbsp_diag_t *tz_diag;
-	struct ipq807x_tzbsp_diag_t_v8 *ipq807x_diag_buf;
-	struct ipq6018_tzbsp_diag_t_v8 *ipq6018_diag_buf;
-	struct tzbsp_diag_t_kpss *tz_diag_kpss;
-	struct tzbsp_diag_log_t *log;
-	uint16_t offset;
+	uint32_t ring_off;
+	uint32_t log_pos_info_off;
+
+	uint32_t *diag_buf;
 	uint16_t ring;
+	struct tzbsp_log_pos_t *log;
+	uint16_t offset;
+	uint16_t wrap;
 	int ret;
 
 	file->private_data = inode->i_private;
@@ -152,71 +110,69 @@ static int tz_log_open(struct inode *inode, struct file *file)
 	mutex_lock(&tz_hvc_log->lock);
 
 	ker_buf = tz_hvc_log->ker_buf;
-	tmp_buf = tz_hvc_log->copy_buf;
+	copy_buf = tz_hvc_log->copy_buf;
 	buf_len = tz_hvc_log->buf_len;
-	tz_hvc_log->copy_len = 0;
 
-	/* SCM call to TZ to get the tz log */
-	ret = qti_scm_tz_log(ker_buf, buf_len);
-	if (ret != 0) {
-		pr_err("Error in getting tz log\n");
-		mutex_unlock(&tz_hvc_log->lock);
-		return ret;
-	}
+	if (!strncmp(file->f_path.dentry->d_iname, "tz_log", sizeof("tz_log"))) {
+		/* SCM call to TZ to get the tz log */
+		ret = qti_scm_tz_log(ker_buf, buf_len);
+		if (ret != 0) {
+			pr_err("Error in getting tz log\n");
+			mutex_unlock(&tz_hvc_log->lock);
+			return ret;
+		}
 
-	if (tz_hvc_log->flags & TZ_KPSS) {
-		tz_diag_kpss = (struct tzbsp_diag_t_kpss *)ker_buf;
-		ring = tz_diag_kpss->ring_off;
-		memcpy(tmp_buf, (ker_buf + ring), (buf_len - ring));
-		tz_hvc_log->copy_len = buf_len - ring;
+		ring_off = tz_hvc_log->tz_ring_off;
+		log_pos_info_off = tz_hvc_log->tz_log_pos_info_off;
 	} else {
-		if (tz_hvc_log->flags & TZ_HK) {
-			ipq807x_diag_buf =
-				(struct ipq807x_tzbsp_diag_t_v8 *)ker_buf;
-			ring = ipq807x_diag_buf->ring_off;
-			log = &ipq807x_diag_buf->log;
-		} else if (tz_hvc_log->flags & TZ_CP) {
-			ipq6018_diag_buf =
-				(struct ipq6018_tzbsp_diag_t_v8 *)ker_buf;
-			ring = ipq6018_diag_buf->ring_off;
-			log = &ipq6018_diag_buf->log;
-		} else {
-			tz_diag = (struct tzbsp_diag_t *) ker_buf;
-			ring = tz_diag->ring_off;
-			log = &tz_diag->log;
+		/* SCM call to TZ to get the hvc log */
+		ret = qti_scm_hvc_log(ker_buf, buf_len);
+		if (ret != 0) {
+			pr_err("Error in getting hvc log\n");
+			mutex_unlock(&tz_hvc_log->lock);
+			return ret;
 		}
 
-		offset = log->log_pos.offset;
-		wrap = log->log_pos.wrap;
+		ring_off = tz_hvc_log->hvc_ring_off;
+		log_pos_info_off = tz_hvc_log->hvc_log_pos_info_off;
+	}
 
-		if (wrap != 0) {
-			memcpy(tmp_buf, (ker_buf + offset + ring),
-					(buf_len - offset - ring));
-			memcpy(tmp_buf + (buf_len - offset - ring),
-					(ker_buf + ring), offset);
-			tz_hvc_log->copy_len = (buf_len - offset - ring)
-					+ offset;
-		} else {
-			memcpy(tmp_buf, (ker_buf + ring), offset);
-			tz_hvc_log->copy_len = offset;
-		}
+	diag_buf = (uint32_t *) ker_buf;
+	ring = diag_buf[ring_off];
+	log = (struct tzbsp_log_pos_t *) &diag_buf[log_pos_info_off];
+	offset = log->offset;
+	wrap = log->wrap;
+
+	/* To support IPQ806x platform */
+	if (tz_hvc_log->tz_kpss) {
+		offset = buf_len - ring;
+		wrap = 0;
+	}
+
+	if (wrap != 0) {
+		/* since ring wrap occurred, log starts at the offset position
+		 * and offset will be in the middle of the ring.
+		 * ring buffer - [ <second half of log> $ <first half of log> ]
+		 * $ - represents current position of the log start i.e. offset
+		 */
+		memcpy(copy_buf, (ker_buf + ring + offset),
+				(buf_len - ring - offset));
+		memcpy(copy_buf + (buf_len - ring - offset),
+				(ker_buf + ring), offset);
+		tz_hvc_log->copy_len = (buf_len - offset - ring)
+			+ offset;
+	} else {
+		/* since there is no ring wrap condition, log starts at the
+		 * start of the ring and offset will be the end of the log.
+		 */
+		memcpy(copy_buf, (ker_buf + ring), offset);
+		tz_hvc_log->copy_len = offset;
 	}
 
 	return 0;
 }
 
-static int tz_log_release(struct inode *inode, struct file *file)
-{
-	struct tz_hvc_log_struct *tz_hvc_log;
-
-	tz_hvc_log = file->private_data;
-	mutex_unlock(&tz_hvc_log->lock);
-
-	return 0;
-}
-
-/* Read file operation */
-static ssize_t tz_log_read(struct file *fp, char __user *user_buffer,
+static ssize_t tz_hvc_log_read(struct file *fp, char __user *user_buffer,
 				size_t count, loff_t *position)
 {
 	struct tz_hvc_log_struct *tz_hvc_log;
@@ -228,15 +184,21 @@ static ssize_t tz_log_read(struct file *fp, char __user *user_buffer,
 					tz_hvc_log->copy_len);
 }
 
-static int tz_smmu_state_open(struct inode *inode, struct file *file)
+static int tz_hvc_log_release(struct inode *inode, struct file *file)
 {
+	struct tz_hvc_log_struct *tz_hvc_log;
+
+	tz_hvc_log = file->private_data;
+	mutex_unlock(&tz_hvc_log->lock);
+
 	return 0;
 }
 
-/* Read file operation */
-#define SMMU_DISABLE_NONE  0x0 //SMMU Stage2 Enabled
-#define SMMU_DISABLE_S2    0x1 //SMMU Stage2 bypass
-#define SMMU_DISABLE_ALL   0x2 //SMMU Disabled
+static const struct file_operations fops_tz_hvc_log = {
+	.open = tz_hvc_log_open,
+	.read = tz_hvc_log_read,
+	.release = tz_hvc_log_release,
+};
 
 static ssize_t tz_smmu_state_read(struct file *fp, char __user *user_buffer,
 				size_t count, loff_t *position)
@@ -245,97 +207,8 @@ static ssize_t tz_smmu_state_read(struct file *fp, char __user *user_buffer,
 				smmu_state, strlen(smmu_state));
 }
 
-static int tz_smmu_state_release(struct inode *inode, struct file *file)
-{
-	return 0;
-}
-
-
-static int hvc_log_open(struct inode *inode, struct file *file)
-{
-	struct tz_hvc_log_struct *tz_hvc_log;
-	int ret;
-	uint16_t offset;
-	uint16_t ring;
-	uint32_t buf_len;
-	hyp_diag_log_t *phyp_diag_log;
-	uint16_t wrap;
-	char *ker_buf;
-	char *tmp_buf;
-
-	file->private_data = inode->i_private;
-	tz_hvc_log = file->private_data;
-	mutex_lock(&tz_hvc_log->lock);
-
-	ker_buf = tz_hvc_log->ker_buf;
-	tmp_buf = tz_hvc_log->copy_buf;
-	buf_len = tz_hvc_log->buf_len;
-
-	/* SCM call to TZ to get the hvc log */
-	ret = qti_scm_hvc_log(ker_buf, buf_len);
-	if (ret != 0) {
-		pr_err("Error in getting hvc log\n");
-		mutex_unlock(&tz_hvc_log->lock);
-		return ret;
-	}
-
-	phyp_diag_log = (hyp_diag_log_t *)ker_buf;
-	offset = phyp_diag_log->log_pos.offset;
-	ring = phyp_diag_log->ring_off;
-	wrap = phyp_diag_log->log_pos.wrap;
-
-	if (wrap != 0) {
-		memcpy(tmp_buf, (ker_buf + offset + ring),
-				(buf_len - offset - ring));
-		memcpy(tmp_buf + (buf_len - offset - ring), (ker_buf + ring),
-			offset);
-		tz_hvc_log->copy_len = (buf_len - offset - ring) + offset;
-	} else {
-		memcpy(tmp_buf, (ker_buf + ring), offset);
-		tz_hvc_log->copy_len = offset;
-	}
-
-	return 0;
-}
-
-static int hvc_log_release(struct inode *inode, struct file *file)
-{
-	struct tz_hvc_log_struct *tz_hvc_log;
-
-	tz_hvc_log = file->private_data;
-	mutex_unlock(&tz_hvc_log->lock);
-
-	return 0;
-}
-
-static ssize_t hvc_log_read(struct file *fp, char __user *user_buffer,
-				size_t count, loff_t *position)
-{
-	struct tz_hvc_log_struct *tz_hvc_log;
-
-	tz_hvc_log = fp->private_data;
-
-	return simple_read_from_buffer(user_buffer, count,
-					position, tz_hvc_log->copy_buf,
-					tz_hvc_log->copy_len);
-}
-
-static const struct file_operations fops_tz_log = {
-	.open = tz_log_open,
-	.read = tz_log_read,
-	.release = tz_log_release,
-};
-
-static const struct file_operations fops_hvc_log = {
-	.open = hvc_log_open,
-	.read = hvc_log_read,
-	.release = hvc_log_release,
-};
-
 static const struct file_operations fops_tz_smmu_state = {
-	.open = tz_smmu_state_open,
 	.read = tz_smmu_state_read,
-	.release = tz_smmu_state_release,
 };
 
 static irqreturn_t tzerr_irq(int irq, void *data)
@@ -350,27 +223,15 @@ static irqreturn_t tzerr_irq(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
-static const struct of_device_id qti_tzlog_of_match[] = {
-	{ .compatible = "qti,tzlog" },
-	{ .compatible = "qti,tz64-hv-log", .data = (void *)TZ_HK},
-	{ .compatible = "qti,tzlog_ipq6018", .data = (void *)TZ_CP},
-	{ .compatible = "qti,tz64log", .data = (void *)TZ_64},
-	{ .compatible = "qti,tzlog_ipq806x", .data = (void *)TZ_KPSS },
-	{}
-};
-MODULE_DEVICE_TABLE(of, qti_tzlog_of_match);
-
 static int qti_tzlog_probe(struct platform_device *pdev)
 {
-	int irq;
-	int ret = 0;
-	const struct of_device_id *id;
-	struct dentry *tz_fileret;
-	struct dentry *tz_smmustate;
-	struct dentry *hvc_fileret;
-	struct tz_hvc_log_struct *tz_hvc_log;
-	struct page *page_buf;
 	struct device_node *np = pdev->dev.of_node;
+	struct tz_hvc_log_struct *tz_hvc_log;
+	struct dentry *fileret;
+	struct page *page_buf;
+	bool tz_legacy_scm = false;
+	int ret = 0;
+	int irq;
 
 	tz_hvc_log = (struct tz_hvc_log_struct *)
 			kzalloc(sizeof(struct tz_hvc_log_struct), GFP_KERNEL);
@@ -379,18 +240,39 @@ static int qti_tzlog_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-	id = of_match_device(qti_tzlog_of_match, &pdev->dev);
+	tz_hvc_log->tz_kpss = of_property_read_bool(np, "qti,tz_kpss");
 
-	if (is_scm_armv8()) {
-		tz_hvc_log->flags = id ? (unsigned long)id->data : 0;
+	tz_legacy_scm = !is_scm_armv8();
 
-		ret = of_property_read_u32(np, "qti,tzbsp-diag-buf-size",
-				&(tz_hvc_log->buf_len));
-		if (ret)
-			tz_hvc_log->buf_len = DEFAULT_TZBSP_DIAG_BUF_LEN;
-	} else {
-		tz_hvc_log->flags = 0;
-		tz_hvc_log->buf_len = 0x1000;
+	ret = of_property_read_u32(np, "qti,tz-diag-buf-size",
+				   &(tz_hvc_log->buf_len));
+	if (ret < 0) {
+		dev_err(&pdev->dev, "unable to get diag-buf-size property\n");
+		goto free_mem;
+	}
+
+	ret = of_property_read_u32(np, "qti,tz-ring-off",
+				   &(tz_hvc_log->tz_ring_off));
+	if (ret < 0) {
+		dev_err(&pdev->dev, "unable to get ring-off property\n");
+		goto free_mem;
+	}
+
+	ret = of_property_read_u32(np, "qti,tz-log-pos-info-off",
+				   &(tz_hvc_log->tz_log_pos_info_off));
+	if (ret < 0) {
+		dev_err(&pdev->dev, "unable to get log-pos-info-off property\n");
+		goto free_mem;
+	}
+
+	tz_hvc_log->hvc_ring_off = HVC_DIAG_RING_OFFSET;
+	tz_hvc_log->hvc_log_pos_info_off = HVC_DIAG_LOG_POS_INFO_OFFSET;
+
+	/* To support TZ 2.10 */
+	if (tz_legacy_scm) {
+		tz_hvc_log->tz_ring_off = TZ_LEGACY_RING_OFFSET;
+		tz_hvc_log->tz_log_pos_info_off = TZ_LEGACY_LOG_POS_INFO_OFFSET;
+		tz_hvc_log->buf_len = TZ_LEGACY_BUF_LEN;
 	}
 
 	page_buf = alloc_pages(GFP_KERNEL,
@@ -415,32 +297,32 @@ static int qti_tzlog_probe(struct platform_device *pdev)
 
 	mutex_init(&tz_hvc_log->lock);
 
-	tz_hvc_log->tz_dirret = debugfs_create_dir("qti_debug_logs", NULL);
-	if (IS_ERR_OR_NULL(tz_hvc_log->tz_dirret)) {
+	tz_hvc_log->debugfs_dir = debugfs_create_dir("qti_debug_logs", NULL);
+	if (IS_ERR_OR_NULL(tz_hvc_log->debugfs_dir)) {
 		dev_err(&pdev->dev, "unable to create debugfs\n");
 		ret = -EIO;
 		goto free_mem;
 	}
 
-	tz_fileret = debugfs_create_file("tz_log", 0444,  tz_hvc_log->tz_dirret,
-					tz_hvc_log, &fops_tz_log);
-	if (IS_ERR_OR_NULL(tz_fileret)) {
+	fileret = debugfs_create_file("tz_log", 0444,  tz_hvc_log->debugfs_dir,
+					tz_hvc_log, &fops_tz_hvc_log);
+	if (IS_ERR_OR_NULL(fileret)) {
 		dev_err(&pdev->dev, "unable to create tz_log debugfs\n");
 		ret = -EIO;
 		goto remove_debugfs;
 	}
 
-	if (is_scm_armv8() && of_property_read_bool(np, "qti,hyp-enabled")) {
-		hvc_fileret = debugfs_create_file("hvc_log", 0444,
-			tz_hvc_log->tz_dirret, tz_hvc_log, &fops_hvc_log);
-		if (IS_ERR_OR_NULL(hvc_fileret)) {
+	if (!tz_legacy_scm && of_property_read_bool(np, "qti,hvc-enabled")) {
+		fileret = debugfs_create_file("hvc_log", 0444,
+			tz_hvc_log->debugfs_dir, tz_hvc_log, &fops_tz_hvc_log);
+		if (IS_ERR_OR_NULL(fileret)) {
 			dev_err(&pdev->dev, "can't create hvc_log debugfs\n");
 			ret = -EIO;
 			goto remove_debugfs;
 		}
 	}
 
-	if ((tz_hvc_log->flags & TZ_CP) || (tz_hvc_log->flags & TZ_HK)) {
+	if (of_property_read_bool(np, "qti,get-smmu-state")) {
 		ret = qti_scm_get_smmustate();
 		switch(ret) {
 			case SMMU_DISABLE_NONE:
@@ -457,9 +339,9 @@ static int qti_tzlog_probe(struct platform_device *pdev)
 		}
 		pr_notice("TZ SMMU State: %s", smmu_state);
 
-		tz_smmustate = debugfs_create_file("tz_smmu_state", 0444,
-			tz_hvc_log->tz_dirret, tz_hvc_log, &fops_tz_smmu_state);
-		if (IS_ERR_OR_NULL(tz_smmustate)) {
+		fileret = debugfs_create_file("tz_smmu_state", 0444,
+			tz_hvc_log->debugfs_dir, NULL, &fops_tz_smmu_state);
+		if (IS_ERR_OR_NULL(fileret)) {
 			dev_err(&pdev->dev, "can't create tz_smmu_state\n");
 			ret = -EIO;
 			goto remove_debugfs;
@@ -479,10 +361,11 @@ static int qti_tzlog_probe(struct platform_device *pdev)
 	} else {
 		printk("TZ Log : Will warn on Access Violation, as paniconaccessviolation is not set\n");
 	}
+
 	return 0;
 
 remove_debugfs:
-	debugfs_remove_recursive(tz_hvc_log->tz_dirret);
+	debugfs_remove_recursive(tz_hvc_log->debugfs_dir);
 free_mem:
 	if (tz_hvc_log->copy_buf)
 		__free_pages(virt_to_page(tz_hvc_log->copy_buf),
@@ -501,16 +384,27 @@ static int qti_tzlog_remove(struct platform_device *pdev)
 {
 	struct tz_hvc_log_struct *tz_hvc_log = platform_get_drvdata(pdev);
 
-	/* removing the directory recursively which
-	in turn cleans all the file */
-	debugfs_remove_recursive(tz_hvc_log->tz_dirret);
-	__free_pages(virt_to_page(tz_hvc_log->ker_buf),
-			get_order(tz_hvc_log->buf_len));
+	/* removing the directory recursively */
+	debugfs_remove_recursive(tz_hvc_log->debugfs_dir);
+
+	if (tz_hvc_log->copy_buf)
+		__free_pages(virt_to_page(tz_hvc_log->copy_buf),
+				get_order(tz_hvc_log->buf_len));
+
+	if (tz_hvc_log->ker_buf)
+		__free_pages(virt_to_page(tz_hvc_log->ker_buf),
+				get_order(tz_hvc_log->buf_len));
 
 	kfree(tz_hvc_log);
 
 	return 0;
 }
+
+static const struct of_device_id qti_tzlog_of_match[] = {
+	{ .compatible = "qti,tzlog" },
+	{}
+};
+MODULE_DEVICE_TABLE(of, qti_tzlog_of_match);
 
 static struct platform_driver qti_tzlog_driver = {
 	.probe = qti_tzlog_probe,
@@ -521,6 +415,4 @@ static struct platform_driver qti_tzlog_driver = {
 	},
 };
 
-MODULE_PARM_DESC(paniconaccessviolation, "Panic on Access Violation detected: 0,1");
 module_platform_driver(qti_tzlog_driver);
-module_param(paniconaccessviolation, uint, 0644);
