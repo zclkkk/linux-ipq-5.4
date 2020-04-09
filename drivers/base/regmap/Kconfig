@@ -53,3 +53,7 @@ config REGMAP_SCCB
 config REGMAP_I3C
 	tristate
 	depends on I3C
+
+config REGMAP_ALLOW_WRITE_DEBUGFS
+	depends on REGMAP && DEBUG_FS
+	bool "Allow REGMAP debugfs write"
