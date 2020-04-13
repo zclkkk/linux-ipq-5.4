@@ -198,10 +198,29 @@ static const struct rhashtable_params nf_flow_offload_rhash_params = {
 	.automatic_shrinking	= true,
 };
 
+#define        DAY     (86400 * HZ)
+
+/* Set an arbitrary timeout large enough not to ever expire, this save
+ * us a check for the IPS_OFFLOAD_BIT from the packet path via
+ * nf_ct_is_expired().
+ */
+static void nf_ct_offload_timeout(struct flow_offload *flow)
+{
+	struct flow_offload_entry *entry;
+	struct nf_conn *ct;
+
+	entry = container_of(flow, struct flow_offload_entry, flow);
+	ct = entry->ct;
+
+	if (nf_ct_expires(ct) < DAY / 2)
+		ct->timeout = nfct_time_stamp + DAY;
+}
+
 int flow_offload_add(struct nf_flowtable *flow_table, struct flow_offload *flow)
 {
 	int err;
 
+	nf_ct_offload_timeout(flow);
 	flow->timeout = (u32)jiffies + NF_FLOW_TIMEOUT;
 
 	err = rhashtable_insert_fast(&flow_table->rhashtable,
@@ -248,6 +267,9 @@ static void flow_offload_del(struct nf_flowtable *flow_table,
 		flow_offload_fixup_ct(e->ct);
 	else if (flow->flags & FLOW_OFFLOAD_TEARDOWN)
 		flow_offload_fixup_ct_timeout(e->ct);
+
+	if (!(flow->flags & FLOW_OFFLOAD_TEARDOWN))
+		flow_offload_fixup_ct_state(e->ct);
 
 	flow_offload_free(flow);
 }
@@ -304,6 +326,7 @@ nf_flow_table_iterate(struct nf_flowtable *flow_table,
 	rhashtable_walk_start(&hti);
 
 	while ((tuplehash = rhashtable_walk_next(&hti))) {
+
 		if (IS_ERR(tuplehash)) {
 			if (PTR_ERR(tuplehash) != -EAGAIN) {
 				err = PTR_ERR(tuplehash);
@@ -328,10 +351,17 @@ static void nf_flow_offload_gc_step(struct flow_offload *flow, void *data)
 {
 	struct nf_flowtable *flow_table = data;
 	struct flow_offload_entry *e;
+	bool teardown;
 
 	e = container_of(flow, struct flow_offload_entry, flow);
-	if (nf_flow_has_expired(flow) || nf_ct_is_dying(e->ct) ||
-	    (flow->flags & (FLOW_OFFLOAD_DYING | FLOW_OFFLOAD_TEARDOWN)))
+
+	teardown = flow->flags & (FLOW_OFFLOAD_DYING |
+				  FLOW_OFFLOAD_TEARDOWN);
+
+	if (!teardown)
+		nf_ct_offload_timeout(flow);
+
+	if (nf_flow_has_expired(flow) || teardown)
 		flow_offload_del(flow_table, flow);
 }
 
@@ -528,6 +558,36 @@ void nf_flow_table_free(struct nf_flowtable *flow_table)
 	rhashtable_destroy(&flow_table->rhashtable);
 }
 EXPORT_SYMBOL_GPL(nf_flow_table_free);
+
+static int nf_flow_table_netdev_event(struct notifier_block *this,
+				      unsigned long event, void *ptr)
+{
+	struct net_device *dev = netdev_notifier_info_to_dev(ptr);
+
+	if (event != NETDEV_DOWN)
+		return NOTIFY_DONE;
+
+	nf_flow_table_cleanup(dev);
+
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block flow_offload_netdev_notifier = {
+	.notifier_call	= nf_flow_table_netdev_event,
+};
+
+static int __init nf_flow_table_module_init(void)
+{
+	return register_netdevice_notifier(&flow_offload_netdev_notifier);
+}
+
+static void __exit nf_flow_table_module_exit(void)
+{
+	unregister_netdevice_notifier(&flow_offload_netdev_notifier);
+}
+
+module_init(nf_flow_table_module_init);
+module_exit(nf_flow_table_module_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Pablo Neira Ayuso <pablo@netfilter.org>");
