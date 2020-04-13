@@ -565,28 +565,22 @@ static const struct sfp_upstream_ops sfp_phylink_ops;
 static int phylink_register_sfp(struct phylink *pl,
 				struct fwnode_handle *fwnode)
 {
-	struct fwnode_reference_args ref;
+	struct sfp_bus *bus;
 	int ret;
 
-	if (!fwnode)
-		return 0;
-
-	ret = fwnode_property_get_reference_args(fwnode, "sfp", NULL,
-						 0, 0, &ref);
-	if (ret < 0) {
-		if (ret == -ENOENT)
-			return 0;
-
-		phylink_err(pl, "unable to parse \"sfp\" node: %d\n",
-			    ret);
+	bus = sfp_bus_find_fwnode(fwnode);
+	if (IS_ERR(bus)) {
+		ret = PTR_ERR(bus);
+		phylink_err(pl, "unable to attach SFP bus: %d\n", ret);
 		return ret;
 	}
 
-	pl->sfp_bus = sfp_register_upstream(ref.fwnode, pl, &sfp_phylink_ops);
-	if (!pl->sfp_bus)
-		return -ENOMEM;
+	pl->sfp_bus = bus;
 
-	return 0;
+	ret = sfp_bus_add_upstream(bus, pl, &sfp_phylink_ops);
+	sfp_bus_put(bus);
+
+	return ret;
 }
 
 /**
@@ -684,8 +678,7 @@ EXPORT_SYMBOL_GPL(phylink_create);
  */
 void phylink_destroy(struct phylink *pl)
 {
-	if (pl->sfp_bus)
-		sfp_unregister_upstream(pl->sfp_bus);
+	sfp_bus_del_upstream(pl->sfp_bus);
 	if (pl->link_gpio)
 		gpiod_put(pl->link_gpio);
 
