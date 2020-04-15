@@ -2177,6 +2177,7 @@ static const struct flash_info spi_nor_ids[] = {
 	{ "en25q32b",   INFO(0x1c3016, 0, 64 * 1024,   64, 0) },
 	{ "en25p64",    INFO(0x1c2017, 0, 64 * 1024,  128, 0) },
 	{ "en25q64",    INFO(0x1c3017, 0, 64 * 1024,  128, SECT_4K) },
+	{ "en25q128",   INFO(0x1c3018, 0, 64 * 1024,  256, SECT_4K) },
 	{ "en25q80a",   INFO(0x1c3014, 0, 64 * 1024,   16,
 			SECT_4K | SPI_NOR_DUAL_READ) },
 	{ "en25qh32",   INFO(0x1c7016, 0, 64 * 1024,   64, 0) },
@@ -2505,6 +2506,9 @@ static const struct flash_info spi_nor_ids[] = {
 	/* XMC (Wuhan Xinxin Semiconductor Manufacturing Corp.) */
 	{ "XM25QH64A", INFO(0x207017, 0, 64 * 1024, 128, SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
 	{ "XM25QH128A", INFO(0x207018, 0, 64 * 1024, 256, SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
+
+	/* XTX Technology (Shenzhen) Limited */
+	{ "xt25f128b", INFO(0x0B4018, 0, 64 * 1024, 256, SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
 	{ },
 };
 
@@ -4399,6 +4403,7 @@ static void st_micron_set_default_init(struct spi_nor *nor)
 
 static void winbond_set_default_init(struct spi_nor *nor)
 {
+	nor->flags |= SNOR_F_HAS_LOCK;
 	nor->params.set_4byte = winbond_set_4byte;
 }
 
@@ -4465,6 +4470,7 @@ static void spi_nor_info_init_params(struct spi_nor *nor)
 	struct spi_nor_erase_map *map = &params->erase_map;
 	const struct flash_info *info = nor->info;
 	struct device_node *np = spi_nor_get_flash_node(nor);
+	struct mtd_info *mtd = &nor->mtd;
 	u8 i, erase_mask;
 
 	/* Initialize legacy flash parameters and settings. */
@@ -4528,6 +4534,21 @@ static void spi_nor_info_init_params(struct spi_nor *nor)
 	 */
 	erase_mask = 0;
 	i = 0;
+#ifdef CONFIG_MTD_SPI_NOR_USE_4K_SECTORS
+	if ((info->flags & SECT_4K_PMC) && (mtd->size <=
+		   CONFIG_MTD_SPI_NOR_USE_4K_SECTORS_LIMIT * 1024)) {
+		erase_mask |= BIT(i);
+		spi_nor_set_erase_type(&map->erase_type[i], 4096u,
+				       SPINOR_OP_BE_4K_PMC);
+		i++;
+	} else if ((info->flags & SECT_4K) && (mtd->size <=
+	    CONFIG_MTD_SPI_NOR_USE_4K_SECTORS_LIMIT * 1024)) {
+		erase_mask |= BIT(i);
+		spi_nor_set_erase_type(&map->erase_type[i], 4096u,
+				       SPINOR_OP_BE_4K);
+		i++;
+	}
+#else
 	if (info->flags & SECT_4K_PMC) {
 		erase_mask |= BIT(i);
 		spi_nor_set_erase_type(&map->erase_type[i], 4096u,
@@ -4539,6 +4560,7 @@ static void spi_nor_info_init_params(struct spi_nor *nor)
 				       SPINOR_OP_BE_4K);
 		i++;
 	}
+#endif
 	erase_mask |= BIT(i);
 	spi_nor_set_erase_type(&map->erase_type[i], info->sector_size,
 			       SPINOR_OP_SE);
@@ -4888,6 +4910,7 @@ int spi_nor_scan(struct spi_nor *nor, const char *name,
 	    JEDEC_MFR(nor->info) == SNOR_MFR_INTEL ||
 	    JEDEC_MFR(nor->info) == SNOR_MFR_MACRONIX ||
 	    JEDEC_MFR(nor->info) == SNOR_MFR_SST ||
+	    JEDEC_MFR(nor->info) == SNOR_MFR_WINBOND ||
 	    nor->info->flags & SPI_NOR_HAS_LOCK)
 		nor->clear_sr_bp = spi_nor_clear_sr_bp;
 
