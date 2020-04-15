@@ -928,6 +928,14 @@ struct devlink;
 struct tlsdev_ops;
 
 
+struct flow_offload;
+struct flow_offload_hw_path;
+
+enum flow_offload_type {
+	FLOW_OFFLOAD_ADD	= 0,
+	FLOW_OFFLOAD_DEL,
+};
+
 /*
  * This structure defines the management hooks for network devices.
  * The following hooks can be defined; unless noted otherwise, they are
@@ -1159,6 +1167,17 @@ struct tlsdev_ops;
  *			     int nlflags)
  * int (*ndo_bridge_dellink)(struct net_device *dev, struct nlmsghdr *nlh,
  *			     u16 flags);
+ *
+ * int (*ndo_flow_offload_check)(struct flow_offload_hw_path *path);
+ *	For virtual devices like bridges, vlan, and pppoe, fill in the
+ *	underlying network device that can be used for offloading connections.
+ *	Return an error if offloading is not supported.
+ *
+ * int (*ndo_flow_offload)(enum flow_offload_type type,
+ *			   struct flow_offload *flow,
+ *			   struct flow_offload_hw_path *src,
+ *			   struct flow_offload_hw_path *dest);
+ *	Adds/deletes flow entry to/from net device flowtable.
  *
  * int (*ndo_change_carrier)(struct net_device *dev, bool new_carrier);
  *	Called to change device carrier. Soft-devices (like dummy, team, etc)
@@ -1407,6 +1426,11 @@ struct net_device_ops {
 	int			(*ndo_bridge_dellink)(struct net_device *dev,
 						      struct nlmsghdr *nlh,
 						      u16 flags);
+	int			(*ndo_flow_offload_check)(struct flow_offload_hw_path *path);
+	int			(*ndo_flow_offload)(enum flow_offload_type type,
+						    struct flow_offload *flow,
+						    struct flow_offload_hw_path *src,
+						    struct flow_offload_hw_path *dest);
 	int			(*ndo_change_carrier)(struct net_device *dev,
 						      bool new_carrier);
 	int			(*ndo_get_phys_port_id)(struct net_device *dev,
@@ -1899,6 +1923,8 @@ struct net_device {
 	struct netdev_hw_addr_list	uc;
 	struct netdev_hw_addr_list	mc;
 	struct netdev_hw_addr_list	dev_addrs;
+
+	unsigned char		local_addr_mask[MAX_ADDR_LEN];
 
 #ifdef CONFIG_SYSFS
 	struct kset		*queues_kset;
