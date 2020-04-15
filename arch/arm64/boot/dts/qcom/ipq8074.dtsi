@@ -795,6 +795,22 @@
 			status = "disabled";
 		};
 
+		ledc: ledc@191E000  {
+			compatible = "qti,ledc";
+			reg = <0x191E000 0x20070>;
+			reg-names = "ledc_base_addr";
+			qti,tcsr_ledc_values = <0x0320193 0x00000000 \
+						0x00000000 0x00000000 \
+						0x00000000 0xFFFFFFFF \
+						0x00000000 0xFFFFFFFF \
+						0x007D0820 0x00000000 \
+						0x10482094 0x03FFFFE1>;
+			qti,ledc_blink_indices_cnt = <13>;
+			qti,ledc_blink_indices = <5 6 7 14 13 1 9 10 2 11 12 3 4>;
+			qti,ledc_blink_idx_src_pair = <3 20>, <4 21>, <5 22>;
+			status = "disabled";
+		};
+
 		tcsr_q6: syscon@1945000 {
 			compatible = "syscon";
 			reg = <0x01945000 0xe000>;
