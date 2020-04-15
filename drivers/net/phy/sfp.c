@@ -62,6 +62,7 @@ enum {
 	SFP_S_FAIL,
 	SFP_S_WAIT,
 	SFP_S_INIT,
+	SFP_S_INIT_PHY,
 	SFP_S_INIT_TX_FAULT,
 	SFP_S_WAIT_LOS,
 	SFP_S_LINK_UP,
@@ -126,6 +127,7 @@ static const char * const sm_state_strings[] = {
 	[SFP_S_FAIL] = "fail",
 	[SFP_S_WAIT] = "wait",
 	[SFP_S_INIT] = "init",
+	[SFP_S_INIT_PHY] = "init_phy",
 	[SFP_S_INIT_TX_FAULT] = "init_tx_fault",
 	[SFP_S_WAIT_LOS] = "wait_los",
 	[SFP_S_LINK_UP] = "link_up",
@@ -179,6 +181,12 @@ static const enum gpiod_flags gpio_flags[] = {
  */
 #define N_FAULT_INIT		5
 #define N_FAULT			5
+
+/* T_PHY_RETRY is the time interval between attempts to probe the PHY.
+ * R_PHY_RETRY is the number of attempts.
+ */
+#define T_PHY_RETRY		msecs_to_jiffies(50)
+#define R_PHY_RETRY		12
 
 /* SFP module presence detection is poor: the three MOD DEF signals are
  * the same length on the PCB, which means it's possible for MOD DEF 0 to
@@ -235,6 +243,7 @@ struct sfp {
 	unsigned char sm_dev_state;
 	unsigned short sm_state;
 	unsigned char sm_fault_retries;
+	unsigned char sm_phy_retries;
 
 	struct sfp_eeprom_id id;
 	unsigned int module_power_mW;
@@ -1410,26 +1419,24 @@ static void sfp_sm_phy_detach(struct sfp *sfp)
 	sfp->mod_phy = NULL;
 }
 
-static void sfp_sm_probe_phy(struct sfp *sfp, bool is_c45)
+static int sfp_sm_probe_phy(struct sfp *sfp, bool is_c45)
 {
 	struct phy_device *phy;
 	int err;
 
 	phy = get_phy_device(sfp->i2c_mii, SFP_PHY_ADDR, is_c45);
-	if (phy == ERR_PTR(-ENODEV)) {
-		dev_info(sfp->dev, "no PHY detected\n");
-		return;
-	}
+	if (phy == ERR_PTR(-ENODEV))
+		return PTR_ERR(phy);
 	if (IS_ERR(phy)) {
 		dev_err(sfp->dev, "mdiobus scan returned %ld\n", PTR_ERR(phy));
-		return;
+		return PTR_ERR(phy);
 	}
 
 	err = phy_device_register(phy);
 	if (err) {
 		phy_device_free(phy);
 		dev_err(sfp->dev, "phy_device_register failed: %d\n", err);
-		return;
+		return err;
 	}
 
 	err = sfp_add_phy(sfp->sfp_bus, phy);
@@ -1437,10 +1444,12 @@ static void sfp_sm_probe_phy(struct sfp *sfp, bool is_c45)
 		phy_device_remove(phy);
 		phy_device_free(phy);
 		dev_err(sfp->dev, "sfp_add_phy failed: %d\n", err);
-		return;
+		return err;
 	}
 
 	sfp->mod_phy = phy;
+
+	return 0;
 }
 
 static void sfp_sm_link_up(struct sfp *sfp)
@@ -1513,21 +1522,24 @@ static void sfp_sm_fault(struct sfp *sfp, unsigned int next_state, bool warn)
  * Clause 45 copper SFP+ modules (10G) appear to switch their interface
  * mode according to the negotiated line speed.
  */
-static void sfp_sm_probe_for_phy(struct sfp *sfp)
+static int sfp_sm_probe_for_phy(struct sfp *sfp)
 {
+	int err = 0;
+
 	switch (sfp->id.base.extended_cc) {
 	case SFF8024_ECC_10GBASE_T_SFI:
 	case SFF8024_ECC_10GBASE_T_SR:
 	case SFF8024_ECC_5GBASE_T:
 	case SFF8024_ECC_2_5GBASE_T:
-		sfp_sm_probe_phy(sfp, true);
+		err = sfp_sm_probe_phy(sfp, true);
 		break;
 
 	default:
 		if (sfp->id.base.e1000_base_t)
-			sfp_sm_probe_phy(sfp, false);
+			err = sfp_sm_probe_phy(sfp, false);
 		break;
 	}
+	return err;
 }
 
 static int sfp_module_parse_power(struct sfp *sfp)
@@ -1862,6 +1874,7 @@ static void sfp_sm_module(struct sfp *sfp, unsigned int event)
 static void sfp_sm_main(struct sfp *sfp, unsigned int event)
 {
 	unsigned long timeout;
+	int ret;
 
 	/* Some events are global */
 	if (sfp->sm_state != SFP_S_DOWN &&
@@ -1935,19 +1948,39 @@ static void sfp_sm_main(struct sfp *sfp, unsigned int event)
 			sfp_sm_fault(sfp, SFP_S_INIT_TX_FAULT,
 				     sfp->sm_fault_retries == N_FAULT_INIT);
 		} else if (event == SFP_E_TIMEOUT || event == SFP_E_TX_CLEAR) {
-	init_done:	/* TX_FAULT deasserted or we timed out with TX_FAULT
-			 * clear.  Probe for the PHY and check the LOS state.
-			 */
-			sfp_sm_probe_for_phy(sfp);
-			if (sfp_module_start(sfp->sfp_bus)) {
-				sfp_sm_next(sfp, SFP_S_FAIL, 0);
-				break;
-			}
-			sfp_sm_link_check_los(sfp);
-
-			/* Reset the fault retry count */
-			sfp->sm_fault_retries = N_FAULT;
+	init_done:
+			sfp->sm_phy_retries = R_PHY_RETRY;
+			goto phy_probe;
 		}
+		break;
+
+	case SFP_S_INIT_PHY:
+		if (event != SFP_E_TIMEOUT)
+			break;
+	phy_probe:
+		/* TX_FAULT deasserted or we timed out with TX_FAULT
+		 * clear.  Probe for the PHY and check the LOS state.
+		 */
+		ret = sfp_sm_probe_for_phy(sfp);
+		if (ret == -ENODEV) {
+			if (--sfp->sm_phy_retries) {
+				sfp_sm_next(sfp, SFP_S_INIT_PHY, T_PHY_RETRY);
+				break;
+			} else {
+				dev_info(sfp->dev, "no PHY detected\n");
+			}
+		} else if (ret) {
+			sfp_sm_next(sfp, SFP_S_FAIL, 0);
+			break;
+		}
+		if (sfp_module_start(sfp->sfp_bus)) {
+			sfp_sm_next(sfp, SFP_S_FAIL, 0);
+			break;
+		}
+		sfp_sm_link_check_los(sfp);
+
+		/* Reset the fault retry count */
+		sfp->sm_fault_retries = N_FAULT;
 		break;
 
 	case SFP_S_INIT_TX_FAULT:
