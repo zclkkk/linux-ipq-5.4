@@ -49,7 +49,7 @@ struct ramdump_device {
 DEFINE_SPINLOCK(g_dump_class_lock);
 static struct class *dump_class;
 static int dump_major;
-static atomic_t g_class_refcnt;
+static int g_class_refcnt;
 
 static struct ramdump_device *g_rd_dev[MAX_DEVICE];
 DEFINE_SPINLOCK(g_rd_dev_lock);
@@ -131,16 +131,17 @@ static int ramdump_release(struct inode *inode, struct file *filep)
 	rd_dev->data_ready = 0;
 	unset_g_rd_dev(rd_dev, rd_dev->index);
 	device_destroy(dump_class, MKDEV(dump_major, dump_minor));
-	atomic_dec(&g_class_refcnt);
+	spin_lock(&g_dump_class_lock);
 
-	if (atomic_read(&g_class_refcnt) == 0) {
-		spin_lock(&g_dump_class_lock);
+	g_class_refcnt--;
+	if (!g_class_refcnt) {
 		class_destroy(dump_class);
 		dump_class = NULL;
 		unregister_chrdev(dump_major, "dump_q6v5");
 		dump_major = 0;
-		spin_unlock(&g_dump_class_lock);
 	}
+
+	spin_unlock(&g_dump_class_lock);
 	complete(&rd_dev->ramdump_complete);
 	return 0;
 }
@@ -378,7 +379,6 @@ int create_ramdump_device_file(void *handle)
 	}
 	spin_unlock(&g_dump_class_lock);
 
-
 	dump_dev = device_create(dump_class, NULL,
 				 MKDEV(dump_major, rd_dev->index), rd_dev,
 				 rd_dev->name);
@@ -388,19 +388,21 @@ int create_ramdump_device_file(void *handle)
 		goto device_failed;
 	}
 
-	atomic_inc(&g_class_refcnt);
+	spin_lock(&g_dump_class_lock);
+	g_class_refcnt++;
+	spin_unlock(&g_dump_class_lock);
 
 	return ret;
 
 device_failed:
-	if (atomic_read(&g_class_refcnt) == 0) {
-		spin_lock(&g_dump_class_lock);
+	spin_lock(&g_dump_class_lock);
+	if (!g_class_refcnt) {
 		class_destroy(dump_class);
 		dump_class = NULL;
 		unregister_chrdev(dump_major, "dump_q6v5");
 		dump_major = 0;
-		spin_unlock(&g_dump_class_lock);
 	}
+	spin_unlock(&g_dump_class_lock);
 class_failed:
 	return ret;
 }
