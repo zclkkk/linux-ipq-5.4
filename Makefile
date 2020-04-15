@@ -701,11 +701,11 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning, format-overflow)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, address-of-packed-member)
 
 ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
-KBUILD_CFLAGS += -O2
+KBUILD_CFLAGS += -O2 $(EXTRA_OPTIMIZATION)
 else ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3
-KBUILD_CFLAGS += -O3
+KBUILD_CFLAGS += -O3 $(EXTRA_OPTIMIZATION)
 else ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
-KBUILD_CFLAGS += -Os
+KBUILD_CFLAGS += -Os -fno-reorder-blocks -fno-tree-ch $(EXTRA_OPTIMIZATION)
 endif
 
 ifdef CONFIG_CC_DISABLE_WARN_MAYBE_UNINITIALIZED
