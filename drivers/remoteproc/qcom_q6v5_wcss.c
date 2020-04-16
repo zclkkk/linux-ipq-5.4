@@ -30,6 +30,7 @@
 
 /* Q6SS Register Offsets */
 #define Q6SS_RESET_REG		0x014
+#define Q6SS_DBG_CFG                    0x018
 #define Q6SS_GFMUX_CTL_REG		0x020
 #define Q6SS_PWR_CTL_REG		0x030
 #define Q6SS_MEM_PWR_CTL		0x0B0
@@ -92,6 +93,7 @@
 #define MAX_HALT_REG		4
 
 #define WCNSS_PAS_ID		6
+static int debug_wcss;
 
 enum {
 	WCSS_IPQ8074,
@@ -108,6 +110,7 @@ struct q6v5_wcss {
 	u32 halt_q6;
 	u32 halt_wcss;
 	u32 halt_nc;
+	u32 reset_cmd_id;
 
 	struct clk *xo;
 	struct clk *ahbfabric_cbcr_clk;
@@ -155,6 +158,7 @@ struct wcss_data {
 	const char *m3_firmware_name;
 	int crash_reason_smem;
 	u32 version;
+	u32 reset_cmd_id;
 	bool aon_reset_required;
 	bool wcss_q6_reset_required;
 	bool bcr_reset_required;
@@ -303,7 +307,8 @@ static int q6v5_wcss_start(struct rproc *rproc)
 	qcom_q6v5_prepare(&wcss->q6v5);
 
 	if (wcss->need_mem_protection) {
-		ret = qcom_scm_pas_auth_and_reset(WCNSS_PAS_ID);
+		ret = qcom_scm_pas_auth_and_reset(WCNSS_PAS_ID, debug_wcss,
+					wcss->reset_cmd_id);
 		if (ret) {
 			dev_err(wcss->dev, "wcss_reset failed\n");
 			return ret;
@@ -338,6 +343,9 @@ static int q6v5_wcss_start(struct rproc *rproc)
 	if (ret)
 		goto wcss_q6_reset;
 
+	if (debug_wcss)
+		writel(0x20000001, wcss->reg_base + Q6SS_DBG_CFG);
+
 	/* Write bootaddr to EVB so that Q6WCSS will jump there after reset */
 	writel(rproc->bootaddr >> 4, wcss->reg_base + Q6SS_RST_EVB);
 
@@ -347,8 +355,16 @@ static int q6v5_wcss_start(struct rproc *rproc)
 
 wait_for_reset:
 	ret = qcom_q6v5_wait_for_start(&wcss->q6v5, 5 * HZ);
-	if (ret == -ETIMEDOUT)
-		dev_err(wcss->dev, "start timed out\n");
+	if (ret == -ETIMEDOUT) {
+		if (debug_wcss)
+			goto wait_for_reset;
+		else
+			dev_err(wcss->dev, "start timed out\n");
+	}
+
+	/*reset done clear the debug register*/
+	if (debug_wcss)
+		writel(0x0, wcss->reg_base + Q6SS_DBG_CFG);
 
 	return ret;
 
@@ -357,6 +373,8 @@ wcss_q6_reset:
 
 wcss_reset:
 	reset_control_assert(wcss->wcss_reset);
+	if (debug_wcss)
+		writel(0x0, wcss->reg_base + Q6SS_DBG_CFG);
 
 	return ret;
 }
@@ -1157,6 +1175,7 @@ static int q6v5_wcss_probe(struct platform_device *pdev)
 	wcss->requires_force_stop = desc->requires_force_stop;
 	wcss->need_mem_protection = desc->need_mem_protection;
 	wcss->m3_firmware_name = desc->m3_firmware_name;
+	wcss->reset_cmd_id = desc->reset_cmd_id;
 
 	ret = q6v5_wcss_init_mmio(wcss, pdev);
 	if (ret)
@@ -1226,6 +1245,7 @@ static const struct wcss_data wcss_ipq8074_res_init = {
 	.wcss_q6_reset_required = true,
 	.bcr_reset_required = false,
 	.ssr_name = "q6wcss",
+	.reset_cmd_id = 0x14,
 	.ops = &q6v5_wcss_ipq8074_ops,
 	.requires_force_stop = true,
 	.need_mem_protection = true,
@@ -1245,6 +1265,7 @@ static const struct wcss_data wcss_qcs404_res_init = {
 	.ssctl_id = 0x12,
 	.ops = &q6v5_wcss_qcs404_ops,
 	.requires_force_stop = false,
+	.reset_cmd_id = 0x14,
 };
 
 static const struct of_device_id q6v5_wcss_of_match[] = {
@@ -1264,6 +1285,7 @@ static struct platform_driver q6v5_wcss_driver = {
 	},
 };
 module_platform_driver(q6v5_wcss_driver);
+module_param(debug_wcss, int, 0644);
 
 MODULE_DESCRIPTION("Hexagon WCSS Peripheral Image Loader");
 MODULE_LICENSE("GPL v2");
