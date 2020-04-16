@@ -145,6 +145,21 @@ config QCOM_SMEM
 	  The driver provides an interface to items in a heap shared among all
 	  processors in a Qualcomm platform.
 
+config QTI_MEMORY_DUMP_V2
+        bool "QTI Memory Dump V2 Support"
+        help
+          This enables memory dump feature. It allows various client
+          subsystems to register respective dump regions. At the time
+          of deadlocks or cpu hangs these dump regions are captured to
+          give a snapshot of the system at the time of the crash.
+
+config QTI_DCC
+        bool "QTI Data Capture and Compare enigne support"
+        help
+          This option enables driver for Data Capture and Compare engine. DCC
+          driver provides interface to configure DCC block and read back
+          captured data from DCC's internal SRAM
+
 config QCOM_SMD_RPM
 	tristate "Qualcomm Resource Power Manager (RPM) over SMD"
 	depends on ARCH_QCOM || COMPILE_TEST
