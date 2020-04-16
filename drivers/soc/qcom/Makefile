@@ -26,3 +26,4 @@ obj-$(CONFIG_QCOM_SDM845_LLCC) += llcc-sdm845.o
 obj-$(CONFIG_QCOM_RPMHPD) += rpmhpd.o
 obj-$(CONFIG_QCOM_RPMPD) += rpmpd.o
 obj-$(CONFIG_MSM_RPM_LOG)	+=	rpm_log.o
+obj-$(CONFIG_IPQ_SUBSYSTEM_RAMDUMP) += ramdump.o
