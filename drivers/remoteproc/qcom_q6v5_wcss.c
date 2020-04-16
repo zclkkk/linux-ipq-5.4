@@ -20,6 +20,9 @@
 #include <linux/reset.h>
 #include <linux/soc/qcom/mdt_loader.h>
 #include <linux/qcom_scm.h>
+#ifdef CONFIG_IPQ_SUBSYSTEM_RAMDUMP
+#include <soc/qcom/ramdump.h>
+#endif
 #include "qcom_common.h"
 #include "qcom_q6v5.h"
 
@@ -162,6 +165,45 @@ struct wcss_data {
 	bool requires_force_stop;
 	bool need_mem_protection;
 };
+
+#ifdef CONFIG_IPQ_SUBSYSTEM_RAMDUMP
+static void crashdump_init(struct rproc *rproc, struct rproc_dump_segment *segment, void *dest)
+{
+	void *handle;
+	struct q6v5_wcss *wcss = rproc->priv;
+	struct ramdump_segment seg;
+
+	handle = create_ramdump_device(rproc->name, &rproc->dev);
+	if (!handle) {
+		dev_err(&rproc->dev, "unable to create ramdump device"
+						"for %s\n", rproc->name);
+		return;
+	}
+
+	if (create_ramdump_device_file(handle)) {
+		dev_err(&rproc->dev, "unable to create ramdump device"
+						"for %s\n", rproc->name);
+		goto free_device;
+	}
+
+	/*This segment logic works fine when all the firmware segments
+	 * are stored in contigious, if firmware is stored in multiple
+	 * uncontigious memories we may need to update the wcss struct
+	 * and handle it accordingly*/
+	seg.address = wcss->mem_phys;
+	seg.size = wcss->mem_size;
+	seg.v_address = wcss->mem_region;
+
+	do_elf_ramdump(handle, &seg, 1);
+
+free_device:
+	destroy_ramdump_device(handle);
+}
+#else
+static void crashdump_init(struct rproc *rproc, struct rproc_dump_segment *segment, void *dest)
+{
+}
+#endif
 
 static int q6v5_wcss_reset(struct q6v5_wcss *wcss)
 {
@@ -825,12 +867,24 @@ skip_m3:
 				     wcss->mem_size, &wcss->mem_reloc);
 }
 
+int q6v5_wcss_register_dump_segments(struct rproc *rproc,
+					const struct firmware *fw)
+{
+	/*
+	 * Registering custom coredump function with a dummy dump segment
+	 * as the dump regions are taken care by the dump function itself
+	 */
+	return rproc_coredump_add_custom_segment(rproc, 0, 0, crashdump_init,
+									NULL);
+}
+
 static const struct rproc_ops q6v5_wcss_ipq8074_ops = {
 	.start = q6v5_wcss_start,
 	.stop = q6v5_wcss_stop,
 	.da_to_va = q6v5_wcss_da_to_va,
 	.load = q6v5_wcss_load,
 	.get_boot_addr = rproc_elf_get_boot_addr,
+	.parse_fw = q6v5_wcss_register_dump_segments,
 };
 
 static const struct rproc_ops q6v5_wcss_qcs404_ops = {
