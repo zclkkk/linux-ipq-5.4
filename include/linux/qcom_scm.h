@@ -53,7 +53,8 @@ extern int qcom_scm_pas_init_image(u32 peripheral, const void *metadata,
 				   size_t size);
 extern int qcom_scm_pas_mem_setup(u32 peripheral, phys_addr_t addr,
 				  phys_addr_t size);
-extern int qcom_scm_pas_auth_and_reset(u32 peripheral);
+extern int qcom_scm_pas_auth_and_reset(u32 peripheral, u32 debug,
+					u32 reset_cmd_id);
 extern int qcom_scm_pas_shutdown(u32 peripheral);
 extern int qcom_scm_assign_mem(phys_addr_t mem_addr, size_t mem_sz,
 			       unsigned int *src,

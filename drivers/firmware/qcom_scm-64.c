@@ -298,11 +298,32 @@ int __qcom_scm_pas_mem_setup(struct device *dev, u32 peripheral,
 	return ret ? : res.a1;
 }
 
-int __qcom_scm_pas_auth_and_reset(struct device *dev, u32 peripheral)
+int __qcom_scm_pas_auth_and_reset(struct device *dev, u32 peripheral,
+				u32 debug, u32 reset_cmd_id)
 {
 	int ret;
+	int break_support = 0;
 	struct qcom_scm_desc desc = {0};
 	struct arm_smccc_res res;
+
+	if (debug) {
+		ret = __qcom_scm_is_call_available(dev,
+					QCOM_SCM_SVC_PIL,
+					reset_cmd_id);
+		if (ret)
+			break_support = 1;
+		else
+			dev_err(dev, "breat at start not supported\n");
+	}
+
+	if (break_support) {
+		desc.args[0] = debug;
+		desc.arginfo = QCOM_SCM_ARGS(1);
+		ret = qcom_scm_call(dev, QCOM_SCM_SVC_PIL, reset_cmd_id,
+								&desc, &res);
+		if (ret || res.a1)
+			goto end;
+	}
 
 	desc.args[0] = peripheral;
 	desc.arginfo = QCOM_SCM_ARGS(1);
@@ -311,6 +332,7 @@ int __qcom_scm_pas_auth_and_reset(struct device *dev, u32 peripheral)
 				QCOM_SCM_PAS_AUTH_AND_RESET_CMD,
 				&desc, &res);
 
+end:
 	return ret ? : res.a1;
 }
 
