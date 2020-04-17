@@ -265,7 +265,7 @@ machine_crash_shutdown(struct pt_regs *regs)
 void kexec_nonboot_cpu_jump(void)
 {
 	local_flush_icache_range((unsigned long)relocated_kexec_smp_wait,
-				 reboot_code_buffer + relocate_new_kernel_size);
+				 reboot_code_buffer + KEXEC_RELOCATE_NEW_KERNEL_SIZE);
 
 	relocated_kexec_smp_wait(NULL);
 }
@@ -303,7 +303,7 @@ void kexec_reboot(void)
 	 * machine_kexec() CPU.
 	 */
 	local_flush_icache_range(reboot_code_buffer,
-				 reboot_code_buffer + relocate_new_kernel_size);
+				 reboot_code_buffer + KEXEC_RELOCATE_NEW_KERNEL_SIZE);
 
 	do_kexec = (void *)reboot_code_buffer;
 	do_kexec();
