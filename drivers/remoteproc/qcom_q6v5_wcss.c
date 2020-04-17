@@ -168,6 +168,7 @@ struct wcss_data {
 	const struct rproc_ops *ops;
 	bool requires_force_stop;
 	bool need_mem_protection;
+	bool need_auto_boot;
 };
 
 #ifdef CONFIG_IPQ_SUBSYSTEM_RAMDUMP
@@ -1212,6 +1213,7 @@ static int q6v5_wcss_probe(struct platform_device *pdev)
 					      desc->sysmon_name,
 					      desc->ssctl_id);
 
+	rproc->auto_boot = desc->need_auto_boot;
 	ret = rproc_add(rproc);
 	if (ret)
 		goto free_rproc;
@@ -1249,6 +1251,7 @@ static const struct wcss_data wcss_ipq8074_res_init = {
 	.ops = &q6v5_wcss_ipq8074_ops,
 	.requires_force_stop = true,
 	.need_mem_protection = true,
+	.need_auto_boot = false,
 };
 
 static const struct wcss_data wcss_qcs404_res_init = {
@@ -1266,6 +1269,7 @@ static const struct wcss_data wcss_qcs404_res_init = {
 	.ops = &q6v5_wcss_qcs404_ops,
 	.requires_force_stop = false,
 	.reset_cmd_id = 0x14,
+	.need_auto_boot = true,
 };
 
 static const struct of_device_id q6v5_wcss_of_match[] = {
