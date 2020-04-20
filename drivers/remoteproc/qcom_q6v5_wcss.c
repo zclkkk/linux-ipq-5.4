@@ -20,6 +20,9 @@
 #include <linux/reset.h>
 #include <linux/soc/qcom/mdt_loader.h>
 #include <linux/qcom_scm.h>
+#ifdef CONFIG_IPQ_SUBSYSTEM_RAMDUMP
+#include <soc/qcom/ramdump.h>
+#endif
 #include "qcom_common.h"
 #include "qcom_q6v5.h"
 
@@ -27,6 +30,7 @@
 
 /* Q6SS Register Offsets */
 #define Q6SS_RESET_REG		0x014
+#define Q6SS_DBG_CFG                    0x018
 #define Q6SS_GFMUX_CTL_REG		0x020
 #define Q6SS_PWR_CTL_REG		0x030
 #define Q6SS_MEM_PWR_CTL		0x0B0
@@ -89,6 +93,7 @@
 #define MAX_HALT_REG		4
 
 #define WCNSS_PAS_ID		6
+static int debug_wcss;
 
 enum {
 	WCSS_IPQ8074,
@@ -105,6 +110,7 @@ struct q6v5_wcss {
 	u32 halt_q6;
 	u32 halt_wcss;
 	u32 halt_nc;
+	u32 reset_cmd_id;
 
 	struct clk *xo;
 	struct clk *ahbfabric_cbcr_clk;
@@ -152,6 +158,7 @@ struct wcss_data {
 	const char *m3_firmware_name;
 	int crash_reason_smem;
 	u32 version;
+	u32 reset_cmd_id;
 	bool aon_reset_required;
 	bool wcss_q6_reset_required;
 	bool bcr_reset_required;
@@ -161,7 +168,47 @@ struct wcss_data {
 	const struct rproc_ops *ops;
 	bool requires_force_stop;
 	bool need_mem_protection;
+	bool need_auto_boot;
 };
+
+#ifdef CONFIG_IPQ_SUBSYSTEM_RAMDUMP
+static void crashdump_init(struct rproc *rproc, struct rproc_dump_segment *segment, void *dest)
+{
+	void *handle;
+	struct q6v5_wcss *wcss = rproc->priv;
+	struct ramdump_segment seg;
+
+	handle = create_ramdump_device(rproc->name, &rproc->dev);
+	if (!handle) {
+		dev_err(&rproc->dev, "unable to create ramdump device"
+						"for %s\n", rproc->name);
+		return;
+	}
+
+	if (create_ramdump_device_file(handle)) {
+		dev_err(&rproc->dev, "unable to create ramdump device"
+						"for %s\n", rproc->name);
+		goto free_device;
+	}
+
+	/*This segment logic works fine when all the firmware segments
+	 * are stored in contigious, if firmware is stored in multiple
+	 * uncontigious memories we may need to update the wcss struct
+	 * and handle it accordingly*/
+	seg.address = wcss->mem_phys;
+	seg.size = wcss->mem_size;
+	seg.v_address = wcss->mem_region;
+
+	do_elf_ramdump(handle, &seg, 1);
+
+free_device:
+	destroy_ramdump_device(handle);
+}
+#else
+static void crashdump_init(struct rproc *rproc, struct rproc_dump_segment *segment, void *dest)
+{
+}
+#endif
 
 static int q6v5_wcss_reset(struct q6v5_wcss *wcss)
 {
@@ -261,7 +308,8 @@ static int q6v5_wcss_start(struct rproc *rproc)
 	qcom_q6v5_prepare(&wcss->q6v5);
 
 	if (wcss->need_mem_protection) {
-		ret = qcom_scm_pas_auth_and_reset(WCNSS_PAS_ID);
+		ret = qcom_scm_pas_auth_and_reset(WCNSS_PAS_ID, debug_wcss,
+					wcss->reset_cmd_id);
 		if (ret) {
 			dev_err(wcss->dev, "wcss_reset failed\n");
 			return ret;
@@ -296,6 +344,9 @@ static int q6v5_wcss_start(struct rproc *rproc)
 	if (ret)
 		goto wcss_q6_reset;
 
+	if (debug_wcss)
+		writel(0x20000001, wcss->reg_base + Q6SS_DBG_CFG);
+
 	/* Write bootaddr to EVB so that Q6WCSS will jump there after reset */
 	writel(rproc->bootaddr >> 4, wcss->reg_base + Q6SS_RST_EVB);
 
@@ -305,8 +356,16 @@ static int q6v5_wcss_start(struct rproc *rproc)
 
 wait_for_reset:
 	ret = qcom_q6v5_wait_for_start(&wcss->q6v5, 5 * HZ);
-	if (ret == -ETIMEDOUT)
-		dev_err(wcss->dev, "start timed out\n");
+	if (ret == -ETIMEDOUT) {
+		if (debug_wcss)
+			goto wait_for_reset;
+		else
+			dev_err(wcss->dev, "start timed out\n");
+	}
+
+	/*reset done clear the debug register*/
+	if (debug_wcss)
+		writel(0x0, wcss->reg_base + Q6SS_DBG_CFG);
 
 	return ret;
 
@@ -315,6 +374,8 @@ wcss_q6_reset:
 
 wcss_reset:
 	reset_control_assert(wcss->wcss_reset);
+	if (debug_wcss)
+		writel(0x0, wcss->reg_base + Q6SS_DBG_CFG);
 
 	return ret;
 }
@@ -825,12 +886,24 @@ skip_m3:
 				     wcss->mem_size, &wcss->mem_reloc);
 }
 
+int q6v5_wcss_register_dump_segments(struct rproc *rproc,
+					const struct firmware *fw)
+{
+	/*
+	 * Registering custom coredump function with a dummy dump segment
+	 * as the dump regions are taken care by the dump function itself
+	 */
+	return rproc_coredump_add_custom_segment(rproc, 0, 0, crashdump_init,
+									NULL);
+}
+
 static const struct rproc_ops q6v5_wcss_ipq8074_ops = {
 	.start = q6v5_wcss_start,
 	.stop = q6v5_wcss_stop,
 	.da_to_va = q6v5_wcss_da_to_va,
 	.load = q6v5_wcss_load,
 	.get_boot_addr = rproc_elf_get_boot_addr,
+	.parse_fw = q6v5_wcss_register_dump_segments,
 };
 
 static const struct rproc_ops q6v5_wcss_qcs404_ops = {
@@ -1103,6 +1176,7 @@ static int q6v5_wcss_probe(struct platform_device *pdev)
 	wcss->requires_force_stop = desc->requires_force_stop;
 	wcss->need_mem_protection = desc->need_mem_protection;
 	wcss->m3_firmware_name = desc->m3_firmware_name;
+	wcss->reset_cmd_id = desc->reset_cmd_id;
 
 	ret = q6v5_wcss_init_mmio(wcss, pdev);
 	if (ret)
@@ -1139,6 +1213,7 @@ static int q6v5_wcss_probe(struct platform_device *pdev)
 					      desc->sysmon_name,
 					      desc->ssctl_id);
 
+	rproc->auto_boot = desc->need_auto_boot;
 	ret = rproc_add(rproc);
 	if (ret)
 		goto free_rproc;
@@ -1172,9 +1247,11 @@ static const struct wcss_data wcss_ipq8074_res_init = {
 	.wcss_q6_reset_required = true,
 	.bcr_reset_required = false,
 	.ssr_name = "q6wcss",
+	.reset_cmd_id = 0x14,
 	.ops = &q6v5_wcss_ipq8074_ops,
 	.requires_force_stop = true,
 	.need_mem_protection = true,
+	.need_auto_boot = false,
 };
 
 static const struct wcss_data wcss_qcs404_res_init = {
@@ -1191,6 +1268,8 @@ static const struct wcss_data wcss_qcs404_res_init = {
 	.ssctl_id = 0x12,
 	.ops = &q6v5_wcss_qcs404_ops,
 	.requires_force_stop = false,
+	.reset_cmd_id = 0x14,
+	.need_auto_boot = true,
 };
 
 static const struct of_device_id q6v5_wcss_of_match[] = {
@@ -1210,6 +1289,7 @@ static struct platform_driver q6v5_wcss_driver = {
 	},
 };
 module_platform_driver(q6v5_wcss_driver);
+module_param(debug_wcss, int, 0644);
 
 MODULE_DESCRIPTION("Hexagon WCSS Peripheral Image Loader");
 MODULE_LICENSE("GPL v2");
