@@ -691,16 +691,17 @@ static int dwc3_qcom_remove(struct platform_device *pdev)
 
 	of_platform_depopulate(dev);
 
-	for (i = qcom->num_clocks - 1; i >= 0; i--) {
-		clk_disable_unprepare(qcom->clks[i]);
-		clk_put(qcom->clks[i]);
-	}
-	qcom->num_clocks = 0;
-
 	reset_control_assert(qcom->resets);
 
 	pm_runtime_allow(dev);
 	pm_runtime_disable(dev);
+
+	for (i = qcom->num_clocks - 1; i >= 0; i--) {
+		if (!qcom->is_suspended)
+			clk_disable_unprepare(qcom->clks[i]);
+		clk_put(qcom->clks[i]);
+	}
+	qcom->num_clocks = 0;
 
 	return 0;
 }
