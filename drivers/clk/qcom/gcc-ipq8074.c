@@ -2110,9 +2110,10 @@ struct clk_rcg2 adss_pwm_clk_src = {
 
 static struct clk_branch gcc_blsp1_ahb_clk = {
 	.halt_reg = 0x01008,
+	.halt_check = BRANCH_HALT_VOTED,
 	.clkr = {
-		.enable_reg = 0x01008,
-		.enable_mask = BIT(0),
+		.enable_reg = 0x0b004,
+		.enable_mask = BIT(10),
 		.hw.init = &(struct clk_init_data){
 			.name = "gcc_blsp1_ahb_clk",
 			.parent_names = (const char *[]){
