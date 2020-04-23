@@ -38,6 +38,7 @@ struct qcom_scm {
 
 	u64 dload_mode_addr;
 	u32 hvc_log_cmd_id;
+	u32 smmu_state_cmd_id;
 };
 
 struct qcom_scm_current_perm_info {
@@ -629,6 +630,30 @@ int qti_scm_hvc_log(void *ker_buf, u32 buf_len)
 }
 EXPORT_SYMBOL(qti_scm_hvc_log);
 
+/**
+ * qti_scm_get_smmustate () - Get SMMU state
+ *
+ * Returns 0 - SMMU_DISABLE_NONE
+ *	   1 - SMMU_DISABLE_S2
+ *	   2 - SMMU_DISABLE_ALL on success.
+ *	  -1 - Failure
+ */
+int qti_scm_get_smmustate(void)
+{
+	int ret;
+
+	ret = qcom_scm_clk_enable();
+	if (ret)
+		return ret;
+
+	ret = __qti_scm_get_smmustate(__scm->dev, QCOM_SCM_SVC_BOOT,
+				      __scm->smmu_state_cmd_id);
+	qcom_scm_clk_disable();
+
+	return ret;
+}
+EXPORT_SYMBOL(qti_scm_get_smmustate);
+
 static int qcom_scm_probe(struct platform_device *pdev)
 {
 	struct device_node *np = (&pdev->dev)->of_node;
@@ -647,6 +672,11 @@ static int qcom_scm_probe(struct platform_device *pdev)
 	ret = of_property_read_u32(np, "hvc-log-cmd-id", &scm->hvc_log_cmd_id);
 	if (ret)
 		scm->hvc_log_cmd_id = QTI_SCM_HVC_DIAG_CMD;
+
+	ret = of_property_read_u32(pdev->dev.of_node, "smmu-state-cmd-id",
+				   &scm->smmu_state_cmd_id);
+	if (ret)
+		scm->smmu_state_cmd_id = QTI_SCM_SMMUSTATE_CMD;
 
 	clks = (unsigned long)of_device_get_match_data(&pdev->dev);
 

@@ -34,6 +34,7 @@ extern int __qcom_scm_io_writel(struct device *dev, phys_addr_t addr, unsigned i
 #define QCOM_IS_CALL_AVAIL_CMD		0x1
 #define QTI_SCM_TZ_DIAG_CMD		0x2
 #define QTI_SCM_HVC_DIAG_CMD		0x7
+#define QTI_SCM_SMMUSTATE_CMD		0x19
 
 extern int __qcom_scm_is_call_available(struct device *dev, u32 svc_id,
 		u32 cmd_id);
@@ -208,4 +209,5 @@ extern int __qti_scm_dload(struct device *dev, u32 svc_id, u32 cmd_id,
 extern int __qti_scm_sdi(struct device *dev, u32 svc_id, u32 cmd_id);
 extern int __qti_scm_tz_hvc_log(struct device *dev, u32 svc_id, u32 cmd_id,
 				void *ker_buf, u32 buf_len);
+extern int  __qti_scm_get_smmustate(struct device *dev, u32 svc_id, u32 cmd_id);
 #endif

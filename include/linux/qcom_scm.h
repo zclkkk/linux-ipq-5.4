@@ -83,6 +83,7 @@ extern int qti_scm_dload(u32 svc_id, u32 cmd_id, void *cmd_buf);
 extern int qti_scm_sdi(u32 svc_id, u32 cmd_id);
 extern int qti_scm_tz_log(void *ker_buf, u32 buf_len);
 extern int qti_scm_hvc_log(void *ker_buf, u32 buf_len);
+extern int qti_scm_get_smmustate(void);
 #else
 
 #include <linux/errno.h>
@@ -149,5 +150,6 @@ static inline int qti_scm_dload(u32 svc_id, u32 cmd_id, void *cmd_buf) { return 
 static inline int qti_scm_sdi(u32 svc_id, u32 cmd_id) { return -ENODEV; }
 static inline int qti_scm_tz_log(void *ker_buf, u32 buf_len) { return -ENODEV; }
 static inline int qti_scm_hvc_log(void *ker_buf, u32 buf_len) { return -ENODEV; }
+static inline int qti_scm_get_smmustate(void) { return -ENODEV; }
 #endif
 #endif
