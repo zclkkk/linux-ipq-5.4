@@ -37,6 +37,7 @@ struct qcom_scm {
 	struct reset_controller_dev reset;
 
 	u64 dload_mode_addr;
+	u32 hvc_log_cmd_id;
 };
 
 struct qcom_scm_current_perm_info {
@@ -624,12 +625,13 @@ EXPORT_SYMBOL(qti_scm_tz_log);
 int qti_scm_hvc_log(void *ker_buf, u32 buf_len)
 {
 	return __qti_scm_tz_hvc_log(__scm->dev, QCOM_SCM_SVC_INFO,
-				    QTI_SCM_HVC_DIAG_CMD, ker_buf, buf_len);
+				    __scm->hvc_log_cmd_id, ker_buf, buf_len);
 }
 EXPORT_SYMBOL(qti_scm_hvc_log);
 
 static int qcom_scm_probe(struct platform_device *pdev)
 {
+	struct device_node *np = (&pdev->dev)->of_node;
 	struct qcom_scm *scm;
 	unsigned long clks;
 	int ret;
@@ -641,6 +643,10 @@ static int qcom_scm_probe(struct platform_device *pdev)
 	ret = qcom_scm_find_dload_address(&pdev->dev, &scm->dload_mode_addr);
 	if (ret < 0)
 		return ret;
+
+	ret = of_property_read_u32(np, "hvc-log-cmd-id", &scm->hvc_log_cmd_id);
+	if (ret)
+		scm->hvc_log_cmd_id = QTI_SCM_HVC_DIAG_CMD;
 
 	clks = (unsigned long)of_device_get_match_data(&pdev->dev);
 
