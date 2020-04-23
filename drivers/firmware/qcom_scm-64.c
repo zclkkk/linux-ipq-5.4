@@ -49,6 +49,15 @@ static DEFINE_MUTEX(qcom_scm_lock);
 #define FIRST_EXT_ARG_IDX 3
 #define N_REGISTER_ARGS (MAX_QCOM_SCM_ARGS - N_EXT_QCOM_SCM_ARGS + 1)
 
+/* This function is used to find whether TZ is in AARCH64 mode.
+ * Here we return true since TZ will be in AARCH64 mode for
+ * 64bit Linux.
+ */
+bool is_scm_armv8(void)
+{
+	return true;
+}
+
 /**
  * qcom_scm_call() - Invoke a syscall in the secure world
  * @dev:	device
