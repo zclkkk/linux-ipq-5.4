@@ -81,6 +81,8 @@ extern int qti_fuseipq_scm_call(struct device *dev, u32 svc_id, u32 cmd_id,
 					void *cmd_buf, size_t size);
 extern int qti_scm_dload(u32 svc_id, u32 cmd_id, void *cmd_buf);
 extern int qti_scm_sdi(u32 svc_id, u32 cmd_id);
+extern int qti_scm_tz_log(void *ker_buf, u32 buf_len);
+extern int qti_scm_hvc_log(void *ker_buf, u32 buf_len);
 #else
 
 #include <linux/errno.h>
@@ -145,5 +147,7 @@ static inline int qti_fuseipq_scm_call(struct device *dev, u32 svc_id, u32 cmd_i
 }
 static inline int qti_scm_dload(u32 svc_id, u32 cmd_id, void *cmd_buf) { return -ENODEV; }
 static inline int qti_scm_sdi(u32 svc_id, u32 cmd_id) { return -ENODEV; }
+static inline int qti_scm_tz_log(void *ker_buf, u32 buf_len) { return -ENODEV; }
+static inline int qti_scm_hvc_log(void *ker_buf, u32 buf_len) { return -ENODEV; }
 #endif
 #endif

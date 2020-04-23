@@ -598,6 +598,36 @@ int qti_scm_sdi(u32 svc_id, u32 cmd_id)
 }
 EXPORT_SYMBOL(qti_scm_sdi);
 
+/**
+ * qti_scm_tz_log() - Get trustzone diag log
+ * ker_buf: kernel buffer to store the diag log
+ * buf_len: kernel buffer length
+ *
+ * Return negative errno on failure or 0 on success. Diag log will
+ * be present in the kernel buffer passed.
+ */
+int qti_scm_tz_log(void *ker_buf, u32 buf_len)
+{
+	return __qti_scm_tz_hvc_log(__scm->dev, QCOM_SCM_SVC_INFO,
+				     QTI_SCM_TZ_DIAG_CMD, ker_buf, buf_len);
+}
+EXPORT_SYMBOL(qti_scm_tz_log);
+
+/**
+ * qti_scm_hvc_log() - Get hypervisor diag log
+ * ker_buf: kernel buffer to store the diag log
+ * buf_len: kernel buffer length
+ *
+ * Return negative errno on failure or 0 on success. Diag log will
+ * be present in the kernel buffer passed.
+ */
+int qti_scm_hvc_log(void *ker_buf, u32 buf_len)
+{
+	return __qti_scm_tz_hvc_log(__scm->dev, QCOM_SCM_SVC_INFO,
+				    QTI_SCM_HVC_DIAG_CMD, ker_buf, buf_len);
+}
+EXPORT_SYMBOL(qti_scm_hvc_log);
+
 static int qcom_scm_probe(struct platform_device *pdev)
 {
 	struct qcom_scm *scm;
