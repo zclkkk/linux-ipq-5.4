@@ -1,0 +1,43 @@
+QTI TZLOG
+
+This binding describes tzlog used to inspect log created by TZ. This driver
+also provides capability to capture SMMU and XPU faults found by TZ.
+
+Required properties:
+ - compatible: must contain one of "qti,tzlog"
+				   "qti,tz64-hv-log"
+				   "qti,tz64log"
+					"qti,tzlog_ipq6018"
+ - interrupts: must contain interrupt used by TZ when XPU or SMMU faults are
+		found
+
+Optional properties:
+ - qti,tzbsp-diag-buf-size: contains the TZ diag buffer size. If not defined,
+				memory of 4K will be used.
+ - qti,hyp-enabled: defines whether TZ supports Hypervisor mode or not.
+ - hyp-scm-cmd-id: contains the SCM command id to get the hypervisor diag log.
+			If not defined, default value 0x7 will be used.
+
+Example:
+
+	qti,tzlog {
+		compatible = "qti,tz64log";
+		interrupts = <0 244 0>;
+	};
+
+	qti,tzlog {
+		compatible = "qti,tz64-hv-log";
+		interrupts = <0 244 0>;
+	};
+
+	qti,tzlog {
+		compatible = "qti,tzlog";
+	};
+
+	tzlog: qti,tzlog {
+		compatible = "qti,tzlog_ipq6018";
+		interrupts = <GIC_SPI 244 IRQ_TYPE_EDGE_RISING>;
+		qti,tzbsp-diag-buf-size = <0x3000>;
+		qti,hyp-enabled;
+		hyp-scm-cmd-id = <0xA>;
+	};
