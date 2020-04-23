@@ -12,3 +12,10 @@ config MHI_BUS
 	 communication protocol used by the host processors to control
 	 and communicate with modem devices over a high speed peripheral
 	 bus or shared memory.
+
+config MHI_BUS_TEST
+	tristate "MHI bus Test driver"
+	default n
+	depends on MHI_BUS
+	help
+	 Test driver for testing the MHI bus
