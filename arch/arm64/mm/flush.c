@@ -92,3 +92,21 @@ void arch_invalidate_pmem(void *addr, size_t size)
 }
 EXPORT_SYMBOL_GPL(arch_invalidate_pmem);
 #endif
+
+void dmac_flush_range(const void *start, const void *end)
+{
+	__dma_flush_area(start, (void *)(end) - (void *)(start));
+}
+EXPORT_SYMBOL(dmac_flush_range);
+
+void dmac_inv_range(const void *start, const void *end)
+{
+	__dma_inv_area(start, (void *)(end) - (void *)(start));
+}
+EXPORT_SYMBOL(dmac_inv_range);
+
+void dmac_clean_range(const void *start, const void *end)
+{
+	__dma_clean_area(start, (void *)(end) - (void *)(start));
+}
+EXPORT_SYMBOL(dmac_clean_range);

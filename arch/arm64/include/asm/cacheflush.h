@@ -118,14 +118,12 @@ extern void __dma_flush_area(const void *, size_t);
 extern void __dma_inv_area(const void *start, size_t size);
 extern void __dma_clean_area(const void *start, size_t size);
 
-#define dmac_flush_range(start, end) \
-	__dma_flush_area(start, (void *)(end) - (void *)(start))
-#define dmac_inv_range(start, end) \
-	__dma_inv_area(start, (void *)(end) - (void *)(start))
-#define dmac_clean_range(start, end) \
-	__dma_clean_area(start, (void *)(end) - (void *)(start))
+extern void dmac_flush_range(const void *, const void *);
+extern void dmac_inv_range(const void *, const void *);
+extern void dmac_clean_range(const void *, const void *);
 
 /*
+
  * Copy user data from/to a page which is mapped into a different
  * processes address space.  Really, we want to allow our "user
  * space" model to handle this.
