@@ -122,6 +122,24 @@ static struct net_device_stats *ip6_get_stats(struct net_device *dev)
 	return &dev->stats;
 }
 
+/*
+ * Update offload stats
+ */
+void ip6_update_offload_stats(struct net_device *dev, void *ptr)
+{
+	struct pcpu_sw_netstats *tstats = per_cpu_ptr(dev->tstats, 0);
+	const struct pcpu_sw_netstats *offload_stats =
+					(struct pcpu_sw_netstats *)ptr;
+
+	u64_stats_update_begin(&tstats->syncp);
+	tstats->tx_packets += offload_stats->tx_packets;
+	tstats->tx_bytes   += offload_stats->tx_bytes;
+	tstats->rx_packets += offload_stats->rx_packets;
+	tstats->rx_bytes   += offload_stats->rx_bytes;
+	u64_stats_update_end(&tstats->syncp);
+}
+EXPORT_SYMBOL(ip6_update_offload_stats);
+
 /**
  * ip6_tnl_lookup - fetch tunnel matching the end-point addresses
  *   @remote: the address of the tunnel exit-point
@@ -985,6 +1003,9 @@ static int __ip6_tnl_rcv(struct ip6_tnl *tunnel, struct sk_buff *skb,
 	if (tun_dst)
 		skb_dst_set(skb, (struct dst_entry *)tun_dst);
 
+	/* Reset the skb_iif to Tunnels interface index */
+	skb->skb_iif = tunnel->dev->ifindex;
+
 	gro_cells_receive(&tunnel->gro_cells, skb);
 	return 0;
 
@@ -1053,7 +1074,6 @@ static int ipxip6_rcv(struct sk_buff *skb, u8 ipproto,
 	rcu_read_unlock();
 
 	return ret;
-
 drop:
 	rcu_read_unlock();
 	kfree_skb(skb);
@@ -1356,6 +1376,9 @@ route_lookup:
 	ipv6h->nexthdr = proto;
 	ipv6h->saddr = fl6->saddr;
 	ipv6h->daddr = fl6->daddr;
+
+	/* Reset the skb_iif to Tunnels interface index */
+	skb->skb_iif = dev->ifindex;
 	ip6tunnel_xmit(NULL, skb, dev);
 	return 0;
 tx_err_link_failure:
