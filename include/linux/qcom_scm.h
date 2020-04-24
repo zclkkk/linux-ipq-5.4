@@ -24,6 +24,9 @@ struct qcom_scm_vmperm {
 	int perm;
 };
 
+#define SCM_SVC_UTIL		0x03
+#define SCM_CMD_SET_REGSAVE	0x02
+
 #define QCOM_SCM_VMID_HLOS       0x3
 #define QCOM_SCM_VMID_MSS_MSA    0xF
 #define QCOM_SCM_VMID_WLAN       0x18
@@ -84,6 +87,8 @@ extern int qti_scm_sdi(u32 svc_id, u32 cmd_id);
 extern int qti_scm_tz_log(void *ker_buf, u32 buf_len);
 extern int qti_scm_hvc_log(void *ker_buf, u32 buf_len);
 extern int qti_scm_get_smmustate(void);
+extern int qti_scm_regsave(u32 svc_id, u32 cmd_id,
+				void *scm_regsave, u32 buf_size);
 extern bool is_scm_armv8(void);
 #else
 
@@ -152,6 +157,11 @@ static inline int qti_scm_sdi(u32 svc_id, u32 cmd_id) { return -ENODEV; }
 static inline int qti_scm_tz_log(void *ker_buf, u32 buf_len) { return -ENODEV; }
 static inline int qti_scm_hvc_log(void *ker_buf, u32 buf_len) { return -ENODEV; }
 static inline int qti_scm_get_smmustate(void) { return -ENODEV; }
+static inline int qti_scm_regsave(u32 svc_id, u32 cmd_id, void *scm_regsave,
+								u32 buf_size)
+{
+	return -ENODEV;
+}
 static inline bool is_scm_armv8(void) { return false; }
 #endif
 #endif

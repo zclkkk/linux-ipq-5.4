@@ -702,3 +702,17 @@ int __qti_scm_get_smmustate(struct device *dev, u32 svc_id, u32 cmd_id)
 
 	return ret ? -1 : res.a1;
 }
+
+int __qti_scm_regsave(struct device *dev, u32 svc_id, u32 cmd_id,
+				void *scm_regsave, unsigned int buf_size)
+{
+	struct qcom_scm_desc desc = {0};
+	struct arm_smccc_res res;
+	int ret;
+
+	desc.args[0] = (u64)virt_to_phys(scm_regsave);
+	desc.args[1] = buf_size;
+	desc.arginfo = QCOM_SCM_ARGS(2, QCOM_SCM_RW, QCOM_SCM_VAL);
+	ret = qcom_scm_call(dev, svc_id, cmd_id, &desc, &res);
+	return ret ? : res.a1;
+}

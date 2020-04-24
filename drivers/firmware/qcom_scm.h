@@ -210,4 +210,7 @@ extern int __qti_scm_sdi(struct device *dev, u32 svc_id, u32 cmd_id);
 extern int __qti_scm_tz_hvc_log(struct device *dev, u32 svc_id, u32 cmd_id,
 				void *ker_buf, u32 buf_len);
 extern int  __qti_scm_get_smmustate(struct device *dev, u32 svc_id, u32 cmd_id);
+
+int __qti_scm_regsave(struct device *dev, u32 svc_id, u32 cmd_id,
+				void *scm_regsave, unsigned int buf_size);
 #endif

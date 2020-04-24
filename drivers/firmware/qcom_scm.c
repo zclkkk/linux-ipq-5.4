@@ -654,6 +654,25 @@ int qti_scm_get_smmustate(void)
 }
 EXPORT_SYMBOL(qti_scm_get_smmustate);
 
+/**
+ * qti_scm_regsave pass a buffer to tz for saving cpu context
+ * Retruns 0 on success
+ * Err otherwise
+ */
+int qti_scm_regsave(u32 svc_id, u32 cmd_id, void *scm_regsave, u32 buf_size)
+{
+	int ret;
+
+	ret = qcom_scm_clk_enable();
+	if (ret)
+		return ret;
+	ret = __qti_scm_regsave(__scm->dev, svc_id, cmd_id,
+						scm_regsave, buf_size);
+	qcom_scm_clk_disable();
+	return ret;
+}
+EXPORT_SYMBOL(qti_scm_regsave);
+
 static int qcom_scm_probe(struct platform_device *pdev)
 {
 	struct device_node *np = (&pdev->dev)->of_node;
