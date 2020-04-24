@@ -12,6 +12,7 @@
 #include <linux/platform_device.h>
 #include <linux/watchdog.h>
 #include <linux/of_device.h>
+#include <linux/sched/clock.h>
 
 enum wdt_reg {
 	WDT_RST,
@@ -60,19 +61,39 @@ struct qcom_wdt *to_qcom_wdt(struct watchdog_device *wdd)
 
 static inline int qcom_get_enable(struct watchdog_device *wdd)
 {
-	int enable = QCOM_WDT_ENABLE;
-
-	if (wdd->pretimeout)
-		enable |= QCOM_WDT_ENABLE_IRQ;
-
-	return enable;
+	return QCOM_WDT_ENABLE;
 }
+
+static void qcom_wdt_bite(struct qcom_wdt *wdt, unsigned int ticks)
+{
+	unsigned long nanosec_rem;
+	unsigned long long t = sched_clock();
+
+	nanosec_rem = do_div(t, 1000000000);
+	pr_info("Watchdog bark! Now = %lu.%06lu\n", (unsigned long) t,
+							nanosec_rem / 1000);
+
+	writel(0, wdt_addr(wdt, WDT_EN));
+	writel(1, wdt_addr(wdt, WDT_RST));
+	writel(ticks, wdt_addr(wdt, WDT_BARK_TIME));
+	writel(ticks, wdt_addr(wdt, WDT_BITE_TIME));
+	writel(QCOM_WDT_ENABLE, wdt_addr(wdt, WDT_EN));
+
+	/*
+	 * Actually make sure the above sequence hits hardware before sleeping.
+	 */
+	wmb();
+
+	msleep(150);
+}
+
 
 static irqreturn_t qcom_wdt_isr(int irq, void *arg)
 {
 	struct watchdog_device *wdd = arg;
 
 	watchdog_notify_pretimeout(wdd);
+	qcom_wdt_bite(to_qcom_wdt(wdd), 1);
 
 	return IRQ_HANDLED;
 }
@@ -131,19 +152,8 @@ static int qcom_wdt_restart(struct watchdog_device *wdd, unsigned long action,
 	 *    Setup BITE_TIME to be 128ms, and enable WDT.
 	 */
 	timeout = 128 * wdt->rate / 1000;
+	qcom_wdt_bite(wdt, timeout);
 
-	writel(0, wdt_addr(wdt, WDT_EN));
-	writel(1, wdt_addr(wdt, WDT_RST));
-	writel(timeout, wdt_addr(wdt, WDT_BARK_TIME));
-	writel(timeout, wdt_addr(wdt, WDT_BITE_TIME));
-	writel(QCOM_WDT_ENABLE, wdt_addr(wdt, WDT_EN));
-
-	/*
-	 * Actually make sure the above sequence hits hardware before sleeping.
-	 */
-	wmb();
-
-	msleep(150);
 	return 0;
 }
 
