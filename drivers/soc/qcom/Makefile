@@ -28,3 +28,4 @@ obj-$(CONFIG_QCOM_RPMPD) += rpmpd.o
 obj-$(CONFIG_MSM_RPM_LOG)	+=	rpm_log.o
 obj-$(CONFIG_IPQ_SUBSYSTEM_RAMDUMP) += ramdump.o
 obj-$(CONFIG_QTI_TZ_LOG) += tz_log.o
+obj-$(CONFIG_QTI_CTXT_SAVE) += ctx-save.o
