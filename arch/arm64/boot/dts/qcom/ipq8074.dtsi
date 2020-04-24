@@ -1199,6 +1199,7 @@
 			qcom,ipv4-reasm-enabled;
 			qcom,ipv6-enabled;
 			qcom,vlan-enabled;
+			qcom,tunipip6-enabled;
 		};
 
 		nss1: nss@40800000 {
