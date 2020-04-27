@@ -25,7 +25,14 @@
 #include <asm/div64.h>
 #include <linux/of_device.h>
 
+#ifdef CONFIG_SND_SOC_IPQ_ADSS
 #include "ipq-adss.h"
+#else
+#define ADSS_GLB_PWM0_CTRL_REG		0x20
+#define ADSS_GLB_PWM1_CTRL_REG		0x24
+#define ADSS_GLB_PWM2_CTRL_REG		0x28
+#define ADSS_GLB_PWM3_CTRL_REG		0x2C
+#endif
 
 #define SRC_FREQ		(200*1000*1000)
 #define MAX_PWM_DEVICES		4
@@ -140,12 +147,17 @@ static uint32_t pwm_readl_v1(struct pwm_device *pwm, uint32_t cfg_reg)
 #else
 static void pwm_writel_v1(struct pwm_device *pwm, uint32_t val, uint32_t cfg_reg)
 {
+	struct ipq_pwm_chip *ipq_chip = to_ipq_pwm_chip(pwm->chip);
+
+	writel(val, ipq_chip->mem + pwm_ctrl_register[pwm->hwpwm]);
 	return;
 }
 
 static uint32_t pwm_readl_v1(struct pwm_device *pwm, uint32_t cfg_reg)
 {
-	return 0;
+	struct ipq_pwm_chip *ipq_chip = to_ipq_pwm_chip(pwm->chip);
+
+	return readl(ipq_chip->mem + pwm_ctrl_register[pwm->hwpwm]);
 }
 #endif
 
@@ -349,7 +361,7 @@ static int ipq_pwm_probe(struct platform_device *pdev)
 			return ret;
 	}
 
-	if (pwm->ops->version == PWM_V2) {
+	if (pwm->ops->version == PWM_V2 || !IS_ENABLED(CONFIG_SND_SOC_IPQ_ADSS)) {
 		res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 		pwm->mem = devm_ioremap_resource(&pdev->dev, res);
 		if (IS_ERR(pwm->mem))
