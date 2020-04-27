@@ -253,8 +253,8 @@ static int ipq_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 		       (int)NSEC_PER_SEC / ipq_chip->ops->min_period_ns);
 		period_ns = DEFAULT_PERIOD_NS;
 		duty_ns = DEFAULT_DUTY_CYCLE_NS;
-		pwm->period = period_ns;
-		pwm->duty_cycle = duty_ns;
+		pwm->state.period = period_ns;
+		pwm->state.duty_cycle = duty_ns;
 	}
 
 	/* freq in Hz for period in nano second*/
@@ -301,10 +301,10 @@ static int ipq_pwm_request(struct pwm_chip *chip, struct pwm_device *pwm)
 	if (!used_pwm[pwm->hwpwm])
 		return -EINVAL;
 
-	pwm->period = DEFAULT_PERIOD_NS;
-	pwm->duty_cycle = DEFAULT_DUTY_CYCLE_NS;
+	pwm->state.period = DEFAULT_PERIOD_NS;
+	pwm->state.duty_cycle = DEFAULT_DUTY_CYCLE_NS;
 
-	ipq_pwm_config(chip, pwm, pwm->duty_cycle, pwm->period);
+	ipq_pwm_config(chip, pwm, pwm->state.duty_cycle, pwm->state.period);
 
 	return 0;
 }
