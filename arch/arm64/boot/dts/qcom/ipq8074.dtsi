@@ -1211,6 +1211,7 @@
 			qcom,wlanredirect-enabled;
 			qcom,wlan-dataplane-offload-enabled;
 			qcom,pppoe-enabled;
+			qcom,vxlan-enabled;
 		};
 
 		nss1: nss@40800000 {
