@@ -101,6 +101,14 @@
 					output-low;
 				};
 			};
+
+			pwm_pins: pwm_pinmux {
+				mux_1 {
+					pins = "gpio25";
+					function = "pwm02";
+					drive-strength = <8>;
+				};
+			};
 		};
 
 		serial@78b3000 {
@@ -663,6 +671,13 @@
 					};
 				};
 			};
+		};
+
+		pwm {
+			pinctrl-0 = <&pwm_pins>;
+			pinctrl-names = "default";
+			used-pwm-indices = <1>, <0>, <0>, <0>;
+			status = "disabled";
 		};
 	};
 };
