@@ -7,8 +7,8 @@
 / {
 	#address-cells = <0x2>;
 	#size-cells = <0x2>;
-	model = "Qualcomm Technologies, Inc. IPQ8074-HK01";
-	compatible = "qcom,ipq8074-hk01", "qcom,ipq8074";
+	model = "Qualcomm Technologies, Inc. IPQ8074/AP-HK01-C1";
+	compatible = "qcom,ipq8074-ap-hk01-c1", "qcom,ipq8074";
 	interrupt-parent = <&intc>;
 
 	aliases {
