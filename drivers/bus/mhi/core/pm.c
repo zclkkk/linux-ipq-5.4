@@ -137,6 +137,7 @@ void mhi_set_mhi_state(struct mhi_controller *mhi_cntrl, enum mhi_state state)
 				    MHICTRL_MHISTATE_SHIFT, state);
 	}
 }
+EXPORT_SYMBOL(mhi_set_mhi_state);
 
 /* NOP for backward compatibility, host allowed to ring DB in M2 state */
 static void mhi_toggle_dev_wake_nop(struct mhi_controller *mhi_cntrl)
