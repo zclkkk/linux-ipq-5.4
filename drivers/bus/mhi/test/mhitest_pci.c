@@ -11,21 +11,110 @@
  * GNU General Public License for more details.
  */
 
-/*
- *
- * PCI MHI BHI related stuffs
- *
- *
- */
 #include <linux/memblock.h>
 #include <linux/pm_runtime.h>
 #include <linux/of.h>
 #include <linux/spinlock.h>
 #include <linux/of_device.h>
 #include <soc/qcom/ramdump.h>
-#include <soc/qcom/subsystem_restart.h>
 #include "commonmhitest.h"
 
+static struct mhi_channel_config mhitest_mhi_channels[] = {
+	{
+		.num = 0,
+		.name = "LOOPBACK",
+		.num_elements = 32,
+		.event_ring = 0,
+		.dir = DMA_TO_DEVICE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = false,
+		.auto_start = false,
+	},
+	{
+		.num = 1,
+		.name = "LOOPBACK",
+		.num_elements = 32,
+		.event_ring = 0,
+		.dir = DMA_FROM_DEVICE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = false,
+		.auto_start = false,
+	},
+	{
+		.num = 20,
+		.name = "IPCR",
+		.num_elements = 64,
+		.event_ring = 1,
+		.dir = DMA_TO_DEVICE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = false,
+		.auto_start = true,
+	},
+	{
+		.num = 21,
+		.name = "IPCR",
+		.num_elements = 64,
+		.event_ring = 1,
+		.dir = DMA_FROM_DEVICE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = true,
+		.auto_start = true,
+	},
+};
+
+static struct mhi_event_config mhitest_mhi_events[] = {
+	{
+		.num_elements = 32,
+		.irq_moderation_ms = 0,
+		.irq = 1,
+		.mode = MHI_DB_BRST_DISABLE,
+		.data_type = MHI_ER_CTRL,
+		.hardware_event = false,
+		.client_managed = false,
+		.offload_channel = false,
+	},
+	{
+		.num_elements = 256,
+		.irq_moderation_ms = 1,
+		.irq = 2,
+		.mode = MHI_DB_BRST_DISABLE,
+		.priority = 1,
+		.hardware_event = false,
+		.client_managed = false,
+		.offload_channel = false,
+	},
+};
+
+static struct mhi_controller_config mhitest_mhi_config = {
+	.max_channels = 128,
+	.timeout_ms = 2000,
+	.use_bounce_buf = false,
+	.buf_len = 0,
+	.num_channels = ARRAY_SIZE(mhitest_mhi_channels),
+	.ch_cfg = mhitest_mhi_channels,
+	.num_events = ARRAY_SIZE(mhitest_mhi_events),
+	.event_cfg = mhitest_mhi_events,
+};
 
 static struct mhitest_msi_config msi_config = {
 	.total_vectors = 3,
@@ -58,12 +147,6 @@ int mhitest_dump_info(struct mhitest_platform *mplat, bool in_panic)
 									ret);
 		return ret;
 	}
-	MHITEST_LOG("Let's dump some more things...\n");
-	mhi_debug_reg_dump(mhi_ctrl);
-	/*
-	 * pr_mhitest2("fbc_img?:%p - rddm_img?:%p\n",mhi_ctrl->fbc_image,
-	 *				mhi_ctrl->rddm_image);
-	 */
 
 	rddm_img = mhi_ctrl->rddm_image;
 	fw_img = mhi_ctrl->fbc_image;
@@ -133,7 +216,7 @@ static int mhitest_get_msi_user(struct mhitest_platform *mplat, char *u_name,
 			return 0;
 		}
 	}
-return -ENODEV;
+	return -ENODEV;
 }
 
 static int mhitest_get_msi_irq(struct device  *device, unsigned int vector)
@@ -149,14 +232,18 @@ static int mhitest_get_msi_irq(struct device  *device, unsigned int vector)
 
 int mhitest_suspend_pci_link(struct mhitest_platform *mplat)
 {
-	/* no suspend resume now return 0*/
+	/*
+	 * no suspend resume as of now, return 0
+	 */
 	MHITEST_LOG("No suspend resume now return 0\n");
 	return 0;
 }
 
 int mhitest_resume_pci_link(struct mhitest_platform *mplat)
 {
-	/* no suspend resume now return 0*/
+	/*
+	 * no suspend resume as of now, return 0
+	 */
 	MHITEST_LOG("No suspend resume now return 0\n");
 	return 0;
 }
@@ -164,8 +251,8 @@ int mhitest_resume_pci_link(struct mhitest_platform *mplat)
 int  mhitest_power_off_device(struct mhitest_platform *mplat)
 {
 	/*
-	*	Added pinctrl code here if needed !
-	*/
+	 * add pinctrl code here if needed !
+	 */
 	MHITEST_LOG("Powering OFF dummy!\n");
 	return 0;
 }
@@ -174,8 +261,8 @@ int  mhitest_power_on_device(struct mhitest_platform *mplat)
 {
 
 	/*
-	*	Added pinctrl code here if needed !
-	*/
+	 * add pinctrl code here if needed !
+	 */
 	MHITEST_LOG("Powering ON dummy!\n");
 	return 0;
 }
@@ -208,7 +295,9 @@ int mhitest_pci_get_mhi_msi(struct mhitest_platform *mplat)
 	int ret, *irq, num_vectors, i;
 	u32 user_base_data, base_vector;
 
-	/*right now we have only one user i.e MHI */
+	/*
+	 * right now we have only one user in mhitest i.e MHI
+	 */
 	ret = mhitest_get_msi_user(mplat, "MHI-TEST", &num_vectors,
 					&user_base_data, &base_vector);
 	if (ret) {
@@ -221,7 +310,7 @@ int mhitest_pci_get_mhi_msi(struct mhitest_platform *mplat)
 
 	irq = kcalloc(num_vectors, sizeof(int), GFP_KERNEL);
 	if (!irq) {
-		MHITEST_ERR("Error not able to allocate vectores\n");
+		MHITEST_ERR("Error not able to allocate vectors\n");
 		return -ENOMEM;
 	}
 	for (i = 0; i < num_vectors; i++)
@@ -229,29 +318,31 @@ int mhitest_pci_get_mhi_msi(struct mhitest_platform *mplat)
 							base_vector + i);
 
 	mplat->mhi_ctrl->irq = irq;
-	mplat->mhi_ctrl->msi_allocated = num_vectors;
+	mplat->mhi_ctrl->nr_irqs = num_vectors;
 
 	MHITEST_VERB("irq:[%p] msi_allocated :%d\n", mplat->mhi_ctrl->irq,
-				mplat->mhi_ctrl->msi_allocated);
+				mplat->mhi_ctrl->nr_irqs);
 
 	return 0;
 }
 
-char *mhitest_get_reson_str(enum MHI_CB reason)
+char *mhitest_get_reson_str(enum mhi_callback reason)
 {
-
 	switch (reason) {
 	case MHI_CB_IDLE:
 		return "IDLE";
 	case MHI_CB_EE_RDDM:
 		return "RDDM";
+	case MHI_CB_EE_MISSION_MODE:
+		return "EE_MISSION_MODE";
+	case MHI_CB_BW_REQ:
+		return "BW_REQ";
 	case MHI_CB_SYS_ERROR:
 		return "SYS_ERROR";
 	case MHI_CB_FATAL_ERROR:
 		return "FATAL_ERROR";
 	default:
 		return "UNKNOWN";
-
 	}
 }
 
@@ -264,9 +355,11 @@ char *mhitest_event_to_str(enum mhitest_event_type etype)
 		return "UNKNOWN EVENT";
 	}
 }
+
 int mhitest_post_event(struct mhitest_platform *mplat,
-	struct mhitest_recovery_data *data, enum mhitest_event_type etype,
-							u32 flags)
+		       struct mhitest_recovery_data *data,
+		       enum mhitest_event_type etype,
+		       u32 flags)
 {
 	struct mhitest_driver_event *event;
 	int gfp = GFP_KERNEL;
@@ -302,7 +395,7 @@ int mhitest_post_event(struct mhitest_platform *mplat,
 }
 
 void mhitest_sch_do_recovery(struct mhitest_platform *mplat,
-				enum mhitest_recovery_reason reason)
+					enum mhitest_recovery_reason reason)
 {
 	int gfp = GFP_KERNEL;
 	struct mhitest_recovery_data *data;
@@ -319,18 +412,20 @@ void mhitest_sch_do_recovery(struct mhitest_platform *mplat,
 	mhitest_post_event(mplat, data, MHITEST_RECOVERY_EVENT, 0);
 }
 
-int mhitest_mhi_link_status(struct mhi_controller *mhi_ctrl, void *priv)
+int mhitest_mhi_link_status(struct mhi_controller *mhi_ctrl)
 {
 
 	MHITEST_LOG("Link status..return with 1\n");
 	return 1;
 }
 
-void mhitest_mhi_notify_status(struct mhi_controller *mhi_cntrl, void *priv,
-							enum MHI_CB reason)
+void mhitest_mhi_notify_status(struct mhi_controller *mhi_cntrl,
+						enum mhi_callback reason)
 {
+	struct mhitest_platform *temp;
+	struct mhi_controller **mhi_ctrl = &mhi_cntrl;
 
-	struct mhitest_platform *temp = (struct mhitest_platform *)priv;
+	temp = container_of(mhi_ctrl, struct mhitest_platform, mhi_ctrl);
 
 	MHITEST_VERB("Enter\n");
 	if (reason > MHI_CB_FATAL_ERROR) {
@@ -343,13 +438,18 @@ void mhitest_mhi_notify_status(struct mhi_controller *mhi_cntrl, void *priv,
 	case MHI_CB_IDLE:
 	case MHI_CB_SYS_ERROR:
 		return;
-
 	case MHI_CB_FATAL_ERROR:
 		reason = MHI_DEFAULT;
 		return;
 	case MHI_CB_EE_RDDM:
 		reason = MHI_RDDM;
 		break;
+	case MHI_CB_EE_MISSION_MODE:
+		MHITEST_VERB("MHI_CB_EE_MISSION_MODE\n");
+		return;
+	case MHI_CB_BW_REQ:
+		MHITEST_VERB("MHI_CB_BW_REQ\n");
+		return;
 	default:
 		MHITEST_ERR("Unsupported reason --reason:[%s]-(%d)\n",
 				mhitest_get_reson_str(reason), reason);
@@ -359,36 +459,13 @@ void mhitest_mhi_notify_status(struct mhi_controller *mhi_cntrl, void *priv,
 	MHITEST_VERB("Exit\n");
 }
 
-int mhitest_mhi_pm_runtime_get(struct mhi_controller *mhi_cntrl, void *priv)
+int mhitest_mhi_pm_runtime_get(struct mhi_controller *mhi_cntrl)
 {
-
-	struct mhitest_platform *temp2 = (struct mhitest_platform *)priv;
-
-	if (!temp2)
-		return -ENODEV;
-	if (!temp2->pci_dev)
-		return -ENODEV;
-	if (!&temp2->pci_dev->dev)
-		return -ENODEV;
-
-	MHITEST_VERB("\n");
-	return pm_runtime_get(&temp2->pci_dev->dev);
+	return 0;
 }
 
-void mhitest_mhi_pm_runtime_put_noidle(struct mhi_controller *mhi_cntrl,
-								void *priv)
+void mhitest_mhi_pm_runtime_put_noidle(struct mhi_controller *mhi_cntrl)
 {
-	struct mhitest_platform *temp2 = (struct mhitest_platform *)priv;
-
-	if (!temp2)
-		return;
-	if (!temp2->pci_dev)
-		return;
-	if (!&temp2->pci_dev->dev)
-		return;
-
-	MHITEST_VERB("\n");
-	pm_runtime_put_noidle(&temp2->pci_dev->dev);
 }
 
 int mhitest_pci_register_mhi(struct mhitest_platform *mplat)
@@ -400,7 +477,7 @@ int mhitest_pci_register_mhi(struct mhitest_platform *mplat)
 	unsigned int *reg, *reg_end;
 	unsigned long start, size;
 
-	mhi_ctrl = mhi_alloc_controller(0);
+	mhi_ctrl = kzalloc(sizeof(*mhi_ctrl), GFP_KERNEL);
 	if (!mhi_ctrl) {
 		MHITEST_ERR("Error: not able to allocate mhi_ctrl\n");
 		return -EINVAL;
@@ -408,21 +485,15 @@ int mhitest_pci_register_mhi(struct mhitest_platform *mplat)
 	MHITEST_LOG("MHI CTRL :%p\n", mhi_ctrl);
 
 	mplat->mhi_ctrl = mhi_ctrl;
-	mhi_ctrl->priv_data = mplat;
-	mhi_ctrl->dev = &pci_dev->dev;
-	mhi_ctrl->of_node = (&mplat->plat_dev->dev)->of_node;
-	mhi_ctrl->dev_id = mplat->device_id;
-	mhi_ctrl->domain = pci_domain_nr(pci_dev->bus);
-	mhi_ctrl->bus = pci_dev->bus->number;
-	mhi_ctrl->slot = PCI_SLOT(pci_dev->devfn);
+
+	mhi_ctrl->cntrl_dev = &pci_dev->dev;
 
 	if (!mplat->fw_name) {
 		MHITEST_ERR("fw_name is NULLL\n");
 		return -EINVAL;
 	}
-	MHITEST_LOG("mhi_ctrl->of_node-name;%s\n",
-						mhi_ctrl->of_node->name);
 	mhi_ctrl->fw_image = mplat->fw_name;
+
 	mhi_ctrl->regs = mplat->bar;
 	MHITEST_EMERG("BAR start at :%pa\n", &pci_resource_start(pci_dev,
 								PCI_BAR_NUM));
@@ -466,20 +537,12 @@ int mhitest_pci_register_mhi(struct mhitest_platform *mplat)
 	mhi_ctrl->status_cb =	mhitest_mhi_notify_status;
 	mhi_ctrl->runtime_get =	mhitest_mhi_pm_runtime_get;
 	mhi_ctrl->runtime_put = mhitest_mhi_pm_runtime_put_noidle;
-
 	mhi_ctrl->rddm_size = mplat->mhitest_rdinfo.ramdump_size;
 	mhi_ctrl->sbl_size = SZ_512K;
 	mhi_ctrl->seg_len = SZ_512K;
 	mhi_ctrl->fbc_download = true;
 
-	/*
-	* let's decide log level for mhi controller
-	* MHI_MSG_LVL_VERBOSE/MHI_MSG_LVL_INFO
-	*
-	* mhi_ctrl->klog_lvl = MHI_MSG_LVL_INFO;
-	*/
-
-	ret = of_register_mhi_controller(mhi_ctrl);
+	ret = mhi_register_controller(mhi_ctrl, &mhitest_mhi_config);
 	if (ret) {
 		MHITEST_ERR("Failed to register mhi controller ret:%d\n", ret);
 		goto out;
@@ -488,6 +551,7 @@ int mhitest_pci_register_mhi(struct mhitest_platform *mplat)
 	return  0;
 
 out:
+	kfree(mhi_ctrl);
 	return ret;
 }
 
@@ -498,15 +562,15 @@ int mhitest_pci_en_msi(struct mhitest_platform *temp)
 	struct msi_desc *msi_desc;
 
 	temp->msi_config = &msi_config;
-
 	if (!temp->msi_config) {
 		MHITEST_ERR("MSI config is NULL\n");
 		return -EINVAL;
 	}
 
 	num_vectors = pci_alloc_irq_vectors(pci_dev,
-		temp->msi_config->total_vectors,
-			temp->msi_config->total_vectors, PCI_IRQ_NOMSIX);
+					   temp->msi_config->total_vectors,
+					   temp->msi_config->total_vectors,
+					   PCI_IRQ_MSI | PCI_IRQ_LEGACY);
 	if (num_vectors != temp->msi_config->total_vectors) {
 		MHITEST_ERR("No Enough MSI vectors req:%d and allocated:%d\n",
 				temp->msi_config->total_vectors, num_vectors);
@@ -514,23 +578,16 @@ int mhitest_pci_en_msi(struct mhitest_platform *temp)
 			ret = -EINVAL;
 		temp->msi_config = NULL;
 		goto out;
-}
+	}
+
 	msi_desc = irq_get_msi_desc(pci_dev->irq);
 	if (!msi_desc) {
 		MHITEST_ERR("MSI desc is NULL\n");
 		goto free_irq_vectors;
 	}
-	/*
-	*comment this for now
-	*temp->msi_ep_base_data = msi_desc->msg.data;
-	*if (!temp->msi_ep_base_data) {
-	*	pr_mhitest2("Got 0 msi base data, Not good\n");
-	*	ret = -EINVAL;
-	*	goto out;
-	*}
-	*pr_mhitest2("MSI base data is %d\n", temp->msi_ep_base_data);
-	*/
+
 	return 0;
+
 free_irq_vectors:
 	pci_free_irq_vectors(pci_dev);
 out:
@@ -548,7 +605,6 @@ int mhitest_pci_enable_bus(struct mhitest_platform *temp)
 	pci_read_config_word(pci_dev, PCI_DEVICE_ID, &device_id);
 	MHITEST_EMERG("Read config space, Device_id:0x%x\n", device_id);
 
-	/*check for probe ID is same as config same read ID ?*/
 	if (device_id != temp->pci_dev_id->device) {
 		MHITEST_ERR("Device Id does not match with Probe ID..\n");
 		return -EIO;
@@ -559,14 +615,12 @@ int mhitest_pci_enable_bus(struct mhitest_platform *temp)
 		MHITEST_ERR("Failed to assign PCI resource  Error:%d\n", ret);
 		goto out;
 	}
-	/*VERIFY_ME(ret,"PCI BAR assigned?");*/
 
 	ret = pci_enable_device(pci_dev);
 	if (ret) {
 		MHITEST_ERR("Failed to Enable PCI device  Error:%d\n", ret);
 		goto out;
 	}
-	/*VERIFY_ME(ret,"PCI device enabled?");*/
 
 	ret = pci_request_region(pci_dev, PCI_BAR_NUM, "mhitest_region");
 	if (ret) {
@@ -589,12 +643,7 @@ int mhitest_pci_enable_bus(struct mhitest_platform *temp)
 		ret = -EIO;
 		goto out4;
 	}
-	/* do we need this after bus enable...I think yes lets keep to reminder
-	*         pci_save_state(pci_dev);
-	*              pci_priv->default_state = pci_store_saved_state(pci_dev);
-	*
-	*/
-	/*Let save this pci config space before suspend */
+
 	pci_save_state(pci_dev);
 	temp->pci_dev_default_state = pci_store_saved_state(pci_dev);
 
@@ -609,6 +658,7 @@ out2:
 out:
 	return ret;
 }
+
 void mhitest_global_soc_reset(struct mhitest_platform *mplat)
 {
 	MHITEST_EMERG("Soc Globle Reset issued\n");
@@ -666,19 +716,17 @@ int mhitest_unregister_ramdump(struct mhitest_platform *mplat)
 	mhitest_rdinfo->dump_data_vaddr = NULL;
 	mhitest_rdinfo->dump_data_valid = false;
 
-return 0;
+	return 0;
 }
 
 int mhitest_register_ramdump(struct mhitest_platform *mplat)
 {
-	struct subsys_desc *mhitest_ss_desc;
 	struct mhitest_ramdump_info *mhitest_rdinfo;
 	struct mhitest_dump_data *dump_data;
 	struct device *dev = &mplat->plat_dev->dev;
 	u32 ramdump_size = 0;
 	int ret;
 
-	mhitest_ss_desc = &mplat->mhitest_ss_desc;
 	mhitest_rdinfo = &mplat->mhitest_rdinfo;
 	dump_data = &mhitest_rdinfo->dump_data;
 	if (!dev->of_node) {
@@ -701,15 +749,17 @@ int mhitest_register_ramdump(struct mhitest_platform *mplat)
 
 	dump_data->paddr = virt_to_phys(mhitest_rdinfo->dump_data_vaddr);
 
-	/*TODO: used ramdom version and magic..etc check and correct it.*/
+	/*
+	 * TODO: used ramdom version and magic..etc check and correct it.
+	 */
 	dump_data->version = 0x00;
 	dump_data->magic = 0xAA55AA55;
 	dump_data->seg_version = 0x1;
 	strlcpy(dump_data->name, "mhitest_mod",
 		sizeof(dump_data->name));
 	mhitest_rdinfo->ramdump_dev =
-		create_ramdump_device(mhitest_ss_desc->name,
-				      mhitest_ss_desc->dev);
+		create_ramdump_device(mplat->mhitest_ss_desc_name,
+				      mplat->subsys_handle->dev.parent);
 	if (!mhitest_rdinfo->ramdump_dev) {
 		MHITEST_ERR("Failed to create ramdump device!\n");
 		ret = -ENOMEM;
@@ -719,11 +769,12 @@ int mhitest_register_ramdump(struct mhitest_platform *mplat)
 	MHITEST_LOG("Ramdump registered ramdump_size:0x%x\n", ramdump_size);
 
 	return 0;
+
 free_ramdump:
 	kfree(mhitest_rdinfo->dump_data_vaddr);
 	mhitest_rdinfo->dump_data_vaddr = NULL;
-	return ret;
 
+	return ret;
 }
 
 int mhitest_prepare_pci_mhi_msi(struct mhitest_platform *temp)
@@ -735,28 +786,35 @@ int mhitest_prepare_pci_mhi_msi(struct mhitest_platform *temp)
 		MHITEST_ERR("pci_dev is NULLL\n");
 		return -EINVAL;
 	}
+
 	ret = mhitest_register_ramdump(temp);
 	if (ret) {
 		MHITEST_ERR("Error not able to reg ramdump. ret :%d\n", ret);
 		goto unreg_rdump;
 	}
-#if 1
-	/* 1. pci enable bus*/
+
+	/*
+	 * 1. pci enable bus
+	 */
 	ret = mhitest_pci_enable_bus(temp);
 	if (ret) {
 		MHITEST_ERR("Error mhitest_pci_enable. ret :%d\n", ret);
 		goto out;
 	}
 
-	/*go with some condition for specific device for msi en*/
-	/* 2. pci enable msi*/
+	/*
+	 * go with some condition for specific device for msi en
+	 * 2. pci enable msi
+	 */
 	ret = mhitest_pci_en_msi(temp);
 	if (ret) {
 		MHITEST_ERR("Error mhitest_pci_enable_msi. ret :%d\n", ret);
 		goto disable_bus;
 	}
 
-	/* 3. pci register mhi -of_controller*/
+	/*
+	 * 3. pci register mhi -of_controller
+	 */
 	ret = mhitest_pci_register_mhi(temp);
 	if (ret) {
 		MHITEST_ERR("Error pci register mhi. ret :%d\n", ret);
@@ -768,6 +826,7 @@ int mhitest_prepare_pci_mhi_msi(struct mhitest_platform *temp)
 		MHITEST_ERR("Error not able to get pci link status:%d\n", ret);
 		goto out;
 	}
+
 	ret = mhitest_suspend_pci_link(temp);
 	if (ret) {
 		MHITEST_ERR("Error not able to suspend pci:%d\n", ret);
@@ -776,8 +835,9 @@ int mhitest_prepare_pci_mhi_msi(struct mhitest_platform *temp)
 
 	mhitest_power_off_device(temp);
 	MHITEST_VERB("Exit\n");
+
 	return 0;
-#endif
+
 disable_bus:
 	mhitest_pci_disable_bus(temp);
 unreg_rdump:
@@ -805,7 +865,7 @@ char *mhitest_get_mhi_state_str(enum mhi_state state)
 }
 
 int mhitest_pci_set_mhi_state(struct mhitest_platform *mplat,
-						enum mhi_state state)
+						enum MHI_STATE state)
 {
 	int ret = 0;
 
@@ -813,14 +873,16 @@ int mhitest_pci_set_mhi_state(struct mhitest_platform *mplat,
 		MHITEST_ERR("Invalid MHI state : %d\n", state);
 		return -EINVAL;
 	}
+
 	MHITEST_EMERG("Set MHI_STATE- [%s]-(%d)\n",
 				mhitest_get_mhi_state_str(state), state);
+
 	switch (state) {
 	case MHI_INIT:
 		ret = mhi_prepare_for_power_up(mplat->mhi_ctrl);
 		break;
 	case MHI_POWER_ON:
-		ret = mhi_sync_power_up(mplat->mhi_ctrl);
+		ret = mhi_async_power_up(mplat->mhi_ctrl);
 		break;
 	case MHI_DEINIT:
 		mhi_unprepare_after_power_down(mplat->mhi_ctrl);
@@ -830,7 +892,6 @@ int mhitest_pci_set_mhi_state(struct mhitest_platform *mplat,
 		mhi_power_down(mplat->mhi_ctrl, true);
 		ret = 0;
 		break;
-
 	default:
 		MHITEST_ERR("I dont know the state:%d!!\n", state);
 		ret = -EINVAL;
@@ -841,6 +902,7 @@ int mhitest_pci_set_mhi_state(struct mhitest_platform *mplat,
 int mhitest_pci_start_mhi(struct mhitest_platform *mplat)
 {
 	int ret;
+
 	MHITEST_VERB("Enter\n");
 
 	if (!mplat->mhi_ctrl) {
@@ -859,27 +921,35 @@ int mhitest_pci_start_mhi(struct mhitest_platform *mplat)
 	if (ret) {
 		MHITEST_ERR("Error not able to POWER ON\n");
 		if (ret == -ETIMEDOUT) {
-		/* Thought it is ETIMEOUT we are returning 0 here so that
-		 * we should be able to do rcremove and rmmod.
-		 * rcremove api are not exported so mhitest driver can not call
-		 * them. Printing Error message here to know the user.
-		 */
+			/*
+			 * Though it is ETIMEOUT we are returning 0 here so that
+			 * we should be able to do rcremove and rmmod.
+			 * rcremove api's are not exported and so mhitest driver
+			 * cannot call them.
+			 *
+			 * Printing Error message here to inform the user.
+			 */
 			MHITEST_ERR("###### -ETIMEDOUT ERRRORR, do rcremove and rmmod to clean-up\n");
 			ret = 0;
 		}
 		goto out1;
 	}
-	return ret;
+
 	MHITEST_VERB("Exit\n");
+	return ret;
+
 out1:
 	MHITEST_VERB("Exit-Error\n");
 	return ret;
 }
+
 int mhitest_prepare_start_mhi(struct mhitest_platform *mplat)
 {
 	int ret;
 
-	/* 1. power on , resume link if?*/
+	/*
+	 * 1. power on, resume link if needed
+	 */
 	ret = mhitest_power_on_device(mplat);
 	if (ret) {
 		MHITEST_ERR("Error ret:%d\n", ret);
@@ -891,7 +961,9 @@ int mhitest_prepare_start_mhi(struct mhitest_platform *mplat)
 		goto out;
 	}
 
-	/* 2. start mhi*/
+	/*
+	 * 2. start mhi
+	 */
 	ret = mhitest_pci_start_mhi(mplat);
 	if (ret) {
 		MHITEST_ERR("Error ret: %d\n", ret);
@@ -922,13 +994,14 @@ int mhitest_pci_probe(struct pci_dev *pci_dev, const struct pci_device_id *id)
 	MHITEST_VERB("Exit\n");
 	return 0;
 }
+
 extern int debug_lvl;
+
 int mhitest_pci_probe2(struct pci_dev *pci_dev, const struct pci_device_id *id)
 {
 	struct mhitest_platform *mplat;
 	struct platform_device *plat_dev = get_plat_device();
 	int ret;
-	struct device_node *np;
 
 	MHITEST_EMERG("--->\n");
 	mplat = devm_kzalloc(&plat_dev->dev, sizeof(*mplat), GFP_KERNEL);
@@ -938,23 +1011,22 @@ int mhitest_pci_probe2(struct pci_dev *pci_dev, const struct pci_device_id *id)
 		goto fail_probe;
 	}
 
-	np = of_find_compatible_node(NULL, NULL, "qcom,cnss-qcn9000");
-	if (!np) {
-		MHITEST_ERR("Couldn't find necessary node\n");
-		return -ENODEV;
-	}
-	/* let's reuse the same !!*/
-	plat_dev->dev.of_node = np;
-
 	mplat->mhitest_klog_lvl = debug_lvl;
 
-	mplat->plat_dev = plat_dev;
+	if (plat_dev != NULL)
+		mplat->plat_dev = plat_dev;
+	else
+		MHITEST_ERR("Error: platform dev is broken\n");
+
 	platform_set_drvdata(plat_dev, mplat);
+
 	mplat->pci_dev = pci_dev;
 	mplat->device_id = pci_dev->device;
 	mplat->pci_dev_id = id;
+
 	MHITEST_LOG("Vendor ID:0x%x Device ID:0x%x Probed Device ID:0x%x\n",
 			pci_dev->vendor, pci_dev->device, id->device);
+
 	ret = mhitest_event_work_init(mplat);
 	if (ret)
 		goto out1;
@@ -964,6 +1036,7 @@ int mhitest_pci_probe2(struct pci_dev *pci_dev, const struct pci_device_id *id)
 		MHITEST_ERR("Error ret:%d\n", ret);
 		goto out1;
 	}
+
 	ret = mhitest_subsystem_register(mplat);
 	if (ret) {
 		MHITEST_ERR("Error subsystem register: ret:%d\n", ret);
@@ -972,64 +1045,44 @@ int mhitest_pci_probe2(struct pci_dev *pci_dev, const struct pci_device_id *id)
 
 	MHITEST_EMERG("<---done\n");
 	return 0;
+
 out1:
 	kfree(mplat);
 fail_probe:
 	return ret;
 }
+
 void mhitest_pci_remove(struct pci_dev *pci_dev)
 {
 	struct mhitest_platform *mplat;
-	struct platform_device *plat_dev = get_plat_device();
-	struct device_node *np;
 	static int index = 0;
+
 	MHITEST_LOG("mhitest PCI removing\n");
 
-	np = of_find_compatible_node(NULL, NULL, "qcom,testmhi");
-	if (!np) {
-		MHITEST_ERR("Couldn't find necessary node\n");
-		return;
-	}
-	/* Revert back */
-	plat_dev->dev.of_node = np;
-
 	mplat = get_mhitest_mplat(index++);
-/*
-	mhitest_pci_set_mhi_state(mplat, MHI_POWER_OFF);
-	msleep(1000);
-	mhitest_pci_set_mhi_state(mplat, MHI_DEINIT);
-	mhitest_pci_remove_all(mplat);
-*/
 	mhitest_subsystem_unregister(mplat);
 	mhitest_event_work_deinit(mplat);
 	pci_load_and_free_saved_state(pci_dev, &mplat->pci_dev_default_state);
 	kfree(mplat->mhi_ctrl);
 	mhitest_free_mplat(mplat);
 }
+
 static const struct pci_device_id mhitest_pci_id_table[] = {
-		/*
-		* dummy used for testing probe etc
-		* {0x17cb, 0x1002, PCI_ANY_ID, PCI_ANY_ID},
-		* {0x168c, 0x0056, PCI_ANY_ID, PCI_ANY_ID},
-		*/
-/*Hasting*/	{QCA6390_VENDOR_ID, QCA6390_DEVICE_ID, PCI_ANY_ID, PCI_ANY_ID},
-/*Pine*/	{QCN90xx_VENDOR_ID, QCN90xx_DEVICE_ID, PCI_ANY_ID, PCI_ANY_ID},
-};
-struct pci_driver mhitest_pci_driver = {
-	.name	= "mhitest_pci",
-	/*.probe	= mhitest_pci_probe,*/
-	.probe	= mhitest_pci_probe2,
-	.remove	= mhitest_pci_remove,
-	.id_table	= mhitest_pci_id_table,
+	{QCN90xx_VENDOR_ID, QCN90xx_DEVICE_ID, PCI_ANY_ID, PCI_ANY_ID},
 };
 
+struct pci_driver mhitest_pci_driver = {
+	.name	  = "mhitest_pci",
+	.probe	  = mhitest_pci_probe2,
+	.remove	  = mhitest_pci_remove,
+	.id_table = mhitest_pci_id_table,
+};
 
 int mhitest_pci_register(void)
 {
 	int ret;
 
 	ret = pci_register_driver(&mhitest_pci_driver);
-	/*VERIFY_ME(ret,"PCI device registered ?\n");*/
 	if (ret) {
 		MHITEST_ERR("Error ret:%d\n", ret);
 		goto out;
@@ -1037,6 +1090,7 @@ int mhitest_pci_register(void)
 out:
 	return ret;
 }
+
 void mhitest_pci_unregister(void)
 {
 	MHITEST_VERB("\n");

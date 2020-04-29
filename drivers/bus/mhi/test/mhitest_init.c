@@ -11,11 +11,10 @@
  * GNU General Public License for more details.
  */
 
-
-#include<linux/module.h>
-#include<linux/version.h>
-#include<linux/kernel.h>
-#include<linux/init.h>
+#include <linux/module.h>
+#include <linux/version.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
 #include <linux/of_device.h>
 #include <linux/slab.h>
 #include "commonmhitest.h"
@@ -23,7 +22,6 @@
 static bool rddm_r;
 module_param(rddm_r, bool, 0);
 MODULE_PARM_DESC(rddm_r, "Do need to go for recovery after rddm?");
-
 
 /*
  * 0 - MHITEST_LOG_LVL_VERBOSE
@@ -46,7 +44,6 @@ struct platform_device *get_plat_device(void)
 
 int mhitest_store_mplat(struct mhitest_platform *temp)
 {
-
 	if (d_instance < MHI_MAX_DEVICE) {
 		mplat_g[d_instance] = temp;
 		mplat_g[d_instance]->d_instance = d_instance;
@@ -58,6 +55,7 @@ int mhitest_store_mplat(struct mhitest_platform *temp)
 	MHITEST_ERR("Error Max device support count exceeds\n");
 	return 1;
 }
+
 void mhitest_free_mplat(struct mhitest_platform *temp)
 {
 	devm_kfree(&temp->plat_dev->dev, temp);
@@ -92,12 +90,11 @@ void mhitest_recovery_post_rddm(struct mhitest_platform *mplat)
 	msleep(10000); /*Let's wait for some time !*/
 
 	mhitest_pci_set_mhi_state(mplat, MHI_POWER_OFF);
-//	msleep(1000);
 	mhitest_pci_set_mhi_state(mplat, MHI_DEINIT);
 
 	mhitest_pci_remove_all(mplat);
 
-	ret = mhitest_ss_powerup(&mplat->mhitest_ss_desc);
+	ret = mhitest_ss_powerup(mplat->subsys_handle);
 	if (ret) {
 		MHITEST_ERR("ERRORRRR..ret:%d\n", ret);
 		return;
@@ -110,7 +107,6 @@ int mhitest_recovery_event_handler(struct mhitest_platform *mplat, void *data)
 {
 	struct mhitest_driver_event *event = data;
 	struct mhitest_recovery_data *rdata = event->data;
-	struct subsys_device *mhitest_ss_device = mplat->mhitest_ss_device;
 
 	MHITEST_EMERG("Recovery triggred with reason:(%s)-(%d)\n",
 		mhitest_recov_reason_to_str(rdata->reason), rdata->reason);
@@ -132,10 +128,8 @@ int mhitest_recovery_event_handler(struct mhitest_platform *mplat, void *data)
 		MHITEST_ERR("Incorect reason\n");
 		break;
 	}
-	/*TODO: no subsystem restart for now. check the use case!*/
-	subsystem_restart_dev(mhitest_ss_device);
-kfree(data);
-return 0;
+	kfree(data);
+	return 0;
 }
 
 static void mhitest_event_work(struct work_struct *work)
@@ -223,11 +217,13 @@ int mhitest_event_work_init(struct mhitest_platform *mplat)
 
 	return 0;
 }
+
 void mhitest_event_work_deinit(struct mhitest_platform *mplat)
 {
 	if (mplat->event_wq)
 		destroy_workqueue(mplat->event_wq);
 }
+
 static int mhitest_probe(struct platform_device *plat_dev)
 {
 	int ret;
@@ -247,6 +243,7 @@ static int mhitest_probe(struct platform_device *plat_dev)
 fail_probe:
 	return ret;
 }
+
 static int mhitest_remove(struct platform_device *plat_dev)
 {
 	MHITEST_VERB("Enter\n");
@@ -259,14 +256,13 @@ static int mhitest_remove(struct platform_device *plat_dev)
 void mhitest_pci_disable_msi(struct mhitest_platform *mplat)
 {
 	pci_free_irq_vectors(mplat->pci_dev);
-	/*pci_disable_msi(mplat->pci_dev);*/
 }
 
 void mhitest_pci_unregister_mhi(struct mhitest_platform *mplat)
 {
 	struct mhi_controller *mhi_ctrl = mplat->mhi_ctrl;
 
-	mhi_unregister_mhi_controller(mhi_ctrl);
+	mhi_unregister_controller(mhi_ctrl);
 	kfree(mhi_ctrl->irq);
 }
 
@@ -276,18 +272,16 @@ int mhitest_pci_remove_all(struct mhitest_platform *mplat)
 
 	mhitest_pci_unregister_mhi(mplat);
 	mhitest_pci_disable_msi(mplat);
-
 	mhitest_pci_disable_bus(mplat);
-
 	mhitest_unregister_ramdump(mplat);
 
 	MHITEST_VERB("Exit\n");
-return 0;
+
+	return 0;
 }
 
 static const struct platform_device_id test_platform_id_table[] = {
 	{ .name = "qcn90xx", .driver_data = QCN90xx_DEVICE_ID, },
-	{ .name = "qca6390", .driver_data = QCA6390_DEVICE_ID, },
 };
 
 static const struct of_device_id test_of_match_table[] = {
@@ -297,7 +291,7 @@ static const struct of_device_id test_of_match_table[] = {
 	{ },
 };
 
-MODULE_DEVICE_TABLE(of, cnss_of_match_table);
+MODULE_DEVICE_TABLE(of, test_of_match_table);
 
 struct platform_driver mhitest_platform_driver = {
 	.probe = mhitest_probe,
@@ -319,13 +313,13 @@ int __init mhitest_init(void)
 	MHITEST_EMERG("<---done\n");
 	return ret;
 }
+
 void __exit mhitest_exit(void)
 {
 	MHITEST_EMERG("Enter\n");
 	platform_driver_unregister(&mhitest_platform_driver);
 	MHITEST_EMERG("Exit\n");
 }
-
 
 module_init(mhitest_init);
 module_exit(mhitest_exit);
