@@ -34,9 +34,7 @@
 #include "diagfwd_socket.h"
 #include "diag_ipc_logging.h"
 
-#include <soc/qcom/subsystem_notif.h>
-#include <soc/qcom/subsystem_restart.h>
-
+#include <linux/remoteproc.h>
 #define DIAG_SVC_ID		0x1001
 
 #define MODEM_INST_BASE		0
@@ -324,7 +322,7 @@ static int restart_notifier_cb(struct notifier_block *this, unsigned long code,
 }
 
 static struct restart_notifier_block restart_notifiers[] = {
-	{SOCKET_MODEM, "modem", .nb.notifier_call = restart_notifier_cb},
+	{SOCKET_MODEM, "qcom_q6v5_wcss", .nb.notifier_call = restart_notifier_cb},
 	{SOCKET_ADSP, "adsp", .nb.notifier_call = restart_notifier_cb},
 	{SOCKET_WCNSS, "wcnss", .nb.notifier_call = restart_notifier_cb},
 	{SOCKET_SLPI, "slpi", .nb.notifier_call = restart_notifier_cb},
@@ -477,7 +475,6 @@ static void socket_open_server(struct diag_socket_info *info)
 	struct msghdr msg = {0};
 	struct kvec iv = { &pkt, sizeof(pkt) };
 	int ret;
-	int sl = sizeof(sq);
 	unsigned int size = DIAG_SO_RCVBUF_SIZE;
 
 	if (!info || info->port_type != PORT_TYPE_SERVER)
@@ -489,7 +486,7 @@ static void socket_open_server(struct diag_socket_info *info)
 		       info->name);
 		return;
 	}
-	ret = kernel_getsockname(info->hdl, (struct sockaddr *)&sq, &sl);
+	ret = kernel_getsockname(info->hdl, (struct sockaddr *)&sq);
 	if (ret < 0) {
 		pr_err("diag: In %s, getsockname failed %d\n", __func__,
 		       ret);
@@ -549,7 +546,6 @@ static void __socket_close_channel(struct diag_socket_info *info)
 	sock_release(info->hdl);
 	info->hdl = NULL;
 	mutex_unlock(&info->socket_info_mutex);
-	cancel_work(&info->read_work);
 	wake_up_interruptible(&info->read_wait_q);
 
 	spin_lock_irqsave(&info->lock, flags);
@@ -714,7 +710,7 @@ static void diag_socket_drop_data(struct diag_socket_info *info)
 		iov.iov_len = PERIPHERAL_BUF_SZ;
 		read_msg.msg_name = &src_addr;
 		read_msg.msg_namelen = sizeof(src_addr);
-		err = kernel_sock_ioctl(info->hdl, TIOCINQ,
+		err = info->hdl->ops->ioctl(info->hdl, TIOCINQ,
 					(unsigned long)&pkt_len);
 		if (err || pkt_len < 0)
 			break;
@@ -806,7 +802,7 @@ static int diag_socket_read(void *ctxt, unsigned char *buf, int buf_len)
 			mutex_unlock(&info->socket_info_mutex);
 			goto fail;
 		}
-		err = kernel_sock_ioctl(info->hdl, TIOCINQ,
+		err = info->hdl->ops->ioctl(info->hdl, TIOCINQ,
 					(unsigned long)&pkt_len);
 		if (err || pkt_len < 0) {
 			mutex_unlock(&info->socket_info_mutex);
@@ -1117,7 +1113,6 @@ int diag_socket_init(void)
 	struct diag_socket_info *info = NULL;
 	struct restart_notifier_block *nb;
 	int peripheral;
-	void *handle;
 	int rc;
 	int i;
 
@@ -1136,10 +1131,10 @@ int diag_socket_init(void)
 
 	for (i = 0; i < ARRAY_SIZE(restart_notifiers); i++) {
 		nb = &restart_notifiers[i];
-		handle = subsys_notif_register_notifier(nb->name, &nb->nb);
+		rproc_register_subsys_notifier(nb->name, &nb->nb, NULL);
 		DIAG_LOG(DIAG_DEBUG_PERIPHERALS,
-			 "%s: registering notifier for '%s', handle=%p\n",
-			 __func__, nb->name, handle);
+			 "%s: registering notifier for '%s\n",
+			 __func__, nb->name);
 	}
 
 	cntl_qmi = kzalloc(sizeof(*cntl_qmi), GFP_KERNEL);

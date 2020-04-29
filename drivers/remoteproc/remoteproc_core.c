@@ -2267,7 +2267,7 @@ int rproc_register_subsys_notifier(const char *name, struct notifier_block *nb,
 
 	return ret;
 }
-
+EXPORT_SYMBOL(rproc_register_subsys_notifier);
 /**
  * rproc_unregister_subsys_notifier() - register for subsys start, stop events
  * @name: name of the rproc device

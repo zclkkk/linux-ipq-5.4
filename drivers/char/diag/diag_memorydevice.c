@@ -210,6 +210,7 @@ int diag_md_write(int id, unsigned char *buf, int len, int ctx)
 	struct diag_md_info *ch = NULL;
 	struct diag_md_session_t *session_info = NULL;
 
+	flags_sec = 0;
 	if (id < 0 || id >= NUM_DIAG_MD_DEV || id >= DIAG_NUM_PROC)
 		return -EINVAL;
 
