@@ -16,7 +16,11 @@
 #include <linux/random.h>
 #include <linux/slab.h>
 #include <linux/wait.h>
+#include <linux/of.h>
 #include "internal.h"
+
+#define QRTR_INSTANCE_MASK	0x0000FFFF
+#define QRTR_INSTANCE_SHIFT	0
 
 /* Setup RDDM vector table for RDDM transfer and program RXVEC */
 void mhi_rddm_prepare(struct mhi_controller *mhi_cntrl,
@@ -388,6 +392,7 @@ void mhi_fw_load_worker(struct work_struct *work)
 	dma_addr_t dma_addr;
 	size_t size;
 	int ret;
+	u32 instance;
 
 	mhi_cntrl = container_of(work, struct mhi_controller, fw_worker);
 	dev = &mhi_cntrl->mhi_dev->dev;
@@ -441,6 +446,17 @@ void mhi_fw_load_worker(struct work_struct *work)
 	memcpy(buf, firmware->data, size);
 	ret = mhi_fw_load_sbl(mhi_cntrl, dma_addr, size);
 	mhi_free_coherent(mhi_cntrl, size, buf, dma_addr);
+
+	if (!ret && mhi_cntrl->cntrl_dev->of_node) {
+		ret = of_property_read_u32(mhi_cntrl->cntrl_dev->of_node,
+					   "qrtr_instance_id", &instance);
+		if (!ret) {
+			instance &= QRTR_INSTANCE_MASK;
+			mhi_write_reg_field(mhi_cntrl, mhi_cntrl->bhi,
+					    BHI_ERRDBG2, QRTR_INSTANCE_MASK,
+					    QRTR_INSTANCE_SHIFT, instance);
+		}
+	}
 
 	if (!mhi_cntrl->fbc_download || ret || mhi_cntrl->ee == MHI_EE_EDL)
 		release_firmware(firmware);
