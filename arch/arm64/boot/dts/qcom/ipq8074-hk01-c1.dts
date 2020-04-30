@@ -2,115 +2,13 @@
 /dts-v1/;
 /* Copyright (c) 2017, 2020, The Linux Foundation. All rights reserved.
  */
-#include "ipq8074.dtsi"
+#include "ipq8074-hk01.dtsi"
 
 / {
-	#address-cells = <0x2>;
-	#size-cells = <0x2>;
 	model = "Qualcomm Technologies, Inc. IPQ8074/AP-HK01-C1";
-	compatible = "qcom,ipq8074-ap-hk01-c1", "qcom,ipq8074";
-	interrupt-parent = <&intc>;
-
-	aliases {
-		serial0 = &blsp1_uart5;
-		serial1 = &blsp1_uart3;
-		/*
-		 * Aliases as required by u-boot
-		 * to patch MAC addresses
-		 */
-		ethernet0 = "/soc/dp1";
-		ethernet1 = "/soc/dp2";
-		ethernet2 = "/soc/dp3";
-		ethernet3 = "/soc/dp4";
-		ethernet4 = "/soc/dp5";
-		ethernet5 = "/soc/dp6";
-	};
-
-	chosen {
-		stdout-path = "serial0";
-	};
+	compatible = "qcom,ipq8074-ap-hk01-c1", "qcom,ipq8074-hk01", "qcom,ipq8074";
 
 	soc {
-		pinctrl@1000000 {
-			sd_pins: sd-pinmux {
-				pins = "gpio63";
-				function = "sd_card";
-				drive-strength = <8>;
-				bias-pull-up;
-			};
-
-			button_pins: button_pins {
-				wps_button {
-					pins = "gpio57";
-					function = "gpio";
-					drive-strength = <8>;
-					bias-pull-up;
-				};
-			};
-
-			ledc_pins: ledc_pinmux {
-				led_clk {
-					pins = "gpio18";
-					function = "led0";
-					drive-strength = <8>;
-					bias-pull-down;
-				};
-
-				led_data {
-					pins = "gpio19";
-					function = "led1";
-					drive-strength = <8>;
-					bias-pull-down;
-				};
-
-				led_clr {
-					pins = "gpio20";
-					function = "led2";
-					drive-strength = <8>;
-					bias-pull-up;
-				};
-			};
-
-			mdio_pins: mdio_pinmux {
-				mux_0 {
-					pins = "gpio68";
-					function = "mdc";
-					drive-strength = <8>;
-					bias-pull-up;
-				};
-				mux_1 {
-					pins = "gpio69";
-					function = "mdio";
-					drive-strength = <8>;
-					bias-pull-up;
-				};
-			};
-
-			uniphy_pins: uniphy_pinmux {
-				mux {
-					pins = "gpio60";
-					function = "rx2";
-					bias-disable;
-				};
-
-				sfp_tx {
-					pins = "gpio59";
-					function = "gpio";
-					drive-strength = <8>;
-					bias-pull-down;
-					output-low;
-				};
-			};
-
-			pwm_pins: pwm_pinmux {
-				mux_1 {
-					pins = "gpio25";
-					function = "pwm02";
-					drive-strength = <8>;
-				};
-			};
-		};
-
 		serial@78b3000 {
 			status = "ok";
 		};
@@ -304,11 +202,6 @@
 		};
 
 		ledc@191E000  {
-			pinctrl-0 = <&ledc_pins>;
-			pinctrl-names = "default";
-
-			status = "ok";
-
 			led0 {
 				label = "ipq::led0";
 				linux,default-trigger = "led_wifi_son_green";
