@@ -994,9 +994,9 @@ static void qcom_pcie_deinit_2_5_0(struct qcom_pcie *pcie)
 {
 	struct qcom_pcie_resources_2_5_0 *res = &pcie->res.v2_5_0;
 
-	clk_disable_unprepare(res->iface);
 	clk_disable_unprepare(res->axi_m_clk);
 	clk_disable_unprepare(res->axi_s_clk);
+	clk_disable_unprepare(res->iface);
 }
 
 static int qcom_pcie_init_2_5_0(struct qcom_pcie *pcie)
@@ -1153,11 +1153,11 @@ static void qcom_pcie_deinit_2_9_0(struct qcom_pcie *pcie)
 {
 	struct qcom_pcie_resources_2_9_0 *res = &pcie->res.v2_9_0;
 
-	clk_disable_unprepare(res->iface);
 	clk_disable_unprepare(res->axi_m_clk);
 	clk_disable_unprepare(res->axi_s_clk);
 	clk_disable_unprepare(res->axi_bridge_clk);
 	clk_disable_unprepare(res->rchng_clk);
+	clk_disable_unprepare(res->iface);
 }
 
 static int qcom_pcie_init_2_9_0(struct qcom_pcie *pcie)
