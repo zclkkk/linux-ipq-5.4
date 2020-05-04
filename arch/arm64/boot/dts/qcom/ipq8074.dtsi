@@ -217,13 +217,6 @@
 			#reset-cells = <0x1>;
 		};
 
-		apss_clk: qcom,apss_clk@b111000 {
-			compatible = "qcom,apss-ipq807x";
-			reg = <0xb111000 0x6000>;
-			#clock-cells = <0x1>;
-			#reset-cells = <1>;
-		};
-
 		blsp1_uart5: serial@78b3000 {
 			compatible = "qcom,msm-uartdm-v1.4", "qcom,msm-uartdm";
 			reg = <0x78b3000 0x200>;
@@ -841,8 +834,8 @@
 
 		apcs_glb: mailbox@b111000 {
 			compatible = "qcom,ipq8074-apcs-apps-global";
-			reg = <0x0b111000 0x1000>;
-
+			reg = <0x0b111000 0x6000>;
+			#clock-cells = <1>;
 			#mbox-cells = <1>;
 		};
 
@@ -1172,7 +1165,7 @@
 			device_type = "cpu";
 			compatible = "arm,cortex-a53";
 			reg = <0x0>;
-			clocks = <&apss_clk APCS_ALIAS0_CORE_CLK>;
+			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
 			clock-names = "cpu";
 			next-level-cache = <&L2_0>;
 			enable-method = "psci";
@@ -1183,7 +1176,7 @@
 			compatible = "arm,cortex-a53";
 			enable-method = "psci";
 			reg = <0x1>;
-			clocks = <&apss_clk APCS_ALIAS0_CORE_CLK>;
+			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
 			clock-names = "cpu";
 			next-level-cache = <&L2_0>;
 		};
@@ -1193,7 +1186,7 @@
 			compatible = "arm,cortex-a53";
 			enable-method = "psci";
 			reg = <0x2>;
-			clocks = <&apss_clk APCS_ALIAS0_CORE_CLK>;
+			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
 			clock-names = "cpu";
 			next-level-cache = <&L2_0>;
 		};
@@ -1203,7 +1196,7 @@
 			compatible = "arm,cortex-a53";
 			enable-method = "psci";
 			reg = <0x3>;
-			clocks = <&apss_clk APCS_ALIAS0_CORE_CLK>;
+			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
 			clock-names = "cpu";
 			next-level-cache = <&L2_0>;
 		};
