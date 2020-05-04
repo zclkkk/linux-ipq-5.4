@@ -72,6 +72,10 @@
 		};
 	};
 
+	ctx_save: ctx-save {
+		compatible = "qti,ctxt-save-ipq8074";
+	};
+
 	soc: soc {
 		#address-cells = <0x1>;
 		#size-cells = <0x1>;
