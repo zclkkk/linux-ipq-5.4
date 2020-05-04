@@ -1,0 +1,112 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/dts-v1/;
+/* Copyright (c) 2020 The Linux Foundation. All rights reserved.
+ */
+#include "ipq8074.dtsi"
+
+/ {
+	#address-cells = <0x2>;
+	#size-cells = <0x2>;
+	model = "Qualcomm Technologies, Inc. IPQ8074/AP-HK07";
+	compatible = "qcom,ipq8074-ap-hk07", "qcom,ipq8074";
+	interrupt-parent = <&intc>;
+
+	aliases {
+		serial0 = &blsp1_uart5;
+	};
+
+	chosen {
+		stdout-path = "serial0";
+	};
+
+	soc {
+		pinctrl@1000000 {
+			button_pins: button_pins {
+				wps_button {
+					pins = "gpio57";
+					function = "gpio";
+					drive-strength = <8>;
+					bias-pull-up;
+				};
+			};
+		};
+
+		serial@78b3000 {
+			status = "ok";
+		};
+
+		spi@78b5000 {
+			status = "ok";
+			pinctrl-0 = <&spi_0_pins>;
+			pinctrl-names = "default";
+			cs-select = <0>;
+
+			m25p80@0 {
+				  #address-cells = <1>;
+				  #size-cells = <1>;
+				  reg = <0>;
+				  spi-max-frequency = <50000000>;
+				  compatible = "n25q128a11";
+				  linux,modalias = "m25p80", "n25q128a11";
+				  use-default-sizes;
+			};
+		};
+
+		dma@7984000 {
+			 status = "ok";
+		};
+
+		nand@79b0000 {
+			status = "ok";
+
+			nand@0 {
+				reg = <0>;
+				#address-cells = <1>;
+				#size-cells = <1>;
+
+				nand-ecc-strength = <4>;
+				nand-ecc-step-size = <512>;
+				nand-bus-width = <8>;
+			};
+		};
+
+		qusb@79000 {
+			status = "ok";
+		};
+
+		ssphy@78000 {
+			status = "ok";
+		};
+
+		usb3@8A00000 {
+			status = "ok";
+		};
+
+		qusb@59000 {
+			status = "ok";
+		};
+
+		ssphy@58000 {
+			status = "ok";
+		};
+
+		usb3@8C00000 {
+			status = "ok";
+		};
+
+		gpio_keys {
+			compatible = "gpio-keys";
+			pinctrl-0 = <&button_pins>;
+			pinctrl-names = "default";
+			status = "ok";
+
+			button@1 {
+				label = "wps";
+				linux,code = <KEY_WPS_BUTTON>;
+				gpios = <&tlmm 57 GPIO_ACTIVE_LOW>;
+				linux,input-type = <1>;
+				debounce-interval = <60>;
+			};
+		};
+	};
+};

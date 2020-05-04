@@ -142,6 +142,8 @@ properties:
       - items:
           - enum:
               - qcom,ipq8074-ap-hk01-c1
+              - qcom,ipq8074-ap-hk07
+              - qcom,ipq8074-ap-hk09
           - const: qcom,ipq8074
 
 ...
