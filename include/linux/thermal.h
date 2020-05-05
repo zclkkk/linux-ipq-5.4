@@ -63,11 +63,19 @@ enum thermal_device_mode {
 	THERMAL_DEVICE_ENABLED,
 };
 
+enum thermal_trip_activation_mode {
+	THERMAL_TRIP_ACTIVATION_DISABLED = 0,
+	THERMAL_TRIP_ACTIVATION_ENABLED,
+};
+
 enum thermal_trip_type {
 	THERMAL_TRIP_ACTIVE = 0,
 	THERMAL_TRIP_PASSIVE,
 	THERMAL_TRIP_HOT,
 	THERMAL_TRIP_CRITICAL,
+	THERMAL_TRIP_CONFIGURABLE_HI,
+	THERMAL_TRIP_CONFIGURABLE_LOW,
+	THERMAL_TRIP_CRITICAL_LOW,
 };
 
 enum thermal_trend {
@@ -105,6 +113,8 @@ struct thermal_zone_device_ops {
 		enum thermal_trip_type *);
 	int (*get_trip_temp) (struct thermal_zone_device *, int, int *);
 	int (*set_trip_temp) (struct thermal_zone_device *, int, int);
+	int (*set_trip_activate) (struct thermal_zone_device *, int,
+					enum thermal_trip_activation_mode);
 	int (*get_trip_hyst) (struct thermal_zone_device *, int, int *);
 	int (*set_trip_hyst) (struct thermal_zone_device *, int, int);
 	int (*get_crit_temp) (struct thermal_zone_device *, int *);
@@ -349,6 +359,8 @@ struct thermal_genl_event {
  *		   temperature.
  * @set_trip_temp: a pointer to a function that sets the trip temperature on
  *		   hardware.
+ * @activate_trip_type: a pointer to a function to enable/disable trip
+ *		temperature interrupts
  */
 struct thermal_zone_of_device_ops {
 	int (*get_temp)(void *, int *);
@@ -356,6 +368,8 @@ struct thermal_zone_of_device_ops {
 	int (*set_trips)(void *, int, int);
 	int (*set_emul_temp)(void *, int);
 	int (*set_trip_temp)(void *, int, int);
+	int (*set_trip_activate)(void *, int,
+				enum thermal_trip_activation_mode);
 };
 
 /**
