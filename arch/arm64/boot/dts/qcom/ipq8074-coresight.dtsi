@@ -476,7 +476,7 @@
 		reg = <0x6010000 0x1000>;
 		reg-names = "cti-base";
 
-		coresight-name = "coresight-cti0";
+		coresight-name = "cti0";
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
@@ -490,7 +490,7 @@
 		reg = <0x6011000 0x1000>;
 		reg-names = "cti-base";
 
-		coresight-name = "coresight-cti1";
+		coresight-name = "cti1";
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
@@ -504,7 +504,7 @@
 		reg = <0x6012000 0x1000>;
 		reg-names = "cti-base";
 
-		coresight-name = "coresight-cti2";
+		coresight-name = "cti2";
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
@@ -518,7 +518,7 @@
 		reg = <0x6013000 0x1000>;
 		reg-names = "cti-base";
 
-		coresight-name = "coresight-cti3";
+		coresight-name = "cti3";
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
@@ -532,7 +532,7 @@
 		reg = <0x6014000 0x1000>;
 		reg-names = "cti-base";
 
-		coresight-name = "coresight-cti4";
+		coresight-name = "cti4";
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
@@ -546,7 +546,7 @@
 		reg = <0x6015000 0x1000>;
 		reg-names = "cti-base";
 
-		coresight-name = "coresight-cti5";
+		coresight-name = "cti5";
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
@@ -560,7 +560,7 @@
 		reg = <0x6016000 0x1000>;
 		reg-names = "cti-base";
 
-		coresight-name = "coresight-cti6";
+		coresight-name = "cti6";
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
@@ -574,7 +574,7 @@
 		reg = <0x6017000 0x1000>;
 		reg-names = "cti-base";
 
-		coresight-name = "coresight-cti7";
+		coresight-name = "cti7";
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
@@ -588,7 +588,7 @@
 		reg = <0x6018000 0x1000>;
 		reg-names = "cti-base";
 
-		coresight-name = "coresight-cti8";
+		coresight-name = "cti8";
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
@@ -602,7 +602,7 @@
 		reg = <0x6019000 0x1000>;
 		reg-names = "cti-base";
 
-		coresight-name = "coresight-cti9";
+		coresight-name = "cti9";
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
@@ -616,7 +616,7 @@
 		reg = <0x601a000 0x1000>;
 		reg-names = "cti-base";
 
-		coresight-name = "coresight-cti10";
+		coresight-name = "cti10";
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
@@ -630,7 +630,7 @@
 		reg = <0x601b000 0x1000>;
 		reg-names = "cti-base";
 
-		coresight-name = "coresight-cti11";
+		coresight-name = "cti11";
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
@@ -644,7 +644,7 @@
 		reg = <0x601c000 0x1000>;
 		reg-names = "cti-base";
 
-		coresight-name = "coresight-cti12";
+		coresight-name = "cti12";
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
@@ -658,7 +658,7 @@
 		reg = <0x601d000 0x1000>;
 		reg-names = "cti-base";
 
-		coresight-name = "coresight-cti13";
+		coresight-name = "cti13";
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
@@ -672,7 +672,7 @@
 		reg = <0x601e000 0x1000>;
 		reg-names = "cti-base";
 
-		coresight-name = "coresight-cti14";
+		coresight-name = "cti14";
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
@@ -686,7 +686,7 @@
 		reg = <0x601f000 0x1000>;
 		reg-names = "cti-base";
 
-		coresight-name = "coresight-cti15";
+		coresight-name = "cti15";
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
@@ -700,7 +700,7 @@
 		reg = <0x6198000 0x1000>;
 		reg-names = "cti-base";
 
-		coresight-name = "coresight-cti-cpu0";
+		coresight-name = "cti16";
 		cpu = <&CPU0>;
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
@@ -715,7 +715,7 @@
 		reg = <0x6199000 0x1000>;
 		reg-names = "cti-base";
 
-		coresight-name = "coresight-cti-cpu1";
+		coresight-name = "cti17";
 		cpu = <&CPU1>;
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
@@ -730,7 +730,7 @@
 		reg = <0x619a000 0x1000>;
 		reg-names = "cti-base";
 
-		coresight-name = "coresight-cti-cpu2";
+		coresight-name = "cti18";
 		cpu = <&CPU2>;
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
@@ -745,7 +745,7 @@
 		reg = <0x619b000 0x1000>;
 		reg-names = "cti-base";
 
-		coresight-name = "coresight-cti-cpu3";
+		coresight-name = "cti19";
 		cpu = <&CPU3>;
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
@@ -760,7 +760,7 @@
 		reg = <0x610c000 0x1000>;
 		reg-names = "cti-base";
 
-		coresight-name = "coresight-cti-rpm-cpu0";
+		coresight-name = "cti20";
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
