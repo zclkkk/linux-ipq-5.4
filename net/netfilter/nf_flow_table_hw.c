@@ -25,6 +25,7 @@ struct flow_offload_hw {
 };
 
 static void flow_offload_check_ethernet(struct flow_offload_tuple *tuple,
+                    struct dst_entry *dst,
 					struct flow_offload_hw_path *path)
 {
 	struct net_device *dev = path->dev;
@@ -34,7 +35,7 @@ static void flow_offload_check_ethernet(struct flow_offload_tuple *tuple,
 		return;
 
 	memcpy(path->eth_src, path->dev->dev_addr, ETH_ALEN);
-	n = dst_neigh_lookup(tuple->dst_cache, &tuple->src_v4);
+    n = dst_neigh_lookup(dst, &tuple->src_v4);
 	if (!n)
 		return;
 
@@ -45,6 +46,7 @@ static void flow_offload_check_ethernet(struct flow_offload_tuple *tuple,
 
 static int flow_offload_check_path(struct net *net,
 				   struct flow_offload_tuple *tuple,
+                   struct dst_entry *dst,
 				   struct flow_offload_hw_path *path)
 {
 	struct net_device *dev;
@@ -54,7 +56,7 @@ static int flow_offload_check_path(struct net *net,
 		return -ENOENT;
 
 	path->dev = dev;
-	flow_offload_check_ethernet(tuple, path);
+	flow_offload_check_ethernet(tuple, dst, path);
 
 	if (dev->netdev_ops->ndo_flow_offload_check)
 		return dev->netdev_ops->ndo_flow_offload_check(path);
@@ -133,17 +135,18 @@ flow_offload_hw_prepare(struct net *net, struct flow_offload *flow)
 {
 	struct flow_offload_hw_path src = {};
 	struct flow_offload_hw_path dest = {};
-	struct flow_offload_tuple *tuple;
-	struct flow_offload_hw *offload = NULL;
+	struct flow_offload_tuple *tuple_s, *tuple_d;
+    struct flow_offload_hw *offload = NULL;
 
 	rcu_read_lock_bh();
 
-	tuple = &flow->tuplehash[FLOW_OFFLOAD_DIR_ORIGINAL].tuple;
-	if (flow_offload_check_path(net, tuple, &src))
+    tuple_s = &flow->tuplehash[FLOW_OFFLOAD_DIR_ORIGINAL].tuple;
+    tuple_d = &flow->tuplehash[FLOW_OFFLOAD_DIR_REPLY].tuple;
+
+    if (flow_offload_check_path(net, tuple_s, tuple_d->dst_cache, &src))
 		goto out;
 
-	tuple = &flow->tuplehash[FLOW_OFFLOAD_DIR_REPLY].tuple;
-	if (flow_offload_check_path(net, tuple, &dest))
+    if (flow_offload_check_path(net, tuple_d, tuple_s->dst_cache, &dest))
 		goto out;
 
 	if (!src.dev->netdev_ops->ndo_flow_offload)
