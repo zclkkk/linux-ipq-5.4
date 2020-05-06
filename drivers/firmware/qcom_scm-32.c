@@ -1144,3 +1144,36 @@ int __qti_scm_get_smmustate(struct device *dev, u32 svc_id, u32 cmd_id)
 
 	return ret ? -1 : le32_to_cpu(out);
 }
+
+int __qti_scm_regsave(struct device *dev, u32 svc_id, u32 cmd_id,
+				void *scm_regsave, unsigned int buf_size)
+{
+	long ret;
+	struct {
+		unsigned addr;
+		int len;
+	} cmd_buf;
+
+	if (!scm_regsave)
+		return -EINVAL;
+
+	if (is_scm_armv8()) {
+		__le32 scm_ret;
+		struct scm_desc desc = {0};
+
+		desc.args[0] = (u64)virt_to_phys(scm_regsave);
+		desc.args[1] = buf_size;
+		desc.arginfo = SCM_ARGS(2, QCOM_SCM_RW, QCOM_SCM_VAL);
+		ret = qti_scm_call2(dev, SCM_SIP_FNID(svc_id, cmd_id), &desc);
+		scm_ret = desc.ret[0];
+		if (!ret)
+			return le32_to_cpu(scm_ret);
+	} else {
+		cmd_buf.addr = virt_to_phys(scm_regsave);
+		cmd_buf.len = buf_size;
+		ret = qcom_scm_call(dev, svc_id, cmd_id, &cmd_buf,
+						sizeof(cmd_buf), NULL, 0);
+	}
+
+	return ret;
+}
