@@ -491,6 +491,8 @@ static inline bool uboot_arg_invalid(unsigned long addr)
 /* We always pass 0 as magic from U-boot */
 #define UBOOT_MAGIC_VALUE	0
 
+extern struct boot_param_header __image_dtb;
+
 void __init handle_uboot_args(void)
 {
 	bool use_embedded_dtb = true;
@@ -544,8 +546,6 @@ ignore_uboot_args:
 		strlcat(boot_command_line, uboot_arg, COMMAND_LINE_SIZE);
 	}
 }
-
-extern struct boot_param_header __image_dtb;
 
 void __init setup_arch(char **cmdline_p)
 {

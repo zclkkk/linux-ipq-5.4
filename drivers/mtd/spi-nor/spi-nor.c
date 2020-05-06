@@ -616,6 +616,22 @@ static void spi_nor_set_4byte_opcodes(struct spi_nor *nor)
 	}
 }
 
+static int spi_nor_check_set_addr_width(struct spi_nor *nor, loff_t addr)
+{
+	u8 addr_width;
+
+	if ((nor->flags & (SNOR_F_4B_OPCODES | SNOR_F_BROKEN_RESET)) !=
+	    SNOR_F_BROKEN_RESET)
+		return 0;
+
+	addr_width = addr & 0xff000000 ? 4 : 3;
+	if (nor->addr_width == addr_width)
+		return 0;
+
+	nor->addr_width = addr_width;
+	return nor->params.set_4byte(nor, addr_width == 4);
+}
+
 static int macronix_set_4byte(struct spi_nor *nor, bool enable)
 {
 	if (nor->spimem) {
@@ -1259,6 +1275,10 @@ static int spi_nor_erase(struct mtd_info *mtd, struct erase_info *instr)
 	if (ret)
 		return ret;
 
+	ret = spi_nor_check_set_addr_width(nor, instr->addr + instr->len);
+	if (ret < 0)
+		return ret;
+
 	/* whole-chip erase? */
 	if (len == mtd->size && !(nor->flags & SNOR_F_NO_OP_CHIP_ERASE)) {
 		unsigned long timeout;
@@ -1315,6 +1335,7 @@ static int spi_nor_erase(struct mtd_info *mtd, struct erase_info *instr)
 	write_disable(nor);
 
 erase_err:
+	spi_nor_check_set_addr_width(nor, 0);
 	spi_nor_unlock_and_unprep(nor, SPI_NOR_OPS_ERASE);
 
 	return ret;
@@ -1621,7 +1642,9 @@ static int spi_nor_lock(struct mtd_info *mtd, loff_t ofs, uint64_t len)
 	if (ret)
 		return ret;
 
+	spi_nor_check_set_addr_width(nor, ofs + len);
 	ret = nor->params.locking_ops->lock(nor, ofs, len);
+	spi_nor_check_set_addr_width(nor, 0);
 
 	spi_nor_unlock_and_unprep(nor, SPI_NOR_OPS_UNLOCK);
 	return ret;
@@ -1636,7 +1659,9 @@ static int spi_nor_unlock(struct mtd_info *mtd, loff_t ofs, uint64_t len)
 	if (ret)
 		return ret;
 
+	spi_nor_check_set_addr_width(nor, ofs + len);
 	ret = nor->params.locking_ops->unlock(nor, ofs, len);
+	spi_nor_check_set_addr_width(nor, 0);
 
 	spi_nor_unlock_and_unprep(nor, SPI_NOR_OPS_LOCK);
 	return ret;
@@ -1651,7 +1676,9 @@ static int spi_nor_is_locked(struct mtd_info *mtd, loff_t ofs, uint64_t len)
 	if (ret)
 		return ret;
 
+	spi_nor_check_set_addr_width(nor, ofs + len);
 	ret = nor->params.locking_ops->is_locked(nor, ofs, len);
+	spi_nor_check_set_addr_width(nor, 0);
 
 	spi_nor_unlock_and_unprep(nor, SPI_NOR_OPS_LOCK);
 	return ret;
@@ -2203,6 +2230,11 @@ static const struct flash_info spi_nor_ids[] = {
 
 	/* GigaDevice */
 	{
+		"gd25d05", INFO(0xc84010, 0, 64 * 1024,  1,
+			SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ |
+			SPI_NOR_HAS_LOCK | SPI_NOR_HAS_TB)
+	},
+	{
 		"gd25q16", INFO(0xc84015, 0, 64 * 1024,  32,
 			SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ |
 			SPI_NOR_HAS_LOCK | SPI_NOR_HAS_TB)
@@ -2562,6 +2594,10 @@ static int spi_nor_read(struct mtd_info *mtd, loff_t from, size_t len,
 	if (ret)
 		return ret;
 
+	ret = spi_nor_check_set_addr_width(nor, from + len);
+	if (ret < 0)
+		return ret;
+
 	while (len) {
 		loff_t addr = from;
 
@@ -2585,6 +2621,7 @@ static int spi_nor_read(struct mtd_info *mtd, loff_t from, size_t len,
 	ret = 0;
 
 read_err:
+	spi_nor_check_set_addr_width(nor, 0);
 	spi_nor_unlock_and_unprep(nor, SPI_NOR_OPS_READ);
 	return ret;
 }
@@ -2600,6 +2637,10 @@ static int sst_write(struct mtd_info *mtd, loff_t to, size_t len,
 
 	ret = spi_nor_lock_and_prep(nor, SPI_NOR_OPS_WRITE);
 	if (ret)
+		return ret;
+
+	ret = spi_nor_check_set_addr_width(nor, to + len);
+	if (ret < 0)
 		return ret;
 
 	write_enable(nor);
@@ -2664,6 +2705,7 @@ static int sst_write(struct mtd_info *mtd, loff_t to, size_t len,
 	}
 sst_write_err:
 	*retlen += actual;
+	spi_nor_check_set_addr_width(nor, 0);
 	spi_nor_unlock_and_unprep(nor, SPI_NOR_OPS_WRITE);
 	return ret;
 }
@@ -2684,6 +2726,10 @@ static int spi_nor_write(struct mtd_info *mtd, loff_t to, size_t len,
 
 	ret = spi_nor_lock_and_prep(nor, SPI_NOR_OPS_WRITE);
 	if (ret)
+		return ret;
+
+	ret = spi_nor_check_set_addr_width(nor, to + len);
+	if (ret < 0)
 		return ret;
 
 	for (i = 0; i < len; ) {
@@ -2725,6 +2771,7 @@ static int spi_nor_write(struct mtd_info *mtd, loff_t to, size_t len,
 	}
 
 write_err:
+	spi_nor_check_set_addr_width(nor, 0);
 	spi_nor_unlock_and_unprep(nor, SPI_NOR_OPS_WRITE);
 	return ret;
 }
@@ -4731,9 +4778,13 @@ static int spi_nor_init(struct spi_nor *nor)
 		 * reboots (e.g., crashes). Warn the user (or hopefully, system
 		 * designer) that this is bad.
 		 */
-		WARN_ONCE(nor->flags & SNOR_F_BROKEN_RESET,
-			  "enabling reset hack; may not recover from unexpected reboots\n");
-		nor->params.set_4byte(nor, true);
+		if (nor->flags & SNOR_F_BROKEN_RESET) {
+			dev_warn(nor->dev,
+				"enabling reset hack; may not recover from unexpected reboots\n");
+			nor->addr_width = 3;
+		} else {
+			nor->params.set_4byte(nor, true);
+		}
 	}
 
 	return 0;
