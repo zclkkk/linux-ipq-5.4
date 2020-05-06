@@ -90,6 +90,8 @@ extern int qti_scm_get_smmustate(void);
 extern int qti_scm_regsave(u32 svc_id, u32 cmd_id,
 				void *scm_regsave, u32 buf_size);
 extern bool is_scm_armv8(void);
+extern int qti_set_qcekey_sec(void *buf, int size);
+extern int qti_qcekey_release_xpu_prot(void);
 #else
 
 #include <linux/errno.h>
@@ -163,5 +165,7 @@ static inline int qti_scm_regsave(u32 svc_id, u32 cmd_id, void *scm_regsave,
 	return -ENODEV;
 }
 static inline bool is_scm_armv8(void) { return false; }
+int qti_set_qcekey_sec(void *buf, int size) { return -ENODEV; }
+int qti_qcekey_release_xpu_prot(void) { return -ENODEV; }
 #endif
 #endif

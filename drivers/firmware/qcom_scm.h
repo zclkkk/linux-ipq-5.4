@@ -213,4 +213,15 @@ extern int  __qti_scm_get_smmustate(struct device *dev, u32 svc_id, u32 cmd_id);
 
 int __qti_scm_regsave(struct device *dev, u32 svc_id, u32 cmd_id,
 				void *scm_regsave, unsigned int buf_size);
+
+/*
+ * QCOM_SCM_QCE_SVC - commands related to secure key for secure nand
+ */
+#define QCOM_SCM_QCE_SVC		0x2
+#define QCOM_SCM_QCE_CMD		0x3
+#define QCOM_SCM_QCE_PARAM		0x2
+#define QCOM_SCM_QCE_CRYPTO_SIP		0xA
+#define QCOM_SCM_QCE_UNLOCK_CMD		0x4
+extern int __qti_set_qcekey_sec(struct device *dev, void *confBuf, int size);
+extern int __qti_qcekey_release_xpu_prot(struct device *dev);
 #endif
