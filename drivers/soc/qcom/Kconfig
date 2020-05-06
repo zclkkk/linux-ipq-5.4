@@ -224,4 +224,11 @@ config QTI_TZ_LOG
 	  produced by the Secure code (Trust zone). These messages provide
 	  diagnostic information about TZ operation.
 
+config QTI_CTXT_SAVE
+	tristate "QTI context save log"
+	depends on QCOM_SCM
+	help
+	  Enable the context save driver, this driver provides a memory to
+	  TZ for crashdump collection, also it provides a TLV buffer for
+	  storing user specific buffer info into crashdump.
 endmenu
