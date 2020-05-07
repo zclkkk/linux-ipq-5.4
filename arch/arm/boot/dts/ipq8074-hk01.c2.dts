@@ -13,5 +13,5 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#include "../../../arm64/boot/dts/qcom/ipq8074-hk01-c2.dts"
+#include "../../../arm64/boot/dts/qcom/ipq8074-hk01.c2.dts"
 #include "ipq8074.dtsi"
