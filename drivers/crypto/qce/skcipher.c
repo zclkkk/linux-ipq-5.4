@@ -10,6 +10,7 @@
 #include <crypto/aes.h>
 #include <crypto/internal/des.h>
 #include <crypto/internal/skcipher.h>
+#include <linux/qcom_scm.h>
 
 #include "cipher.h"
 
@@ -21,6 +22,14 @@ MODULE_PARM_DESC(aes_sw_max_len,
 		 __stringify(CONFIG_CRYPTO_DEV_QCE_SW_MAX_LEN)"]");
 
 static LIST_HEAD(skcipher_algs);
+
+static int qce_setkey_sec(struct qce_device *qce, unsigned int keylen)
+{
+	struct qce_config_key_sec key;
+
+	key.keylen = keylen;
+	return qti_set_qcekey_sec(&key, sizeof(struct qce_config_key_sec));
+}
 
 static void qce_skcipher_done(void *data)
 {
@@ -165,11 +174,19 @@ static int qce_skcipher_setkey(struct crypto_skcipher *ablk, const u8 *key,
 {
 	struct crypto_tfm *tfm = crypto_skcipher_tfm(ablk);
 	struct qce_cipher_ctx *ctx = crypto_tfm_ctx(tfm);
-	unsigned long flags = to_cipher_tmpl(ablk)->alg_flags;
+	struct qce_alg_template *tmpl = to_cipher_tmpl(ablk);
+	struct qce_device *qce = tmpl->qce;
+	unsigned long flags = tmpl->alg_flags;
 	int ret;
 
 	if (!key || !keylen)
 		return -EINVAL;
+
+	if (qce->use_fixed_key) {
+		ret = qce_setkey_sec(qce, keylen);
+		if (ret)
+			return ret;
+	}
 
 	switch (IS_XTS(flags) ? keylen >> 1 : keylen) {
 	case AES_KEYSIZE_128:
