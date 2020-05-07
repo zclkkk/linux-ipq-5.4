@@ -1200,6 +1200,8 @@
 			qcom,ipv6-enabled;
 			qcom,vlan-enabled;
 			qcom,tunipip6-enabled;
+			qcom,wlanredirect-enabled;
+			qcom,wlan-dataplane-offload-enabled;
 		};
 
 		nss1: nss@40800000 {
