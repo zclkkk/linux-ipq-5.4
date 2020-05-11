@@ -845,6 +845,9 @@ dtb-$(CONFIG_ARCH_QCOM) += \
 	qcom-ipq8064-ap148.dtb \
 	ipq8074-hk01.dtb \
 	ipq8074-hk01.c2.dtb \
+	ipq8074-hk01.c3.dtb \
+	ipq8074-hk01.c4.dtb \
+	ipq8074-hk01.c5.dtb \
 	ipq8074-hk02.dtb \
 	ipq8074-hk07.dtb \
 	ipq8074-hk09.dtb \
