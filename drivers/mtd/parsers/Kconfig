@@ -176,3 +176,12 @@ config MTD_MYLOADER_PARTS
 
      You will still need the parsing functions to be called by the driver
      for your particular device. It won't happen automatically.
+
+config MTD_ROUTERBOOT_PARTS
+   tristate "RouterBoot flash partition parser"
+   depends on MTD && OF
+   help
+    MikroTik RouterBoot is implemented as a multi segment system on the
+    flash, some of which are fixed and some of which are located at
+    variable offsets. This parser handles both cases via properly
+    formatted DTS.
