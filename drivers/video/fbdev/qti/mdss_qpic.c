@@ -605,6 +605,7 @@ EXPORT_SYMBOL(qpic_read_data);
 
 static int mdss_qpic_probe(struct platform_device *pdev)
 {
+	struct device *dev = &pdev->dev;
 	struct resource *res;
 	int rc = 0;
 	u32 bam_timeout;
@@ -632,6 +633,22 @@ static int mdss_qpic_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
+	qpic_res->core_clk = devm_clk_get(dev, "core");
+	if (IS_ERR(qpic_res->core_clk))
+		return PTR_ERR(qpic_res->core_clk);
+
+	qpic_res->aon_clk = devm_clk_get(dev, "aon");
+	if (IS_ERR(qpic_res->aon_clk))
+		return PTR_ERR(qpic_res->aon_clk);
+
+	rc = clk_prepare_enable(qpic_res->core_clk);
+	if (rc)
+		return rc;
+
+	rc = clk_prepare_enable(qpic_res->aon_clk);
+	if (rc)
+		goto err_aon_clk;
+
 	pdev->id = 0;
 
 	qpic_res->pdev = pdev;
@@ -641,7 +658,7 @@ static int mdss_qpic_probe(struct platform_device *pdev)
 	if (!res) {
 		pr_err("unable to get QPIC reg base address\n");
 		rc = -ENOMEM;
-		goto probe_done;
+		goto clk_disable;
 	}
 
 	qpic_res->qpic_reg_size = resource_size(res);
@@ -650,7 +667,7 @@ static int mdss_qpic_probe(struct platform_device *pdev)
 	if (unlikely(!qpic_res->qpic_base)) {
 		pr_err("unable to map MDSS QPIC base\n");
 		rc = -ENOMEM;
-		goto probe_done;
+		goto clk_disable;
 	}
 	qpic_res->qpic_phys = res->start;
 	pr_info("MDSS QPIC HW Base phy_Address=0x%x virt=%p\n",
@@ -660,7 +677,8 @@ static int mdss_qpic_probe(struct platform_device *pdev)
 	qpic_res->irq = platform_get_irq(pdev, 0);
 	if (qpic_res->irq < 0) {
 		dev_warn(&pdev->dev, "missing 'lcdc_irq' resource entry");
-		return -EINVAL;
+		rc = -EINVAL;
+		goto clk_disable;
 	}
 
 	if (of_property_read_u32(pdev->dev.of_node,
@@ -673,10 +691,18 @@ static int mdss_qpic_probe(struct platform_device *pdev)
 	init_completion(&qpic_res->completion);
 
 	rc = mdss_fb_register_mdp_instance(&qpic_interface);
-	if (rc)
+	if (rc) {
 		pr_err("unable to register QPIC instance\n");
+		goto clk_disable;
+	}
 
-probe_done:
+	return 0;
+
+clk_disable:
+	clk_disable_unprepare(qpic_res->aon_clk);
+err_aon_clk:
+	clk_disable_unprepare(qpic_res->core_clk);
+
 	return rc;
 }
 
@@ -694,6 +720,9 @@ static int mdss_qpic_remove(struct platform_device *pdev)
 				      QPIC_MAX_CMD_BUF_SIZE,
 				      qpic_res->cmd_buf_virt,
 				      qpic_res->cmd_buf_phys);
+
+	clk_disable_unprepare(qpic_res->aon_clk);
+	clk_disable_unprepare(qpic_res->core_clk);
 
 	return 0;
 }
