@@ -338,4 +338,7 @@ extern const struct tsens_plat_data data_tsens_v1;
 /* TSENS v2 targets */
 extern const struct tsens_plat_data data_8996, data_tsens_v2;
 
+/* TSENS target */
+extern const struct tsens_ops ops_ipq807x;
+extern const struct tsens_plat_data data_ipq807x;
 #endif /* __QCOM_TSENS_H__ */

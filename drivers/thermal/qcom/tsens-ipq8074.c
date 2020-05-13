@@ -28,30 +28,30 @@
 #define TSENS_THRESHOLD_MIN_CODE	0x0
 #define TSENS_SN_CTRL_EN		BIT(0)
 
-#define TSENS_TM_TRDY			0x10e4
+#define TSENS_TM_TRDY			0x00e4
 #define TSENS_TRDY_MASK			BIT(0)
 #define TSENS_TM_CODE_BIT_MASK		0xfff
 #define TSENS_TM_CODE_SIGN_BIT		0x800
 
-#define TSENS_TM_INT_EN			0x1004
+#define TSENS_TM_INT_EN			0x0004
 #define TSENS_TM_CRITICAL_INT_EN	BIT(2)
 #define TSENS_TM_UPPER_INT_EN		BIT(1)
 #define TSENS_TM_LOWER_INT_EN		BIT(0)
 
 #define TSENS_TM_UPPER_INT_MASK(n)	(((n) & 0xffff0000) >> 16)
 #define TSENS_TM_LOWER_INT_MASK(n)	((n) & 0xffff)
-#define TSENS_TM_UPPER_LOWER_INT_STATUS		0x1008
-#define TSENS_TM_UPPER_LOWER_INT_CLEAR		0x100c
+#define TSENS_TM_UPPER_LOWER_INT_STATUS		0x0008
+#define TSENS_TM_UPPER_LOWER_INT_CLEAR		0x000c
 #define TSENS_TM_UPPER_INT_CLEAR_SET(n)		(1 << (n + 16))
 #define TSENS_TM_LOWER_INT_CLEAR_SET(n)		(1 << n)
-#define TSENS_TM_UPPER_LOWER_INT_MASK		0x1010
+#define TSENS_TM_UPPER_LOWER_INT_MASK		0x0010
 #define TSENS_TM_UPPER_INT_SET(n)		(1 << (n + 16))
 #define TSENS_TM_LOWER_INT_SET(n)               (1 << n)
 
-#define TSENS_TM_CRITICAL_INT_STATUS		0x1014
-#define TSENS_TM_CRITICAL_INT_CLEAR		0x1018
+#define TSENS_TM_CRITICAL_INT_STATUS		0x0014
+#define TSENS_TM_CRITICAL_INT_CLEAR		0x0018
 #define TSENS_TM_CRITICAL_INT_CLEAR_SET(n)	(1 << n)
-#define TSENS_TM_CRITICAL_INT_MASK		0x101c
+#define TSENS_TM_CRITICAL_INT_MASK		0x001c
 
 #define TSENS_TM_UPPER_LOWER_THRESHOLD(n)	((n * 4) + 0x1020)
 #define TSENS_TM_UPPER_THRESHOLD_SET(n)		((n) << 12)
@@ -67,7 +67,7 @@
 #define TSENS_TM_SN_CRITICAL_THRESHOLD_MASK	0xfff
 #define TSENS_TM_SN_CRITICAL_THRESHOLD(n)	((n * 4) + 0x1060)
 #define TSENS_TM_SN_CRITICAL_THRESHOLD_VALUE(n)	((n) & 0xfff)
-#define TSENS_TM_SN_STATUS			0x10a0
+#define TSENS_TM_SN_STATUS			0x00a0
 #define TSENS_TM_SN_STATUS_VALID_BIT		BIT(21)
 #define TSENS_TM_SN_STATUS_CRITICAL_STATUS	BIT(19)
 #define TSENS_TM_SN_STATUS_UPPER_STATUS		BIT(18)
@@ -97,12 +97,12 @@ enum tsens_trip_type {
 	TSENS_TRIP_NUM,
 };
 
-static int get_temp_ipq807x(struct tsens_device *tmdev, int id, int *temp);
-static int set_trip_temp(struct tsens_device *tmdev, int sensor,
+static int get_temp_ipq807x(struct tsens_priv *tmdev, int id, int *temp);
+static int set_trip_temp(struct tsens_priv *tmdev, int sensor,
 					enum tsens_trip_type trip, int temp);
-static int set_trip_mode(struct tsens_device *tmdev, int sensor, int trip,
+static int set_trip_mode(struct tsens_priv *tmdev, int sensor, int trip,
 					enum thermal_trip_activation_mode mode);
-static struct tsens_device *g_tmdev;
+static struct tsens_priv *g_tmdev;
 
 int register_low_temp_notif(int sensor, int cold_temp, low_temp_notif_fn fn)
 {
@@ -154,7 +154,7 @@ bool is_sensor_used_internally(int sensor)
  * Returns Trip temp in degree Celcius
  * Note: IPQ807x does not support -ve trip temperatures
  */
-static int get_trip_temp(struct tsens_device *tmdev, int sensor,
+static int get_trip_temp(struct tsens_priv *tmdev, int sensor,
 						enum tsens_trip_type trip)
 {
 	unsigned int reg_th;
@@ -167,15 +167,15 @@ static int get_trip_temp(struct tsens_device *tmdev, int sensor,
 
 	switch (trip) {
 	case TSENS_TRIP_STAGE3:
-		regmap_read(tmdev->map,
+		regmap_read(tmdev->tm_map,
 			TSENS_TM_SN_CRITICAL_THRESHOLD(sensor), &reg_th);
 		return (TSENS_TM_SN_CRITICAL_THRESHOLD_VALUE(reg_th))/10;
 	case TSENS_TRIP_STAGE2:
-		regmap_read(tmdev->map,
+		regmap_read(tmdev->tm_map,
 			TSENS_TM_UPPER_LOWER_THRESHOLD(sensor), &reg_th);
 		return (TSENS_TM_UPPER_THRESHOLD_VALUE(reg_th))/10;
 	case TSENS_TRIP_STAGE1:
-		regmap_read(tmdev->map,
+		regmap_read(tmdev->tm_map,
 			TSENS_TM_UPPER_LOWER_THRESHOLD(sensor), &reg_th);
 		return (TSENS_TM_LOWER_THRESHOLD_VALUE(reg_th))/10;
 	default:
@@ -189,7 +189,7 @@ static int get_trip_temp(struct tsens_device *tmdev, int sensor,
  * Set Trip temp in degree Celcius
  * Note: IPQ807x does not support -ve trip temperatures
  */
-static int set_trip_temp(struct tsens_device *tmdev, int sensor,
+static int set_trip_temp(struct tsens_priv *tmdev, int sensor,
 					enum tsens_trip_type trip, int temp)
 {
 	u32 reg_th, th_cri, th_hi, th_lo, reg_th_offset, reg_cri_th_offset;
@@ -209,9 +209,9 @@ static int set_trip_temp(struct tsens_device *tmdev, int sensor,
 	reg_th_offset = TSENS_TM_UPPER_LOWER_THRESHOLD(sensor);
 	reg_cri_th_offset = TSENS_TM_SN_CRITICAL_THRESHOLD(sensor);
 
-	regmap_read(tmdev->map,
+	regmap_read(tmdev->tm_map,
 		TSENS_TM_SN_CRITICAL_THRESHOLD(sensor), &th_cri);
-	regmap_read(tmdev->map,
+	regmap_read(tmdev->tm_map,
 		TSENS_TM_UPPER_LOWER_THRESHOLD(sensor), &reg_th);
 
 	th_hi = TSENS_TM_UPPER_THRESHOLD_VALUE(reg_th);
@@ -244,7 +244,7 @@ static int set_trip_temp(struct tsens_device *tmdev, int sensor,
 		return -EINVAL;
 	}
 
-	regmap_write(tmdev->map, reg_th_offset, reg_th);
+	regmap_write(tmdev->tm_map, reg_th_offset, reg_th);
 
 	/* Sync registers */
 	mb();
@@ -252,7 +252,7 @@ static int set_trip_temp(struct tsens_device *tmdev, int sensor,
 	return 0;
 }
 
-static int set_trip_mode(struct tsens_device *tmdev, int sensor, int trip,
+static int set_trip_mode(struct tsens_priv *tmdev, int sensor, int trip,
 					enum thermal_trip_activation_mode mode)
 {
 	unsigned int reg_val, reg_offset;
@@ -266,7 +266,7 @@ static int set_trip_mode(struct tsens_device *tmdev, int sensor, int trip,
 	switch (trip) {
 	case TSENS_TRIP_STAGE3:
 		reg_offset = TSENS_TM_CRITICAL_INT_MASK;
-		regmap_read(tmdev->map, reg_offset, &reg_val);
+		regmap_read(tmdev->tm_map, reg_offset, &reg_val);
 		if (mode == THERMAL_TRIP_ACTIVATION_DISABLED)
 			reg_val = reg_val | (1 << sensor);
 		else
@@ -274,7 +274,7 @@ static int set_trip_mode(struct tsens_device *tmdev, int sensor, int trip,
 		break;
 	case TSENS_TRIP_STAGE2:
 		reg_offset = TSENS_TM_UPPER_LOWER_INT_MASK;
-		regmap_read(tmdev->map, reg_offset, &reg_val);
+		regmap_read(tmdev->tm_map, reg_offset, &reg_val);
 		if (mode == THERMAL_TRIP_ACTIVATION_DISABLED)
 			reg_val = reg_val | (TSENS_TM_UPPER_INT_SET(sensor));
 		else
@@ -282,7 +282,7 @@ static int set_trip_mode(struct tsens_device *tmdev, int sensor, int trip,
 		break;
 	case TSENS_TRIP_STAGE1:
 		reg_offset = TSENS_TM_UPPER_LOWER_INT_MASK;
-		regmap_read(tmdev->map, reg_offset, &reg_val);
+		regmap_read(tmdev->tm_map, reg_offset, &reg_val);
 		if (mode == THERMAL_TRIP_ACTIVATION_DISABLED)
 			reg_val = reg_val | (1 << sensor);
 		else
@@ -292,7 +292,7 @@ static int set_trip_mode(struct tsens_device *tmdev, int sensor, int trip,
 		return -EINVAL;
 	}
 
-	regmap_write(tmdev->map, reg_offset, reg_val);
+	regmap_write(tmdev->tm_map, reg_offset, reg_val);
 
 	/* Sync registers */
 	mb();
@@ -316,7 +316,7 @@ static void notify_uspace_tsens_fn(struct work_struct *work)
  * More specifically when the temperature drops below 0c and
  * when the temperature is raising from 0c to +ve temperature.
  */
-static void handle_cold_condition(struct tsens_device *tmdev,
+static void handle_cold_condition(struct tsens_priv *tmdev,
 						int sensor, int dropping)
 {
 	int temp, i;
@@ -366,13 +366,13 @@ static void handle_cold_condition(struct tsens_device *tmdev,
 
 static void tsens_scheduler_fn(struct work_struct *work)
 {
-	struct tsens_device *tmdev = container_of(work, struct tsens_device,
+	struct tsens_priv *tmdev = container_of(work, struct tsens_priv,
 					tsens_work);
 	int i, reg_thr, temp, th_upper = 0, th_lower = 0;
 	u32 reg_val, reg_addr;
 
 	/*Check whether TSENS is enabled */
-	regmap_read(tmdev->map, TSENS_CNTL_ADDR, &reg_val);
+	regmap_read(tmdev->tm_map, TSENS_CNTL_ADDR, &reg_val);
 	if (!(reg_val & TSENS_SN_CTRL_EN))
 		return;
 
@@ -382,7 +382,7 @@ static void tsens_scheduler_fn(struct work_struct *work)
 		/* Reset for each iteration */
 		reg_thr = th_upper = th_lower = 0;
 
-		regmap_read(tmdev->map, tmdev->sensor[i].status, &reg_val);
+		regmap_read(tmdev->tm_map, tmdev->sensor[i].status, &reg_val);
 
 		/* Check whether the temp is valid */
 		if (!(reg_val & TSENS_TM_SN_STATUS_VALID_BIT))
@@ -403,12 +403,12 @@ static void tsens_scheduler_fn(struct work_struct *work)
 
 		if (th_upper || th_lower) {
 			handle_cold_condition( tmdev, i, th_lower);
-			regmap_write(tmdev->map, reg_addr, reg_thr);
+			regmap_write(tmdev->tm_map, reg_addr, reg_thr);
 			/* Notify user space */
 			schedule_work(&tmdev->sensor[i].notify_work);
 
 			if (int_clr_deassert_quirk)
-				regmap_write(tmdev->map, reg_addr, 0);
+				regmap_write(tmdev->tm_map, reg_addr, 0);
 
 			if (!get_temp_ipq807x(tmdev, i, &temp))
 				pr_debug("Trigger (%d degrees) for sensor %d\n",
@@ -422,19 +422,19 @@ static void tsens_scheduler_fn(struct work_struct *work)
 
 static irqreturn_t tsens_isr(int irq, void *data)
 {
-	struct tsens_device *tmdev = data;
+	struct tsens_priv *tmdev = data;
 
 
 	schedule_work(&tmdev->tsens_work);
 	return IRQ_HANDLED;
 }
 
-static int init_ipq807x(struct tsens_device *tmdev)
+static int init_ipq807x(struct tsens_priv *tmdev)
 {
 	int ret, i;
 
-	tmdev->iomem_base = init_common(tmdev);
-	if (!tmdev->iomem_base || !tmdev->map)
+	init_common(tmdev);
+	if (!tmdev->tm_map)
 		return -ENODEV;
 
 	/* Store all sensor address for future use */
@@ -445,7 +445,7 @@ static int init_ipq807x(struct tsens_device *tmdev)
 	}
 
 	/* Enable interrupt registers */
-	regmap_write(tmdev->map, TSENS_TM_INT_EN, TSENS_TM_CRITICAL_INT_EN
+	regmap_write(tmdev->tm_map, TSENS_TM_INT_EN, TSENS_TM_CRITICAL_INT_EN
 			| TSENS_TM_UPPER_INT_EN	| TSENS_TM_LOWER_INT_EN);
 
 	/* Init tsens worker thread */
@@ -468,41 +468,7 @@ static int init_ipq807x(struct tsens_device *tmdev)
 	return 0;
 }
 
-static void panic_notify_ipq807x(struct tsens_device *tmdev, int id)
-{
-	u32 code, trdy;
-	const struct tsens_sensor *s = &tmdev->sensor[id];
-	unsigned int try = 0;
-
-	if (!s)
-		return;
-
-	if ((s->id < 0) || (s->id > (MAX_SENSOR - 1)))
-		return;
-
-	for(try = 0; try < 100; try++)
-	{
-		try++;
-		trdy = readl(tmdev->iomem_base + TSENS_TM_TRDY);
-
-		if (!(trdy & TSENS_TRDY_MASK))
-			continue;
-
-		code = readl(tmdev->iomem_base + s->status);
-
-		/* Check whether the temp is valid */
-		if (!(code & TSENS_TM_SN_STATUS_VALID_BIT))
-			continue;
-
-		pr_emerg("The reading for sensor %d is 0x%08x\n", s->id, code);
-		return;
-	}
-
-	pr_emerg("Couldn't get reading for sensor %d\n", s->id);
-	return;
-}
-
-static int get_temp_ipq807x(struct tsens_device *tmdev, int id, int *temp)
+static int get_temp_ipq807x(struct tsens_priv *tmdev, int id, int *temp)
 {
 	int ret, last_temp;
 	u32 code, trdy;
@@ -517,14 +483,14 @@ static int get_temp_ipq807x(struct tsens_device *tmdev, int id, int *temp)
 
 	timeout = jiffies + usecs_to_jiffies(TSENS_TRDY_TIMEOUT_US);
 	do {
-		ret = regmap_read(tmdev->map, TSENS_TM_TRDY, &trdy);
+		ret = regmap_read(tmdev->tm_map, TSENS_TM_TRDY, &trdy);
 		if (ret)
 			return ret;
 
 		if (!(trdy & TSENS_TRDY_MASK))
 			continue;
 
-		ret = regmap_read(tmdev->map, s->status, &code);
+		ret = regmap_read(tmdev->tm_map, s->status, &code);
 		if (ret)
 			return ret;
 
@@ -556,7 +522,7 @@ static int set_trip_temp_ipq807x(void *data, int trip, int temp)
 	if (is_sensor_used_internally(s->id))
 		return -EINVAL;
 
-	return set_trip_temp(s->tmdev, s->id, trip, temp);
+	return set_trip_temp(s->priv, s->id, trip, temp);
 }
 
 static int set_trip_activate_ipq807x(void *data, int trip,
@@ -570,7 +536,7 @@ static int set_trip_activate_ipq807x(void *data, int trip,
 	if (is_sensor_used_internally(s->id))
 		return -EINVAL;
 
-	return set_trip_mode(s->tmdev, s->id, trip, mode);
+	return set_trip_mode(s->priv, s->id, trip, mode);
 }
 
 const struct tsens_ops ops_ipq807x = {
@@ -578,10 +544,4 @@ const struct tsens_ops ops_ipq807x = {
 	.get_temp	= get_temp_ipq807x,
 	.set_trip_temp	= set_trip_temp_ipq807x,
 	.set_trip_activate = set_trip_activate_ipq807x,
-	.panic_notify = panic_notify_ipq807x,
-};
-
-const struct tsens_data data_ipq807x = {
-	.num_sensors	= MAX_SENSOR,
-	.ops		= &ops_ipq807x,
 };
