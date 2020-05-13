@@ -22,8 +22,6 @@
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 #include <soc/qcom/memory_dump.h>
-#include <soc/qcom/rpm-smd.h>
-#include <soc/qcom/scm.h>
 #include <linux/dma-mapping.h>
 #include <asm/arch_timer.h>
 
@@ -128,7 +126,6 @@ struct dcc_drvdata {
 	void			*sram_buf;
 	struct msm_dump_data	sram_data;
 	struct rpm_trig_req	rpm_trig_req;
-	struct msm_rpm_kvp	rpm_kvp;
 	bool			xpu_support;
 	bool			xpu_scm_avail;
 	uint64_t		xpu_addr;
@@ -141,15 +138,8 @@ struct dcc_drvdata {
 	uint64_t		dcc_jiffies_64;
 };
 
-
-static int dcc_cfg_xpu(struct dcc_drvdata *drvdata, bool enable)
+static inline int dcc_cfg_xpu(uint64_t addr, bool enable)
 {
-	struct scm_desc desc = {0};
-
-	desc.args[0] = drvdata->xpu_addr;
-	desc.args[1] = enable;
-	desc.arginfo = SCM_ARGS(2, SCM_VAL, SCM_VAL);
-
 	return 0;
 }
 
@@ -175,7 +165,7 @@ static int dcc_xpu_lock(struct dcc_drvdata *drvdata)
 		/* make sure all access to DCC are completed */
 		mb();
 
-		ret = dcc_cfg_xpu(drvdata, 1);
+		ret = dcc_cfg_xpu(drvdata->xpu_addr, 1);
 		if (ret)
 			dev_err(drvdata->dev, "Falied to lock DCC XPU.\n");
 
@@ -205,7 +195,7 @@ static int dcc_xpu_unlock(struct dcc_drvdata *drvdata)
 		if (ret)
 			goto err;
 
-		ret = dcc_cfg_xpu(drvdata, 0);
+		ret = dcc_cfg_xpu(drvdata->xpu_addr, 0);
 		if (ret)
 			dev_err(drvdata->dev, "Falied to unlock DCC XPU.\n");
 
@@ -498,7 +488,6 @@ err:
 static int __dcc_rpm_sw_trigger(struct dcc_drvdata *drvdata, bool enable)
 {
 	int ret = 0;
-	struct msm_rpm_kvp *rpm_kvp = &drvdata->rpm_kvp;
 
 	if (enable == drvdata->rpm_trig_req.enable)
 		return 0;
@@ -511,18 +500,7 @@ static int __dcc_rpm_sw_trigger(struct dcc_drvdata *drvdata, bool enable)
 	}
 
 	drvdata->rpm_trig_req.enable = enable;
-	rpm_kvp->key = RPM_MISC_DDR_DCC_ENABLE;
-	rpm_kvp->length = sizeof(struct rpm_trig_req);
-	rpm_kvp->data = (void *)(&drvdata->rpm_trig_req);
 
-	ret = msm_rpm_send_message(MSM_RPM_CTX_ACTIVE_SET,
-				   RPM_MISC_REQ_TYPE, 0, rpm_kvp, 1);
-	if (ret) {
-		dev_err(drvdata->dev,
-			"DCC: SW trigger %s req to rpm failed %d\n",
-			(enable ? "enable" : "disable"), ret);
-		drvdata->rpm_trig_req.enable = !enable;
-	}
 
 	return ret;
 }
@@ -1361,7 +1339,7 @@ static int dcc_probe(struct platform_device *pdev)
 
 	*drvdata->dcc_magic = DCC_MAGIC;
 
-	drvdata->dcc_cntvct_64 = arch_counter_get_cntvct();
+	drvdata->dcc_cntvct_64 = arch_timer_read_counter();
 	drvdata->dcc_jiffies_64 = jiffies_64;
 	dev_info(dev, "jiffies_64: 0x%llx, cntvct_64: 0x%llx\n",
 		 drvdata->dcc_jiffies_64, drvdata->dcc_cntvct_64);
