@@ -59,8 +59,11 @@ static void qce_ahash_done(void *data)
 
 	req->src = rctx->src_orig;
 	req->nbytes = rctx->nbytes_orig;
+	if (!req->result)
+		req->result = rctx->result_orig;
 	rctx->last_blk = false;
 	rctx->first_blk = false;
+	rctx->result_orig = NULL;
 
 	qce->async_req_done(tmpl->qce, error);
 }
@@ -260,6 +263,12 @@ static int qce_ahash_update(struct ahash_request *req)
 	rctx->src_orig = req->src;
 	rctx->nbytes_orig = req->nbytes;
 
+	/* As per tcrypto we should not touch result buf in update */
+	if (req->result) {
+		rctx->result_orig = req->result;
+		req->result = NULL;
+	}
+
 	/*
 	 * if we have data from previous update copy them on buffer. The old
 	 * data will be combined with current request bytes.
@@ -291,8 +300,6 @@ static int qce_ahash_update(struct ahash_request *req)
 
 	if (!sg_last)
 		return -EINVAL;
-
-	sg_mark_end(sg_last);
 
 	if (rctx->buflen) {
 		sg_init_table(rctx->sg, 2);
