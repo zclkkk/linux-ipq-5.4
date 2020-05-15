@@ -86,6 +86,8 @@
 #define bond_for_each_slave_rcu(bond, pos, iter) \
 	netdev_for_each_lower_private_rcu((bond)->dev, pos, iter)
 
+extern struct bond_cb __rcu *bond_cb;
+
 #ifdef CONFIG_NET_POLL_CONTROLLER
 extern atomic_t netpoll_block_tx;
 
@@ -238,6 +240,7 @@ struct bonding {
 #endif /* CONFIG_DEBUG_FS */
 	struct rtnl_link_stats64 bond_stats;
 	struct lock_class_key stats_lock_key;
+	u32 id;
 };
 
 #define bond_slave_get_rcu(dev) \
@@ -641,6 +644,11 @@ struct bond_vlan_tag *bond_verify_device_path(struct net_device *start_dev,
 					      int level);
 int bond_update_slave_arr(struct bonding *bond, struct slave *skipslave);
 void bond_slave_arr_work_rearm(struct bonding *bond, unsigned long delay);
+uint32_t bond_xmit_hash_without_skb(uint8_t *src_mac, uint8_t *dst_mac,
+				    void *psrc, void *pdst, uint16_t protocol,
+				    struct net_device *bond_dev,
+				    __be16 *layer4hdr);
+
 void bond_work_init_all(struct bonding *bond);
 
 #ifdef CONFIG_PROC_FS
