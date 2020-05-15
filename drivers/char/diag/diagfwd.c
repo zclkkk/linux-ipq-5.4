@@ -37,6 +37,7 @@
 #include "diag_usb.h"
 #include "diag_mux.h"
 #include "diag_ipc_logging.h"
+#include <soc/qcom/socinfo.h>
 
 #define STM_CMD_VERSION_OFFSET	4
 #define STM_CMD_MASK_OFFSET	5
@@ -89,34 +90,7 @@ static int has_device_tree(void)
 
 int chk_config_get_id(void)
 {
-#ifdef CONFIG_QCOM_SOCINFO
-	switch (socinfo_get_msm_cpu()) {
-	case MSM_CPU_8960:
-	case MSM_CPU_8960AB:
-		return AO8960_TOOLS_ID;
-	case MSM_CPU_8064:
-		return APQ8064_TOOLS_ID;
-	case MSM_CPU_8974:
-		return MSM8974_TOOLS_ID;
-	case MSM_CPU_8084:
-		return APQ8084_TOOLS_ID;
-	case MSM_CPU_8916:
-		return MSM8916_TOOLS_ID;
-	case MSM_CPU_8996:
-		return MSM_8996_TOOLS_ID;
-	default:
-		if (driver->use_device_tree) {
-			if (machine_is_msm8974())
-				return MSM8974_TOOLS_ID;
-			else
-				return 0;
-		} else {
-			return 0;
-		}
-	}
-#else
-	return 0;
-#endif
+	return read_ipq_cpu_type();
 }
 
 /*
@@ -127,19 +101,7 @@ int chk_apps_only(void)
 {
 	if (driver->use_device_tree)
 		return 1;
-#ifdef CONFIG_QCOM_SOCINFO
-	switch (socinfo_get_msm_cpu()) {
-	case MSM_CPU_8960:
-	case MSM_CPU_8960AB:
-	case MSM_CPU_8064:
-	case MSM_CPU_8974:
-		return 1;
-	default:
-		return 0;
-	}
-#else
 	return 0;
-#endif
 }
 
 /*
@@ -916,11 +878,7 @@ int diag_cmd_get_mobile_id(unsigned char *src_buf, int src_len,
 	rsp.padding[1] = 0;
 	rsp.padding[2] = 0;
 	rsp.family = 0;
-#ifdef CONFIG_QCOM_SOCINFO
-	rsp.chip_id = (uint32_t)socinfo_get_id();
-#else
-	rsp.chip_id = 0;
-#endif
+	rsp.chip_id = (uint32_t)read_ipq_cpu_type();
 
 	memcpy(dest_buf, &rsp, sizeof(rsp));
 	write_len += sizeof(rsp);
