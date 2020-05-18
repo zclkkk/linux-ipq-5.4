@@ -1209,9 +1209,10 @@ static int q6v5_wcss_probe(struct platform_device *pdev)
 
 	qcom_add_glink_subdev(rproc, &wcss->glink_subdev);
 	qcom_add_ssr_subdev(rproc, &wcss->ssr_subdev, desc->ssr_name);
-	wcss->sysmon = qcom_add_sysmon_subdev(rproc,
-					      desc->sysmon_name,
-					      desc->ssctl_id);
+	if (desc->sysmon_name)
+		wcss->sysmon = qcom_add_sysmon_subdev(rproc,
+						      desc->sysmon_name,
+						      desc->ssctl_id);
 
 	rproc->auto_boot = desc->need_auto_boot;
 	ret = rproc_add(rproc);
