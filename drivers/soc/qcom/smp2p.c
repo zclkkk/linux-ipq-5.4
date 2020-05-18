@@ -123,6 +123,7 @@ struct smp2p_entry {
  * @mbox_chan:	apcs ipc mailbox channel handle
  * @inbound:	list of inbound entries
  * @outbound:	list of outbound entries
+ * @need_ssr_ack fw expects ack for irq
  */
 struct qcom_smp2p {
 	struct device *dev;
@@ -146,6 +147,7 @@ struct qcom_smp2p {
 
 	struct list_head inbound;
 	struct list_head outbound;
+	bool need_ssr_ack;
 };
 
 static void qcom_smp2p_kick(struct qcom_smp2p *smp2p)
@@ -235,6 +237,9 @@ static irqreturn_t qcom_smp2p_intr(int irq, void *data)
 			}
 		}
 	}
+
+	if (smp2p->need_ssr_ack)
+		qcom_smp2p_kick(smp2p);
 
 	return IRQ_HANDLED;
 }
@@ -351,6 +356,8 @@ static int qcom_smp2p_outbound_entry(struct qcom_smp2p *smp2p,
 
 	/* Make the logical entry reference the physical value */
 	entry->value = &out->entries[out->valid_entries].value;
+	smp2p->need_ssr_ack = of_property_read_bool(node,
+						"qcom,smp2p-feature-ssr-ack");
 
 	out->valid_entries++;
 
