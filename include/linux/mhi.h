@@ -716,4 +716,5 @@ int mhi_queue_buf(struct mhi_device *mhi_dev, enum dma_data_direction dir,
 int mhi_queue_skb(struct mhi_device *mhi_dev, enum dma_data_direction dir,
 		  struct sk_buff *skb, size_t len, enum mhi_flags mflags);
 
+enum mhi_ee_type mhi_get_exec_env(struct mhi_controller *mhi_cntrl);
 #endif /* _MHI_H_ */
