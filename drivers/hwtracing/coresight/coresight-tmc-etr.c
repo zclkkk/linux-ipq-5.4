@@ -2104,6 +2104,25 @@ int tmc_etr_switch_mode(struct tmc_drvdata *drvdata, const char *out_mode)
 	return 0;
 }
 
+static void __tmc_etr_disable_q6mem(struct tmc_drvdata *drvdata)
+{
+	uint32_t val[4];
+	uint32_t phy_offset;
+	void __iomem *q6_etr_waddr;
+
+	tmc_etr_disable_hw(drvdata);
+
+	val[0] = 0xdeadbeef;
+	val[1] = readl_relaxed(drvdata->base + TMC_STS);
+	val[2] = readl_relaxed(drvdata->base + TMC_RRP);
+	val[3] = readl_relaxed(drvdata->base + TMC_RWP);
+
+	phy_offset = ((dma_addr_t)val[2] - drvdata->q6_etr_paddr) & 0xffffffff;
+	q6_etr_waddr = drvdata->q6_etr_vaddr + phy_offset;
+
+	memcpy_toio(q6_etr_waddr, &val[0], sizeof(val));
+}
+
 static void tmc_abort_etr_sink(struct coresight_device *csdev)
 {
 	struct tmc_drvdata *drvdata = dev_get_drvdata(csdev->dev.parent);
@@ -2117,6 +2136,8 @@ static void tmc_abort_etr_sink(struct coresight_device *csdev)
 		tmc_etr_disable_hw(drvdata);
 	else if (drvdata->out_mode == TMC_ETR_OUT_MODE_USB)
 		__tmc_etr_disable_to_bam(drvdata);
+	else if (drvdata->out_mode == TMC_ETR_OUT_MODE_Q6MEM)
+		__tmc_etr_disable_q6mem(drvdata);
 out0:
 	drvdata->enable = false;
 	spin_unlock_irqrestore(&drvdata->spinlock, flags);
