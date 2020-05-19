@@ -23,6 +23,7 @@
 #include <linux/of.h>
 #include <linux/coresight.h>
 #include <linux/amba/bus.h>
+#include <linux/of_reserved_mem.h>
 
 #include "coresight-priv.h"
 #include "coresight-tmc.h"
@@ -546,6 +547,33 @@ static u32 tmc_etr_get_default_buffer_size(struct device *dev)
 	return size;
 }
 
+static void tmc_get_q6_etr_region(struct device *dev)
+{
+	struct device_node *np;
+	struct reserved_mem *rmem;
+	struct tmc_drvdata *drvdata = dev_get_drvdata(dev);
+
+	np = of_parse_phandle(dev->of_node, "memory-region", 0);
+	if (!np) {
+		dev_info(dev, "No Q6 ETR memory region specified\n");
+		return;
+	}
+
+	rmem = of_reserved_mem_lookup(np);
+	of_node_put(np);
+	if (!rmem) {
+		dev_err(dev, "unable to acquire Q6 ETR memory-region\n");
+		return;
+	}
+
+	drvdata->q6_etr_vaddr = devm_ioremap_nocache(dev, rmem->base,
+								rmem->size);
+	if (drvdata->q6_etr_vaddr) {
+		drvdata->q6_etr_paddr = rmem->base;
+		drvdata->q6_size =  rmem->size;
+	}
+}
+
 static int tmc_probe(struct amba_device *adev, const struct amba_id *id)
 {
 	int ret = 0;
@@ -587,6 +615,8 @@ static int tmc_probe(struct amba_device *adev, const struct amba_id *id)
 	if (drvdata->config_type == TMC_CONFIG_TYPE_ETR) {
 		drvdata->out_mode = TMC_ETR_OUT_MODE_MEM;
 		drvdata->size = tmc_etr_get_default_buffer_size(dev);
+
+		tmc_get_q6_etr_region(dev);
 	} else {
 		drvdata->size = readl_relaxed(drvdata->base + TMC_RSZ) * 4;
 	}
