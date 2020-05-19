@@ -25,12 +25,16 @@
 
 #define MHI_MAX_DEVICE 2
 
+/* MHI MMIO register mapping */
+#define PCI_INVALID_READ(val) (val == U32_MAX)
+
 /* PCI specific macros */
 #define PCI_BAR_NUM                     0
 #define PCI_DMA_MASK_64_BIT		64
 #define MHI_TIMEOUT_DEFAULT		10000
 #define PCIE_SOC_GLOBAL_RESET_VALUE	0x5
 #define PCIE_SOC_GLOBAL_RESET_ADDRESS	0x3008
+#define MAX_SOC_GLOBAL_RESET_WAIT_CNT	50 /* x 20msec */
 
 /* Add DEBUG related here  */
 enum MHITEST_DEBUG_KLVL{
@@ -138,7 +142,7 @@ struct mhitest_platform {
 /*mhi  msi */
 	struct mhitest_msi_config *msi_config;
 	u32 msi_ep_base_data;
-	struct mhi_controller *mhi_ctrl;
+	struct mhi_controller mhi_ctrl;
 /* subsystem related */
 	char *mhitest_ss_desc_name;
 	phandle rproc_handle;
