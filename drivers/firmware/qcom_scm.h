@@ -224,4 +224,32 @@ int __qti_scm_regsave(struct device *dev, u32 svc_id, u32 cmd_id,
 #define QCOM_SCM_QCE_UNLOCK_CMD		0x4
 extern int __qti_set_qcekey_sec(struct device *dev, void *confBuf, int size);
 extern int __qti_qcekey_release_xpu_prot(struct device *dev);
+
+extern int __qti_scm_qseecom_notify(struct device *dev,
+				    struct qsee_notify_app *req,
+				    size_t req_size,
+				    struct qseecom_command_scm_resp *resp,
+				    size_t resp_size);
+extern int __qti_scm_qseecom_load(struct device *dev,
+				  uint32_t smc_id, uint32_t cmd_id,
+				  union qseecom_load_ireq *req,
+				  size_t req_size,
+				  struct qseecom_command_scm_resp *resp,
+				  size_t resp_size);
+extern int __qti_scm_qseecom_send_data(struct device *dev,
+				       union qseecom_client_send_data_ireq *req,
+				       size_t req_size,
+				       struct qseecom_command_scm_resp *resp,
+				       size_t resp_size);
+extern int __qti_scm_qseecom_unload(struct device *dev,
+				    uint32_t smc_id, uint32_t cmd_id,
+				    struct qseecom_unload_ireq *req,
+				    size_t req_size,
+				    struct qseecom_command_scm_resp *resp,
+				    size_t resp_size);
+extern int __qti_scm_tz_register_log_buf(struct device *dev,
+					 struct qsee_reg_log_buf_req *request,
+					 size_t req_size,
+					 struct qseecom_command_scm_resp
+					 *response, size_t resp_size);
 #endif

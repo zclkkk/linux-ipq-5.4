@@ -89,6 +89,77 @@ static void qcom_scm_clk_disable(void)
 	clk_disable_unprepare(__scm->bus_clk);
 }
 
+int qti_scm_qseecom_notify(struct qsee_notify_app *req, size_t req_size,
+			   struct qseecom_command_scm_resp *resp,
+			   size_t resp_size)
+{
+	int ret = 0;
+
+	ret = __qti_scm_qseecom_notify(__scm->dev, req, req_size,
+				      resp, resp_size);
+
+	return ret;
+}
+EXPORT_SYMBOL(qti_scm_qseecom_notify);
+
+int qti_scm_qseecom_load(uint32_t smc_id, uint32_t cmd_id,
+			 union qseecom_load_ireq *req, size_t req_size,
+			 struct qseecom_command_scm_resp *resp,
+			 size_t resp_size)
+{
+	int ret = 0;
+
+	ret = __qti_scm_qseecom_load(__scm->dev, smc_id, cmd_id, req, req_size,
+				    resp, resp_size);
+
+	return ret;
+}
+EXPORT_SYMBOL(qti_scm_qseecom_load);
+
+int qti_scm_qseecom_send_data(union qseecom_client_send_data_ireq *req,
+			      size_t req_size,
+			      struct qseecom_command_scm_resp *resp,
+			      size_t resp_size)
+{
+	int ret = 0;
+
+	ret = __qti_scm_qseecom_send_data(__scm->dev, req, req_size,
+					 resp, resp_size);
+
+	return ret;
+}
+EXPORT_SYMBOL(qti_scm_qseecom_send_data);
+
+int qti_scm_qseecom_unload(uint32_t smc_id, uint32_t cmd_id,
+			   struct qseecom_unload_ireq *req,
+			   size_t req_size,
+			   struct qseecom_command_scm_resp *resp,
+			   size_t resp_size)
+{
+	int ret = 0;
+
+	ret = __qti_scm_qseecom_unload(__scm->dev, smc_id, cmd_id, req,
+				      req_size, resp, resp_size);
+
+	return ret;
+}
+EXPORT_SYMBOL(qti_scm_qseecom_unload);
+
+int qti_scm_tz_register_log_buf(struct device *dev,
+				struct qsee_reg_log_buf_req *request,
+				size_t req_size,
+				struct qseecom_command_scm_resp *response,
+				size_t resp_size)
+{
+	int ret = 0;
+
+	ret = __qti_scm_tz_register_log_buf(__scm->dev, request, req_size,
+					    response, resp_size);
+
+	return ret;
+}
+EXPORT_SYMBOL(qti_scm_tz_register_log_buf);
+
 /**
  * qcom_scm_set_cold_boot_addr() - Set the cold boot address for cpus
  * @entry: Entry point function for the cpus
