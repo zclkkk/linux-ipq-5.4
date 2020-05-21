@@ -1315,3 +1315,4 @@
 
 #include "ipq8074-spmi-regulator.dtsi"
 #include "ipq8074-cpu.dtsi"
+#include "ipq8074-coresight.dtsi"
