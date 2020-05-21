@@ -12,6 +12,13 @@
 #include <linux/miscdevice.h>
 #include <linux/mutex.h>
 #include <linux/refcount.h>
+#include <linux/coresight-cti.h>
+#include <linux/delay.h>
+#include <asm/cacheflush.h>
+#include <linux/of_address.h>
+#include <linux/amba/bus.h>
+
+#include "coresight-byte-cntr.h"
 
 #define TMC_RSZ			0x004
 #define TMC_STS			0x00c
@@ -136,7 +143,26 @@ enum etr_mode {
 	ETR_MODE_CATU,		/* Use SG mechanism in CATU */
 };
 
+enum tmc_etr_out_mode {
+	TMC_ETR_OUT_MODE_NONE,
+	TMC_ETR_OUT_MODE_MEM,
+	TMC_ETR_OUT_MODE_USB,
+};
+
+static const char * const str_tmc_etr_out_mode[] = {
+	[TMC_ETR_OUT_MODE_NONE]		= "none",
+	[TMC_ETR_OUT_MODE_MEM]		= "mem",
+	[TMC_ETR_OUT_MODE_USB]		= "usb",
+};
+
 struct etr_buf_operations;
+
+struct etr_flat_buf {
+	struct device	*dev;
+	dma_addr_t	daddr;
+	void		*vaddr;
+	size_t		size;
+};
 
 /**
  * struct etr_buf - Details of the buffer used by ETR
@@ -201,12 +227,20 @@ struct tmc_drvdata {
 	u32			mode;
 	enum tmc_config_type	config_type;
 	enum tmc_mem_intf_width	memwidth;
+	struct mutex		mem_lock;
 	u32			trigger_cntr;
 	u32			etr_caps;
 	struct idr		idr;
 	struct mutex		idr_mutex;
 	struct etr_buf		*sysfs_buf;
 	struct etr_buf		*perf_buf;
+	struct coresight_csr	*csr;
+	const char		*csr_name;
+	bool			enable;
+	struct byte_cntr	*byte_cntr;
+	struct coresight_cti	*cti_flush;
+	struct coresight_cti	*cti_reset;
+	enum tmc_etr_out_mode	out_mode;
 };
 
 struct etr_buf_operations {
@@ -268,10 +302,15 @@ ssize_t tmc_etb_get_sysfs_trace(struct tmc_drvdata *drvdata,
 /* ETR functions */
 int tmc_read_prepare_etr(struct tmc_drvdata *drvdata);
 int tmc_read_unprepare_etr(struct tmc_drvdata *drvdata);
+extern struct byte_cntr *byte_cntr_init(struct amba_device *adev,
+					struct tmc_drvdata *drvdata);
+int tmc_etr_enable_hw(struct tmc_drvdata *drvdata, struct etr_buf *etr_buf);
+void tmc_etr_disable_hw(struct tmc_drvdata *drvdata);
 extern const struct coresight_ops tmc_etr_cs_ops;
 ssize_t tmc_etr_get_sysfs_trace(struct tmc_drvdata *drvdata,
 				loff_t pos, size_t len, char **bufpp);
-
+ssize_t tmc_etr_buf_get_data(struct etr_buf *etr_buf,
+				u64 offset, size_t len, char **bufpp);
 
 #define TMC_REG_PAIR(name, lo_off, hi_off)				\
 static inline u64							\
