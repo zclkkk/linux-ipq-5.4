@@ -673,6 +673,24 @@ int qti_scm_regsave(u32 svc_id, u32 cmd_id, void *scm_regsave, u32 buf_size)
 }
 EXPORT_SYMBOL(qti_scm_regsave);
 
+/*
+ * qcom_set_qcekey_sec() - Configure key securely
+ */
+int qti_set_qcekey_sec(void *buf, int size)
+{
+	return __qti_set_qcekey_sec(__scm->dev, buf, size);
+}
+EXPORT_SYMBOL(qti_set_qcekey_sec);
+
+/*
+ * qti_qcekey_release_xpu_prot() - release XPU protection
+ */
+int qti_qcekey_release_xpu_prot(void)
+{
+	return __qti_qcekey_release_xpu_prot(__scm->dev);
+}
+EXPORT_SYMBOL(qti_qcekey_release_xpu_prot);
+
 static int qcom_scm_probe(struct platform_device *pdev)
 {
 	struct device_node *np = (&pdev->dev)->of_node;
