@@ -19,3 +19,5 @@ config MHI_BUS_TEST
 	depends on MHI_BUS
 	help
 	 Test driver for testing the MHI bus
+
+source "drivers/bus/mhi/clients/Kconfig"
