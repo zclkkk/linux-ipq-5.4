@@ -1382,3 +1382,4 @@
 #include "ipq8074-cpu.dtsi"
 #include "ipq8074-coresight.dtsi"
 #include "ipq8074-thermal.dtsi"
+#include "ipq8074-cpr-regulator.dtsi"
