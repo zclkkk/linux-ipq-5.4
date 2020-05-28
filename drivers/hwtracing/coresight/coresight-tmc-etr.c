@@ -1352,8 +1352,10 @@ int tmc_etr_bam_init(struct amba_device *adev,
 	struct device *dev = &adev->dev;
 	struct resource res;
 	struct tmc_etr_bam_data *bamdata;
+#ifdef CONFIG_IOMMU_API
 	int s1_bypass = 0;
 	struct iommu_domain *domain;
+#endif
 
 	bamdata = devm_kzalloc(dev, sizeof(*bamdata), GFP_KERNEL);
 	if (!bamdata)
@@ -1375,6 +1377,7 @@ int tmc_etr_bam_init(struct amba_device *adev,
 	bamdata->props.summing_threshold = 0x10; /* BAM event threshold */
 	bamdata->props.irq = 0;
 	bamdata->props.num_pipes = TMC_ETR_BAM_NR_PIPES;
+#ifdef CONFIG_IOMMU_API
 	domain = iommu_get_domain_for_dev(dev);
 	if (domain) {
 		iommu_domain_get_attr(domain, DOMAIN_ATTR_S1_BYPASS,
@@ -1385,6 +1388,7 @@ int tmc_etr_bam_init(struct amba_device *adev,
 			bamdata->props.options |= SPS_BAM_SMMU_EN;
 		}
 	}
+#endif
 
 	return sps_register_bam_device(&bamdata->props, &bamdata->handle);
 }
