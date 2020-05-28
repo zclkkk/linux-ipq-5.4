@@ -461,7 +461,7 @@
 		};
 
 		qpic_nand: nand@79b0000 {
-			compatible = "qcom,ipq8074-nand";
+			compatible = "qcom,ebi2-nandc-bam-v1.5.0";
 			reg = <0x79b0000 0x10000>;
 			#address-cells = <1>;
 			#size-cells = <0>;
