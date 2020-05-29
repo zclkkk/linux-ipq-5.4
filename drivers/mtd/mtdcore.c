@@ -544,6 +544,7 @@ int mtd_pairing_groups(struct mtd_info *mtd)
 }
 EXPORT_SYMBOL_GPL(mtd_pairing_groups);
 
+#ifdef CONFIG_MTD_SUPPORTS_NVMEM
 static int mtd_nvmem_reg_read(void *priv, unsigned int offset,
 			      void *val, size_t bytes)
 {
@@ -588,6 +589,7 @@ static int mtd_nvmem_add(struct mtd_info *mtd)
 
 	return 0;
 }
+#endif
 
 /**
  *	add_mtd_device - register an MTD device
@@ -677,10 +679,12 @@ int add_mtd_device(struct mtd_info *mtd)
 	if (error)
 		goto fail_added;
 
+#ifdef CONFIG_MTD_SUPPORTS_NVMEM
 	/* Add the nvmem provider */
 	error = mtd_nvmem_add(mtd);
 	if (error)
 		goto fail_nvmem_add;
+#endif
 
 	mtd_debugfs_populate(mtd);
 
@@ -754,9 +758,11 @@ int del_mtd_device(struct mtd_info *mtd)
 		       mtd->index, mtd->name, mtd->usecount);
 		ret = -EBUSY;
 	} else {
+#ifdef CONFIG_MTD_SUPPORTS_NVMEM
 		/* Try to remove the NVMEM provider */
 		if (mtd->nvmem)
 			nvmem_unregister(mtd->nvmem);
+#endif
 
 		device_unregister(&mtd->dev);
 
