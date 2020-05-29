@@ -4,7 +4,7 @@ menu "Qualcomm technologies inc. MSM specific device drivers"
 	depends on ARCH_QCOM
 
 config SPS
-	tristate "SPS support"
+	bool "SPS support"
 	select GENERIC_ALLOCATOR
 	help
 	  The SPS (Smart Peripheral Switch) is a DMA engine.
@@ -33,7 +33,7 @@ config SPS_SUPPORT_NDP_BAM
 	  BAM.
 
 config USB_BAM
-	tristate "USB BAM Driver"
+	bool "USB BAM Driver"
 	depends on SPS && USB_GADGET
 	help
 	  Enabling this option adds USB BAM Driver.
