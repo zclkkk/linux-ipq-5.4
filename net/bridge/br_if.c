@@ -690,6 +690,7 @@ int br_add_if(struct net_bridge *br, struct net_device *dev,
 	br_set_gso_limits(br);
 
 	kobject_uevent(&p->kobj, KOBJ_ADD);
+	call_netdevice_notifiers(NETDEV_BR_JOIN, dev);
 
 	return 0;
 
@@ -723,6 +724,8 @@ int br_del_if(struct net_bridge *br, struct net_device *dev)
 	p = br_port_get_rtnl(dev);
 	if (!p || p->br != br)
 		return -EINVAL;
+
+	call_netdevice_notifiers(NETDEV_BR_LEAVE, dev);
 
 	/* Since more than one interface can be attached to a bridge,
 	 * there still maybe an alternate path for netconsole to use;
@@ -779,7 +782,8 @@ EXPORT_SYMBOL_GPL(br_port_flag_is_set);
  * associated port.
  */
 struct net_device *br_port_dev_get(struct net_device *dev, unsigned char *addr,
-				   struct sk_buff *skb)
+				   struct sk_buff *skb,
+				   unsigned int cookie)
 {
 	struct net_bridge_fdb_entry *fdbe;
 	struct net_bridge *br;
@@ -798,7 +802,8 @@ struct net_device *br_port_dev_get(struct net_device *dev, unsigned char *addr,
 		port_dev_get_hook = rcu_dereference(br_port_dev_get_hook);
 		if (port_dev_get_hook) {
 			struct net_bridge_port *pdst =
-				__br_get(port_dev_get_hook, NULL, dev, skb);
+				__br_get(port_dev_get_hook, NULL, dev, skb,
+					 addr, cookie);
 			if (pdst) {
 				dev_hold(pdst->dev);
 				netdev = pdst->dev;

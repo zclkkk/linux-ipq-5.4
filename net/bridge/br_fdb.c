@@ -37,6 +37,20 @@ static int fdb_insert(struct net_bridge *br, struct net_bridge_port *source,
 static void fdb_notify(struct net_bridge *br,
 		       const struct net_bridge_fdb_entry *, int, bool);
 
+ATOMIC_NOTIFIER_HEAD(br_fdb_notifier_list);
+
+void br_fdb_register_notify(struct notifier_block *nb)
+{
+	atomic_notifier_chain_register(&br_fdb_notifier_list, nb);
+}
+EXPORT_SYMBOL_GPL(br_fdb_register_notify);
+
+void br_fdb_unregister_notify(struct notifier_block *nb)
+{
+	atomic_notifier_chain_unregister(&br_fdb_notifier_list, nb);
+}
+EXPORT_SYMBOL_GPL(br_fdb_unregister_notify);
+
 int __init br_fdb_init(void)
 {
 	br_fdb_cache = kmem_cache_create("bridge_fdb_cache",
@@ -760,6 +774,23 @@ static void fdb_notify(struct net_bridge *br,
 	if (swdev_notify)
 		br_switchdev_fdb_notify(fdb, type);
 
+	if (fdb->dst) {
+		int event;
+		struct br_fdb_event fdb_event;
+
+		if (type == RTM_NEWNEIGH)
+			event = BR_FDB_EVENT_ADD;
+		else
+			event = BR_FDB_EVENT_DEL;
+
+		fdb_event.dev = fdb->dst->dev;
+		ether_addr_copy(fdb_event.addr, fdb->key.addr.addr);
+		fdb_event.is_local = fdb->is_local;
+		atomic_notifier_call_chain(&br_fdb_notifier_list,
+					   event,
+					   (void *)&fdb_event);
+	}
+
 	skb = nlmsg_new(fdb_nlmsg_size(), GFP_ATOMIC);
 	if (skb == NULL)
 		goto errout;
@@ -771,6 +802,8 @@ static void fdb_notify(struct net_bridge *br,
 		kfree_skb(skb);
 		goto errout;
 	}
+
+	__br_notify(RTNLGRP_NEIGH, type, fdb);
 	rtnl_notify(skb, net, 0, RTNLGRP_NEIGH, NULL, GFP_ATOMIC);
 	return;
 errout:

@@ -525,4 +525,6 @@ static inline void ip_tunnel_info_opts_set(struct ip_tunnel_info *info,
 
 #endif /* CONFIG_INET */
 
+void ipip6_update_offload_stats(struct net_device *dev, void *ptr);
+void ip6_update_offload_stats(struct net_device *dev, void *ptr);
 #endif /* __NET_IP_TUNNELS_H */

@@ -55,7 +55,8 @@ struct net_bridge_port;
 extern void brioctl_set(int (*ioctl_hook)(struct net *, unsigned int, void __user *));
 extern struct net_device *br_port_dev_get(struct net_device *dev,
 					  unsigned char *addr,
-					  struct sk_buff *skb);
+					  struct sk_buff *skb,
+					  unsigned int cookie);
 extern void br_refresh_fdb_entry(struct net_device *dev, const char *addr);
 extern void br_dev_update_stats(struct net_device *dev,
 				struct rtnl_link_stats64 *nlstats);
@@ -160,7 +161,9 @@ br_port_flag_is_set(const struct net_device *dev, unsigned long flag)
 #endif
 
 typedef struct net_bridge_port *br_port_dev_get_hook_t(struct net_device *dev,
-		struct sk_buff *skb);
+						       struct sk_buff *skb,
+						       unsigned char *addr,
+						       unsigned int cookie);
 extern br_port_dev_get_hook_t __rcu *br_port_dev_get_hook;
 
 typedef void (br_notify_hook_t)(int group, int event, const void *ptr);
@@ -169,4 +172,23 @@ typedef int (br_multicast_handle_hook_t)(const struct net_bridge_port *src,
 		struct sk_buff *skb);
 extern br_multicast_handle_hook_t __rcu *br_multicast_handle_hook;
 
+#define BR_FDB_EVENT_ADD     0x01
+#define BR_FDB_EVENT_DEL     0x02
+
+struct br_fdb_event {
+	struct net_device *dev;
+	unsigned char      addr[6];
+	unsigned char      is_local;
+};
+
+extern void br_fdb_register_notify(struct notifier_block *nb);
+extern void br_fdb_unregister_notify(struct notifier_block *nb);
+
+typedef struct net_bridge_port *br_get_dst_hook_t(
+		const struct net_bridge_port *src,
+		struct sk_buff **skb);
+extern br_get_dst_hook_t __rcu *br_get_dst_hook;
+
+typedef void (br_notify_hook_t)(int group, int event, const void *ptr);
+extern br_notify_hook_t __rcu *br_notify_hook;
 #endif
