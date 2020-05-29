@@ -416,54 +416,14 @@ static ssize_t out_mode_store(struct device *dev,
 {
 	struct tmc_drvdata *drvdata = dev_get_drvdata(dev->parent);
 	char str[10] = "";
-	unsigned long flags;
 	int ret;
 
 	if (strlen(buf) >= 10)
 		return -EINVAL;
 	if (sscanf(buf, "%10s", str) != 1)
 		return -EINVAL;
-
-	mutex_lock(&drvdata->mem_lock);
-	if (!strcmp(str, str_tmc_etr_out_mode[TMC_ETR_OUT_MODE_MEM])) {
-		if (drvdata->out_mode == TMC_ETR_OUT_MODE_MEM)
-			goto out;
-
-		spin_lock_irqsave(&drvdata->spinlock, flags);
-		if (!drvdata->enable) {
-			drvdata->out_mode = TMC_ETR_OUT_MODE_MEM;
-			spin_unlock_irqrestore(&drvdata->spinlock, flags);
-			goto out;
-		}
-
-		tmc_etr_enable_hw(drvdata, drvdata->sysfs_buf);
-		drvdata->out_mode = TMC_ETR_OUT_MODE_MEM;
-		spin_unlock_irqrestore(&drvdata->spinlock, flags);
-	} else if (!strcmp(str, str_tmc_etr_out_mode[TMC_ETR_OUT_MODE_USB])) {
-		if (drvdata->out_mode == TMC_ETR_OUT_MODE_USB)
-			goto out;
-
-		spin_lock_irqsave(&drvdata->spinlock, flags);
-		if (!drvdata->enable) {
-			drvdata->out_mode = TMC_ETR_OUT_MODE_USB;
-			spin_unlock_irqrestore(&drvdata->spinlock, flags);
-			goto out;
-		}
-		if (drvdata->reading) {
-			ret = -EBUSY;
-			goto err1;
-		}
-		tmc_etr_disable_hw(drvdata);
-		drvdata->out_mode = TMC_ETR_OUT_MODE_USB;
-		spin_unlock_irqrestore(&drvdata->spinlock, flags);
-	}
-out:
-	mutex_unlock(&drvdata->mem_lock);
-	return size;
-err1:
-	spin_unlock_irqrestore(&drvdata->spinlock, flags);
-	mutex_unlock(&drvdata->mem_lock);
-	return ret;
+	ret = tmc_etr_switch_mode(drvdata, str);
+	return ret ? ret : size;
 }
 static DEVICE_ATTR_RW(out_mode);
 
@@ -485,7 +445,6 @@ static DEVICE_ATTR_RO(available_out_modes);
 
 static struct attribute *coresight_tmc_etf_attrs[] = {
 	&dev_attr_trigger_cntr.attr,
-	&dev_attr_buffer_size.attr,
 	NULL,
 };
 
@@ -676,7 +635,10 @@ static int tmc_probe(struct amba_device *adev, const struct amba_id *id)
 		desc.ops = &tmc_etr_cs_ops;
 		ret = tmc_etr_setup_caps(dev, devid,
 					 coresight_get_uci_data(id));
+		if (ret)
+			goto out;
 		drvdata->byte_cntr = byte_cntr_init(adev, drvdata);
+		ret = tmc_etr_bam_init(adev, drvdata);
 		if (ret)
 			goto out;
 		idr_init(&drvdata->idr);
