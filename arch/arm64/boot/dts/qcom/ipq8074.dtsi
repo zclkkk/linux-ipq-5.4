@@ -76,6 +76,14 @@
 		compatible = "qti,ctxt-save-ipq8074";
 	};
 
+	qseecom {
+		compatible = "ipq807x-qseecom";
+		mem-start = <0x4a400000>;
+		mem-size = <0x200000>;
+		notify-align = <1>;
+		status = "ok";
+	};
+
 	soc: soc {
 		#address-cells = <0x1>;
 		#size-cells = <0x1>;
