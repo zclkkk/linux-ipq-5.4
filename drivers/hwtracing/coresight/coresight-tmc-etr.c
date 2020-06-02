@@ -656,6 +656,52 @@ static const struct etr_buf_operations etr_flat_buf_ops = {
 	.get_data = tmc_etr_get_data_flat_buf,
 };
 
+static int tmc_etr_alloc_q6mem_buf(struct tmc_drvdata *drvdata,
+				  struct etr_buf *etr_buf, int node,
+				  void **pages)
+{
+	struct etr_flat_buf *flat_buf;
+
+	flat_buf = kzalloc(sizeof(*flat_buf), GFP_KERNEL);
+	if (!flat_buf)
+		return -ENOMEM;
+
+	flat_buf->vaddr = drvdata->q6_etr_vaddr;
+
+	if (!flat_buf->vaddr) {
+		kfree(flat_buf);
+		return -ENOMEM;
+	}
+
+	flat_buf->size = drvdata->q6_size;
+	flat_buf->dev = &drvdata->csdev->dev;
+	etr_buf->hwaddr = drvdata->q6_etr_paddr;
+	etr_buf->mode = ETR_MODE_Q6MEM;
+	etr_buf->private = flat_buf;
+
+	return 0;
+}
+
+/*
+ * Don't free the q6mem ETR region, no-op function to avoid warning
+ * from tmc_free_etr_buf function
+ */
+static void tmc_etr_free_q6mem_buf(struct etr_buf *etr_buf)
+{
+}
+
+
+/*
+ * sync and get_data callback are same as in etr_flat_buf_ops,
+ * since Q6 ETR region also a contiguous memory
+ */
+static const struct etr_buf_operations etr_q6mem_buf_ops = {
+	.alloc = tmc_etr_alloc_q6mem_buf,
+	.free = tmc_etr_free_q6mem_buf,
+	.sync = tmc_etr_sync_flat_buf,
+	.get_data = tmc_etr_get_data_flat_buf,
+};
+
 /*
  * tmc_etr_alloc_sg_buf: Allocate an SG buf @etr_buf. Setup the parameters
  * appropriately.
@@ -783,6 +829,7 @@ static const struct etr_buf_operations *etr_buf_ops[] = {
 	[ETR_MODE_ETR_SG] = &etr_sg_buf_ops,
 	[ETR_MODE_CATU] = IS_ENABLED(CONFIG_CORESIGHT_CATU)
 						? &etr_catu_buf_ops : NULL,
+	[ETR_MODE_Q6MEM] = &etr_q6mem_buf_ops,
 };
 
 static inline int tmc_etr_mode_alloc_buf(int mode,
@@ -796,6 +843,7 @@ static inline int tmc_etr_mode_alloc_buf(int mode,
 	case ETR_MODE_FLAT:
 	case ETR_MODE_ETR_SG:
 	case ETR_MODE_CATU:
+	case ETR_MODE_Q6MEM:
 		if (etr_buf_ops[mode] && etr_buf_ops[mode]->alloc)
 			rc = etr_buf_ops[mode]->alloc(drvdata, etr_buf,
 						      node, pages);
@@ -849,7 +897,12 @@ static struct etr_buf *tmc_alloc_etr_buf(struct tmc_drvdata *drvdata,
 	 * Fallback to available mechanisms.
 	 *
 	 */
-	if (!pages &&
+	if (drvdata->out_mode == TMC_ETR_OUT_MODE_Q6MEM) {
+		rc = tmc_etr_mode_alloc_buf(ETR_MODE_Q6MEM, drvdata,
+						etr_buf, node, NULL);
+		goto err_check;
+	}
+	if (rc && !pages &&
 	    (!has_sg || has_iommu || size < SZ_1M))
 		rc = tmc_etr_mode_alloc_buf(ETR_MODE_FLAT, drvdata,
 					    etr_buf, node, pages);
@@ -859,6 +912,7 @@ static struct etr_buf *tmc_alloc_etr_buf(struct tmc_drvdata *drvdata,
 	if (rc && has_catu)
 		rc = tmc_etr_mode_alloc_buf(ETR_MODE_CATU, drvdata,
 					    etr_buf, node, pages);
+err_check:
 	if (rc) {
 		kfree(etr_buf);
 		return ERR_PTR(rc);
@@ -1423,7 +1477,8 @@ static int tmc_enable_etr_sink_sysfs(struct coresight_device *csdev)
 			|| !drvdata->usbch) {
 		spin_unlock_irqrestore(&drvdata->spinlock, flags);
 
-		if (drvdata->out_mode == TMC_ETR_OUT_MODE_MEM) {
+		if (drvdata->out_mode == TMC_ETR_OUT_MODE_MEM ||
+			drvdata->out_mode == TMC_ETR_OUT_MODE_Q6MEM) {
 			/*
 			 * ETR DDR memory is not allocated until user enables
 			 * tmc at least once. If user specifies different ETR
@@ -1474,7 +1529,8 @@ static int tmc_enable_etr_sink_sysfs(struct coresight_device *csdev)
 		free_buf = sysfs_buf;
 		drvdata->sysfs_buf = new_buf;
 	}
-	if (drvdata->out_mode == TMC_ETR_OUT_MODE_MEM) {
+	if (drvdata->out_mode == TMC_ETR_OUT_MODE_MEM ||
+		drvdata->out_mode == TMC_ETR_OUT_MODE_Q6MEM) {
 		ret = tmc_etr_enable_hw(drvdata, drvdata->sysfs_buf);
 	}
 	if (!ret) {
@@ -2012,6 +2068,8 @@ int tmc_etr_switch_mode(struct tmc_drvdata *drvdata, const char *out_mode)
 		new_mode = TMC_ETR_OUT_MODE_MEM;
 	else if (!strcmp(out_mode, str_tmc_etr_out_mode[TMC_ETR_OUT_MODE_USB]))
 		new_mode = TMC_ETR_OUT_MODE_USB;
+	else if (!strcmp(out_mode, str_tmc_etr_out_mode[TMC_ETR_OUT_MODE_Q6MEM]))
+		new_mode = TMC_ETR_OUT_MODE_Q6MEM;
 	else {
 		mutex_unlock(&drvdata->mem_lock);
 		return -EINVAL;
@@ -2046,6 +2104,25 @@ int tmc_etr_switch_mode(struct tmc_drvdata *drvdata, const char *out_mode)
 	return 0;
 }
 
+static void __tmc_etr_disable_q6mem(struct tmc_drvdata *drvdata)
+{
+	uint32_t val[4];
+	uint32_t phy_offset;
+	void __iomem *q6_etr_waddr;
+
+	tmc_etr_disable_hw(drvdata);
+
+	val[0] = 0xdeadbeef;
+	val[1] = readl_relaxed(drvdata->base + TMC_STS);
+	val[2] = readl_relaxed(drvdata->base + TMC_RRP);
+	val[3] = readl_relaxed(drvdata->base + TMC_RWP);
+
+	phy_offset = ((dma_addr_t)val[2] - drvdata->q6_etr_paddr) & 0xffffffff;
+	q6_etr_waddr = drvdata->q6_etr_vaddr + phy_offset;
+
+	memcpy_toio(q6_etr_waddr, &val[0], sizeof(val));
+}
+
 static void tmc_abort_etr_sink(struct coresight_device *csdev)
 {
 	struct tmc_drvdata *drvdata = dev_get_drvdata(csdev->dev.parent);
@@ -2059,6 +2136,8 @@ static void tmc_abort_etr_sink(struct coresight_device *csdev)
 		tmc_etr_disable_hw(drvdata);
 	else if (drvdata->out_mode == TMC_ETR_OUT_MODE_USB)
 		__tmc_etr_disable_to_bam(drvdata);
+	else if (drvdata->out_mode == TMC_ETR_OUT_MODE_Q6MEM)
+		__tmc_etr_disable_q6mem(drvdata);
 out0:
 	drvdata->enable = false;
 	spin_unlock_irqrestore(&drvdata->spinlock, flags);

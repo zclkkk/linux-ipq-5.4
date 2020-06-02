@@ -146,18 +146,21 @@ enum etr_mode {
 	ETR_MODE_FLAT,		/* Uses contiguous flat buffer */
 	ETR_MODE_ETR_SG,	/* Uses in-built TMC ETR SG mechanism */
 	ETR_MODE_CATU,		/* Use SG mechanism in CATU */
+	ETR_MODE_Q6MEM,
 };
 
 enum tmc_etr_out_mode {
 	TMC_ETR_OUT_MODE_NONE,
 	TMC_ETR_OUT_MODE_MEM,
 	TMC_ETR_OUT_MODE_USB,
+	TMC_ETR_OUT_MODE_Q6MEM,
 };
 
 static const char * const str_tmc_etr_out_mode[] = {
 	[TMC_ETR_OUT_MODE_NONE]		= "none",
 	[TMC_ETR_OUT_MODE_MEM]		= "mem",
 	[TMC_ETR_OUT_MODE_USB]		= "usb",
+	[TMC_ETR_OUT_MODE_Q6MEM]	= "q6mem",
 };
 
 struct tmc_etr_bam_data {
@@ -261,6 +264,9 @@ struct tmc_drvdata {
 	struct coresight_cti	*cti_flush;
 	struct coresight_cti	*cti_reset;
 	enum tmc_etr_out_mode	out_mode;
+	void __iomem		*q6_etr_vaddr;
+	dma_addr_t		q6_etr_paddr;
+	u32			q6_size;
 };
 
 struct etr_buf_operations {
