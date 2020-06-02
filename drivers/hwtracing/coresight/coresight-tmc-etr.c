@@ -2046,12 +2046,33 @@ int tmc_etr_switch_mode(struct tmc_drvdata *drvdata, const char *out_mode)
 	return 0;
 }
 
+static void tmc_abort_etr_sink(struct coresight_device *csdev)
+{
+	struct tmc_drvdata *drvdata = dev_get_drvdata(csdev->dev.parent);
+	unsigned long flags;
+
+	spin_lock_irqsave(&drvdata->spinlock, flags);
+	if (drvdata->reading)
+		goto out0;
+
+	if (drvdata->out_mode == TMC_ETR_OUT_MODE_MEM)
+		tmc_etr_disable_hw(drvdata);
+	else if (drvdata->out_mode == TMC_ETR_OUT_MODE_USB)
+		__tmc_etr_disable_to_bam(drvdata);
+out0:
+	drvdata->enable = false;
+	spin_unlock_irqrestore(&drvdata->spinlock, flags);
+
+	dev_info(&drvdata->csdev->dev, "TMC aborted\n");
+}
+
 static const struct coresight_ops_sink tmc_etr_sink_ops = {
 	.enable		= tmc_enable_etr_sink,
 	.disable	= tmc_disable_etr_sink,
 	.alloc_buffer	= tmc_alloc_etr_buffer,
 	.update_buffer	= tmc_update_etr_buffer,
 	.free_buffer	= tmc_free_etr_buffer,
+	.abort		= tmc_abort_etr_sink,
 };
 
 const struct coresight_ops tmc_etr_cs_ops = {
