@@ -116,6 +116,10 @@
 			status = "ok";
 		};
 
+		qcom,test@0 {
+			status = "ok";
+		};
+
 		phy@84000 {
 			status = "ok";
 		};
@@ -127,6 +131,15 @@
 		pci@20000000 {
 			perst-gpio = <&tlmm 58 1>;
 			status = "ok";
+
+			pcie0_rp {
+				reg = <0 0 0 0 0>;
+
+				qcom,mhi@0 {
+					reg = <0 0 0 0 0>;
+					qrtr_instance_id = <0x20>;
+				};
+			};
 		};
 
 		phy@8e000 {
@@ -136,6 +149,15 @@
 		pci@10000000 {
 			perst-gpio = <&tlmm 61 0x1>;
 			status = "ok";
+
+			pcie1_rp {
+				reg = <0 0 0 0 0>;
+
+				qcom,mhi@1 {
+					reg = <0 0 0 0 0>;
+					qrtr_instance_id = <0x21>;
+				};
+			};
 		};
 
 		gpio_keys {
