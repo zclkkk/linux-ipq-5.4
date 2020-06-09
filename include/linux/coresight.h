@@ -32,6 +32,11 @@
 
 #define CORESIGHT_UNLOCK	0xc5acce55
 
+#define Q6STREAM_SIZE	(1024 * 1024)
+#define TOTAL_PAGES_PER_DATA	(Q6STREAM_SIZE / PAGE_SIZE)
+#define PAGES_PER_DATA	8
+#define COMP_PAGES_PER_DATA (TOTAL_PAGES_PER_DATA - PAGES_PER_DATA)
+
 extern struct bus_type coresight_bustype;
 
 enum coresight_dev_type {

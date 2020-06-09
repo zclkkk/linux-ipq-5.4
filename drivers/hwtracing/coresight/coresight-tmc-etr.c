@@ -46,62 +46,6 @@ struct etr_perf_buffer {
 #define TMC_ETR_PERF_MIN_BUF_SIZE	SZ_1M
 
 /*
- * The TMC ETR SG has a page size of 4K. The SG table contains pointers
- * to 4KB buffers. However, the OS may use a PAGE_SIZE different from
- * 4K (i.e, 16KB or 64KB). This implies that a single OS page could
- * contain more than one SG buffer and tables.
- *
- * A table entry has the following format:
- *
- * ---Bit31------------Bit4-------Bit1-----Bit0--
- * |     Address[39:12]    | SBZ |  Entry Type  |
- * ----------------------------------------------
- *
- * Address: Bits [39:12] of a physical page address. Bits [11:0] are
- *	    always zero.
- *
- * Entry type:
- *	b00 - Reserved.
- *	b01 - Last entry in the tables, points to 4K page buffer.
- *	b10 - Normal entry, points to 4K page buffer.
- *	b11 - Link. The address points to the base of next table.
- */
-
-typedef u32 sgte_t;
-
-#define ETR_SG_PAGE_SHIFT		12
-#define ETR_SG_PAGE_SIZE		(1UL << ETR_SG_PAGE_SHIFT)
-#define ETR_SG_PAGES_PER_SYSPAGE	(PAGE_SIZE / ETR_SG_PAGE_SIZE)
-#define ETR_SG_PTRS_PER_PAGE		(ETR_SG_PAGE_SIZE / sizeof(sgte_t))
-#define ETR_SG_PTRS_PER_SYSPAGE		(PAGE_SIZE / sizeof(sgte_t))
-
-#define ETR_SG_ET_MASK			0x3
-#define ETR_SG_ET_LAST			0x1
-#define ETR_SG_ET_NORMAL		0x2
-#define ETR_SG_ET_LINK			0x3
-
-#define ETR_SG_ADDR_SHIFT		4
-
-#define ETR_SG_ENTRY(addr, type) \
-	(sgte_t)((((addr) >> ETR_SG_PAGE_SHIFT) << ETR_SG_ADDR_SHIFT) | \
-		 (type & ETR_SG_ET_MASK))
-
-#define ETR_SG_ADDR(entry) \
-	(((dma_addr_t)(entry) >> ETR_SG_ADDR_SHIFT) << ETR_SG_PAGE_SHIFT)
-#define ETR_SG_ET(entry)		((entry) & ETR_SG_ET_MASK)
-
-/*
- * struct etr_sg_table : ETR SG Table
- * @sg_table:		Generic SG Table holding the data/table pages.
- * @hwaddr:		hwaddress used by the TMC, which is the base
- *			address of the table.
- */
-struct etr_sg_table {
-	struct tmc_sg_table	*sg_table;
-	dma_addr_t		hwaddr;
-};
-
-/*
  * tmc_etr_sg_table_entries: Total number of table entries required to map
  * @nr_pages system pages.
  *
@@ -156,13 +100,14 @@ static void tmc_pages_free(struct tmc_pages *tmc_pages,
 {
 	int i;
 	struct device *real_dev = dev->parent;
+	size_t size = (1 << tmc_pages->order) << PAGE_SHIFT;
 
 	for (i = 0; i < tmc_pages->nr_pages; i++) {
 		if (tmc_pages->daddrs && tmc_pages->daddrs[i])
 			dma_unmap_page(real_dev, tmc_pages->daddrs[i],
-					 PAGE_SIZE, dir);
+					 size, dir);
 		if (tmc_pages->pages && tmc_pages->pages[i])
-			__free_page(tmc_pages->pages[i]);
+			__free_pages(tmc_pages->pages[i], tmc_pages->order);
 	}
 
 	kfree(tmc_pages->pages);
@@ -188,6 +133,7 @@ static int tmc_pages_alloc(struct tmc_pages *tmc_pages,
 	dma_addr_t paddr;
 	struct page *page;
 	struct device *real_dev = dev->parent;
+	size_t size = (1 << tmc_pages->order) << PAGE_SHIFT;
 
 	nr_pages = tmc_pages->nr_pages;
 	tmc_pages->daddrs = kcalloc(nr_pages, sizeof(*tmc_pages->daddrs),
@@ -209,9 +155,10 @@ static int tmc_pages_alloc(struct tmc_pages *tmc_pages,
 			get_page(page);
 		} else {
 			page = alloc_pages_node(node,
-						GFP_KERNEL | __GFP_ZERO, 0);
+						GFP_KERNEL | __GFP_ZERO,
+						tmc_pages->order);
 		}
-		paddr = dma_map_page(real_dev, page, 0, PAGE_SIZE, dir);
+		paddr = dma_map_page(real_dev, page, 0, size, dir);
 		if (dma_mapping_error(real_dev, paddr))
 			goto err;
 		tmc_pages->daddrs[i] = paddr;
@@ -299,13 +246,13 @@ static int tmc_alloc_data_pages(struct tmc_sg_table *sg_table, void **pages)
  * and data buffers. TMC writes to the data buffers and reads from the SG
  * Table pages.
  *
- * @dev		- Coresight device to which page should be DMA mapped.
+ * @drvdata	- TMC driver data
  * @node	- Numa node for mem allocations
  * @nr_tpages	- Number of pages for the table entries.
  * @nr_dpages	- Number of pages for Data buffer.
  * @pages	- Optional list of virtual address of pages.
  */
-struct tmc_sg_table *tmc_alloc_sg_table(struct device *dev,
+struct tmc_sg_table *tmc_alloc_sg_table(struct tmc_drvdata *drvdata,
 					int node,
 					int nr_tpages,
 					int nr_dpages,
@@ -320,7 +267,10 @@ struct tmc_sg_table *tmc_alloc_sg_table(struct device *dev,
 	sg_table->data_pages.nr_pages = nr_dpages;
 	sg_table->table_pages.nr_pages = nr_tpages;
 	sg_table->node = node;
-	sg_table->dev = dev;
+	sg_table->dev = &drvdata->csdev->dev;
+
+	if (drvdata->out_mode == TMC_ETR_OUT_MODE_Q6MEM_STREAM)
+		sg_table->data_pages.order = 1;
 
 	rc  = tmc_alloc_data_pages(sg_table, pages);
 	if (!rc)
@@ -540,13 +490,13 @@ static void tmc_etr_sg_table_populate(struct etr_sg_table *etr_table)
  * tmc_init_etr_sg_table: Allocate a TMC ETR SG table, data buffer of @size and
  * populate the table.
  *
- * @dev		- Device pointer for the TMC
+ * @drvdata	- TMC driver data
  * @node	- NUMA node where the memory should be allocated
  * @size	- Total size of the data buffer
  * @pages	- Optional list of page virtual address
  */
 static struct etr_sg_table *
-tmc_init_etr_sg_table(struct device *dev, int node,
+tmc_init_etr_sg_table(struct tmc_drvdata *drvdata, int node,
 		      unsigned long size, void **pages)
 {
 	int nr_entries, nr_tpages;
@@ -560,7 +510,8 @@ tmc_init_etr_sg_table(struct device *dev, int node,
 	nr_entries = tmc_etr_sg_table_entries(nr_dpages);
 	nr_tpages = DIV_ROUND_UP(nr_entries, ETR_SG_PTRS_PER_SYSPAGE);
 
-	sg_table = tmc_alloc_sg_table(dev, node, nr_tpages, nr_dpages, pages);
+	sg_table = tmc_alloc_sg_table(drvdata, node, nr_tpages, nr_dpages,
+									pages);
 	if (IS_ERR(sg_table)) {
 		kfree(etr_table);
 		return ERR_CAST(sg_table);
@@ -711,9 +662,8 @@ static int tmc_etr_alloc_sg_buf(struct tmc_drvdata *drvdata,
 				void **pages)
 {
 	struct etr_sg_table *etr_table;
-	struct device *dev = &drvdata->csdev->dev;
 
-	etr_table = tmc_init_etr_sg_table(dev, node,
+	etr_table = tmc_init_etr_sg_table(drvdata, node,
 					  etr_buf->size, pages);
 	if (IS_ERR(etr_table))
 		return -ENOMEM;
@@ -1061,6 +1011,11 @@ int tmc_etr_enable_hw(struct tmc_drvdata *drvdata,
 	if (WARN_ON(drvdata->etr_buf))
 		return -EBUSY;
 
+	if (drvdata->out_mode == TMC_ETR_OUT_MODE_Q6MEM_STREAM)
+		coresight_csr_set_byte_cntr(drvdata->csr, PAGE_SIZE);
+	else
+		coresight_csr_set_byte_cntr(drvdata->csr, 0);
+
 	/*
 	 * If this ETR is connected to a CATU, enable it before we turn
 	 * this on.
@@ -1142,6 +1097,8 @@ static void tmc_etr_sync_sysfs_buf(struct tmc_drvdata *drvdata)
 static void __tmc_etr_disable_hw(struct tmc_drvdata *drvdata)
 {
 	CS_UNLOCK(drvdata->base);
+
+	coresight_csr_set_byte_cntr(drvdata->csr, 0);
 
 	tmc_flush_and_stop(drvdata);
 	/*
@@ -1478,7 +1435,8 @@ static int tmc_enable_etr_sink_sysfs(struct coresight_device *csdev)
 		spin_unlock_irqrestore(&drvdata->spinlock, flags);
 
 		if (drvdata->out_mode == TMC_ETR_OUT_MODE_MEM ||
-			drvdata->out_mode == TMC_ETR_OUT_MODE_Q6MEM) {
+			drvdata->out_mode == TMC_ETR_OUT_MODE_Q6MEM ||
+			drvdata->out_mode == TMC_ETR_OUT_MODE_Q6MEM_STREAM) {
 			/*
 			 * ETR DDR memory is not allocated until user enables
 			 * tmc at least once. If user specifies different ETR
@@ -1530,7 +1488,8 @@ static int tmc_enable_etr_sink_sysfs(struct coresight_device *csdev)
 		drvdata->sysfs_buf = new_buf;
 	}
 	if (drvdata->out_mode == TMC_ETR_OUT_MODE_MEM ||
-		drvdata->out_mode == TMC_ETR_OUT_MODE_Q6MEM) {
+		drvdata->out_mode == TMC_ETR_OUT_MODE_Q6MEM ||
+		drvdata->out_mode == TMC_ETR_OUT_MODE_Q6MEM_STREAM) {
 		ret = tmc_etr_enable_hw(drvdata, drvdata->sysfs_buf);
 	}
 	if (!ret) {
@@ -2070,6 +2029,9 @@ int tmc_etr_switch_mode(struct tmc_drvdata *drvdata, const char *out_mode)
 		new_mode = TMC_ETR_OUT_MODE_USB;
 	else if (!strcmp(out_mode, str_tmc_etr_out_mode[TMC_ETR_OUT_MODE_Q6MEM]))
 		new_mode = TMC_ETR_OUT_MODE_Q6MEM;
+	else if (!strcmp(out_mode,
+			str_tmc_etr_out_mode[TMC_ETR_OUT_MODE_Q6MEM_STREAM]))
+		new_mode = TMC_ETR_OUT_MODE_Q6MEM_STREAM;
 	else {
 		mutex_unlock(&drvdata->mem_lock);
 		return -EINVAL;
@@ -2174,7 +2136,8 @@ int tmc_read_prepare_etr(struct tmc_drvdata *drvdata)
 		goto out;
 	}
 
-	if (drvdata->out_mode == TMC_ETR_OUT_MODE_USB) {
+	if (drvdata->out_mode == TMC_ETR_OUT_MODE_USB ||
+		drvdata->out_mode == TMC_ETR_OUT_MODE_Q6MEM_STREAM) {
 		ret = -EINVAL;
 		goto out;
 	}

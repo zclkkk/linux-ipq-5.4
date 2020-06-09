@@ -198,4 +198,10 @@ config CORESIGHT_REMOTE_ETM_DEFAULT_ENABLE
 	  Support for enabling separated Remote processor ETM tracing. Depends
 	  on if instance id bit is set.
 
+config CORESIGHT_STREAM
+	tristate "Coresight network stream driver"
+	depends on CORESIGHT_LINK_AND_SINK_TMC && NET && NET_UDP_TUNNEL
+	help
+	  This enables support for the Coresight network stream driver.
+
 endif

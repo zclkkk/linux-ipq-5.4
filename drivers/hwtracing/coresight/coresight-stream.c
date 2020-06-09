@@ -24,6 +24,7 @@
 #include <linux/inet.h>
 
 #include "coresight-priv.h"
+#include "coresight-tmc.h"
 extern struct tmc_drvdata *tmc_drvdata_stream;
 
 struct udp_port_cfg udp_conf;
@@ -53,7 +54,10 @@ unsigned int udp_packet_no;
 void qld_stream_work_hdlr(struct work_struct *work)
 {
 	struct tmc_drvdata *drvdata = container_of(work, struct tmc_drvdata,
-			qld_stream_work);
+							qld_stream_work);
+	struct etr_sg_table *etr_table = drvdata->sysfs_buf->private;
+	struct tmc_sg_table *sg_table = etr_table->sg_table;
+	sgte_t *ptr = sg_table->table_vaddr;
 	int ret = 0;
 	int i = 0;
 	struct page *transfer_page;
@@ -76,8 +80,7 @@ void qld_stream_work_hdlr(struct work_struct *work)
 		(i < atomic_read(&drvdata->seq_no))
 		&& (i < TOTAL_PAGES_PER_DATA) ; i++) {
 
-		vaddr = phys_to_virt(TMC_ETR_SG_ENT_TO_BLK(((uint32_t *)
-					drvdata->vaddr)[i]));
+		vaddr = phys_to_virt(ETR_SG_ADDR(ptr[i]));
 		next_page = vaddr + PAGE_SIZE;
 		udp_packet_no++;
 		*(unsigned int *)next_page = udp_packet_no;
