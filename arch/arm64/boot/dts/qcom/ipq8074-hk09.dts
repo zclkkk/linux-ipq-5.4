@@ -284,7 +284,7 @@
 			};
 		};
 
-		mdio@90000 {
+		mdio: mdio@90000 {
 			pinctrl-0 = <&mdio_pins>;
 			pinctrl-names = "default";
 			phy-reset-gpio = <&tlmm 37 0 &tlmm 25 0 &tlmm 44 0>;
@@ -591,5 +591,17 @@
 			};
 		};
 
+		nss-macsec0 {
+			compatible = "qcom,nss-macsec";
+			phy_addr = <0x18>;
+			phy_access_mode = <0>;
+			mdiobus = <&mdio>;
+		};
+		nss-macsec1 {
+			compatible = "qcom,nss-macsec";
+			phy_addr = <0x1c>;
+			phy_access_mode = <0>;
+			mdiobus = <&mdio>;
+		};
 	};
 };
