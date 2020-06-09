@@ -8,6 +8,7 @@
 #include <linux/dma-direction.h>
 #include <linux/dma-mapping.h>
 #include <linux/interrupt.h>
+#include <linux/of_address.h>
 #include <linux/list.h>
 #include <linux/mhi.h>
 #include <linux/mod_devicetable.h>
@@ -809,6 +810,10 @@ int mhi_register_controller(struct mhi_controller *mhi_cntrl,
 	struct mhi_chan *mhi_chan;
 	struct mhi_cmd *mhi_cmd;
 	struct mhi_device *mhi_dev;
+	struct resource mhi_res;
+	struct device_node *cma_node;
+	phys_addr_t cma_addr;
+	size_t cma_size;
 	/*
 	 * To do: hack to be removed
 	 * soc_info and the data parsed from its value
@@ -916,6 +921,24 @@ int mhi_register_controller(struct mhi_controller *mhi_cntrl,
 		goto error_alloc_dev;
 	}
 
+	cma_node = of_parse_phandle(mhi_cntrl->cntrl_dev->of_node,
+				    "memory-region", 0);
+
+	if (cma_node && !of_address_to_resource(cma_node, 0, &mhi_res)) {
+		cma_addr = mhi_res.start;
+		cma_size = resource_size(&mhi_res);
+
+		ret = dma_declare_coherent_memory(&mhi_dev->dev, cma_addr,
+						  cma_addr, cma_size);
+		if (ret) {
+			ret = -EBUSY;
+			dev_info(mhi_cntrl->cntrl_dev, "Failed to declare dma coherent memory");
+			goto error_alloc_dev;
+		}
+	} else {
+		dev_err(mhi_cntrl->cntrl_dev, "mhi coherent pool is not reserved");
+	}
+
 	mhi_dev->dev_type = MHI_DEVICE_CONTROLLER;
 	mhi_dev->mhi_cntrl = mhi_cntrl;
 	dev_set_name(&mhi_dev->dev, "%s", dev_name(mhi_cntrl->cntrl_dev));
@@ -932,6 +955,7 @@ int mhi_register_controller(struct mhi_controller *mhi_cntrl,
 	return 0;
 
 error_add_dev:
+	dma_release_declared_memory(&mhi_dev->dev);
 	put_device(&mhi_dev->dev);
 
 error_alloc_dev:
@@ -963,6 +987,7 @@ void mhi_unregister_controller(struct mhi_controller *mhi_cntrl)
 	}
 	vfree(mhi_cntrl->mhi_chan);
 
+	dma_release_declared_memory(&mhi_dev->dev);
 	device_del(&mhi_dev->dev);
 	put_device(&mhi_dev->dev);
 }
@@ -1076,6 +1101,8 @@ struct mhi_device *mhi_alloc_device(struct mhi_controller *mhi_cntrl)
 	dev->bus = &mhi_bus_type;
 	dev->release = mhi_release_device;
 	dev->parent = mhi_cntrl->cntrl_dev;
+	dev->coherent_dma_mask = mhi_cntrl->cntrl_dev->coherent_dma_mask;
+	dev->dma_ops = mhi_cntrl->cntrl_dev->dma_ops;
 	mhi_dev->mhi_cntrl = mhi_cntrl;
 	mhi_dev->mtu = MHI_MAX_MTU;
 	mhi_dev->dev_wake = 0;

@@ -388,7 +388,7 @@ void mhi_free_bhie_table(struct mhi_controller *mhi_cntrl,
 	struct mhi_buf *mhi_buf = image_info->mhi_buf;
 
 	for (i = 0; i < image_info->entries; i++, mhi_buf++)
-		mhi_free_coherent(mhi_cntrl, mhi_buf->len, mhi_buf->buf,
+		mhi_fw_free_coherent(mhi_cntrl, mhi_buf->len, mhi_buf->buf,
 				  mhi_buf->dma_addr);
 
 	kfree(image_info->mhi_buf);
@@ -425,7 +425,7 @@ int mhi_alloc_bhie_table(struct mhi_controller *mhi_cntrl,
 			vec_size = sizeof(struct bhi_vec_entry) * i;
 
 		mhi_buf->len = vec_size;
-		mhi_buf->buf = mhi_alloc_coherent(mhi_cntrl, vec_size,
+		mhi_buf->buf = mhi_fw_alloc_coherent(mhi_cntrl, vec_size,
 						  &mhi_buf->dma_addr,
 						  GFP_KERNEL);
 		if (!mhi_buf->buf)
@@ -440,7 +440,7 @@ int mhi_alloc_bhie_table(struct mhi_controller *mhi_cntrl,
 
 error_alloc_segment:
 	for (--i, --mhi_buf; i >= 0; i--, mhi_buf--)
-		mhi_free_coherent(mhi_cntrl, mhi_buf->len, mhi_buf->buf,
+		mhi_fw_free_coherent(mhi_cntrl, mhi_buf->len, mhi_buf->buf,
 				  mhi_buf->dma_addr);
 
 error_alloc_mhi_buf:
@@ -517,7 +517,7 @@ void mhi_fw_load_handler(struct mhi_controller *mhi_cntrl)
 	if (size > firmware->size)
 		size = firmware->size;
 
-	buf = mhi_alloc_coherent(mhi_cntrl, size, &dma_addr, GFP_KERNEL);
+	buf = mhi_fw_alloc_coherent(mhi_cntrl, size, &dma_addr, GFP_KERNEL);
 	if (!buf) {
 		release_firmware(firmware);
 		return;
@@ -526,7 +526,7 @@ void mhi_fw_load_handler(struct mhi_controller *mhi_cntrl)
 	/* Download SBL image */
 	memcpy(buf, firmware->data, size);
 	ret = mhi_fw_load_sbl(mhi_cntrl, dma_addr, size);
-	mhi_free_coherent(mhi_cntrl, size, buf, dma_addr);
+	mhi_fw_free_coherent(mhi_cntrl, size, buf, dma_addr);
 
 	if (!mhi_cntrl->fbc_download || ret || mhi_cntrl->ee == MHI_EE_EDL)
 		release_firmware(firmware);

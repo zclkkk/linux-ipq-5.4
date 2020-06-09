@@ -660,6 +660,23 @@ static inline void mhi_free_coherent(struct mhi_controller *mhi_cntrl,
 	dma_free_coherent(mhi_cntrl->cntrl_dev, size, vaddr, dma_handle);
 }
 
+static inline void *mhi_fw_alloc_coherent(struct mhi_controller *mhi_cntrl,
+				       size_t size,
+				       dma_addr_t *dma_handle,
+				       gfp_t gfp)
+{
+	void *buf = dma_alloc_coherent(&mhi_cntrl->mhi_dev->dev, size, dma_handle, gfp);
+
+	return buf;
+}
+static inline void mhi_fw_free_coherent(struct mhi_controller *mhi_cntrl,
+				     size_t size,
+				     void *vaddr,
+				     dma_addr_t dma_handle)
+{
+	dma_free_coherent(&mhi_cntrl->mhi_dev->dev, size, vaddr, dma_handle);
+}
+
 /* Event processing methods */
 void mhi_ctrl_ev_task(unsigned long data);
 void mhi_ev_task(unsigned long data);
