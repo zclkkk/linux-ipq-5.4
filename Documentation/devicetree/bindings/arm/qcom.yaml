@@ -148,6 +148,7 @@ properties:
               - qcom,ipq8074-ap-hk09
               - qcom,ipq8074-ap-hk10-c1
               - qcom,ipq8074-ap-hk10-c2
+              - qcom,ipq8074-ap-hk11
               - qcom,ipq8074-ap-hk14
           - const: qcom,ipq8074
 
