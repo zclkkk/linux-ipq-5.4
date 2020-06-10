@@ -4103,7 +4103,8 @@ static int tpdm_probe(struct amba_device *adev, const struct amba_id *id)
 	static int traceid = TPDM_TRACE_ID_START;
 	uint32_t version;
 
-	desc.name = coresight_alloc_device_name(&tpdm_devs, dev);
+	if (of_property_read_string(dev->of_node, "coresight-name", &desc.name))
+		desc.name = coresight_alloc_device_name(&tpdm_devs, dev);
 	if (!desc.name)
 		return -ENOMEM;
 	pdata = coresight_get_platform_data(dev);

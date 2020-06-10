@@ -1499,7 +1499,8 @@ static int cti_probe(struct amba_device *adev, const struct amba_id *id)
 	struct coresight_desc desc = { 0 };
 	struct device_node *cpu_node;
 
-	desc.name = coresight_alloc_device_name(&cti_devs, dev);
+	if (of_property_read_string(dev->of_node, "coresight-name", &desc.name))
+		desc.name = coresight_alloc_device_name(&cti_devs, dev);
 	if (!desc.name)
 		return -ENOMEM;
 	pdata = coresight_get_platform_data(dev);

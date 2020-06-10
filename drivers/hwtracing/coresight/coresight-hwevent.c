@@ -262,7 +262,8 @@ static int hwevent_probe(struct platform_device *pdev)
 	struct coresight_platform_data *pdata;
 	int ret;
 
-	desc.name = coresight_alloc_device_name(&hwevent_devs, dev);
+	if (of_property_read_string(dev->of_node, "coresight-name", &desc.name))
+		desc.name = coresight_alloc_device_name(&hwevent_devs, dev);
 	if (!desc.name)
 		return -ENOMEM;
 	pdata = coresight_get_platform_data(dev);
