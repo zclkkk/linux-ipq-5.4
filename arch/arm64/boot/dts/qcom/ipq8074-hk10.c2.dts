@@ -100,6 +100,15 @@
 					output-low;
 				};
 			};
+
+			led_pins: led_pins {
+				led_2g {
+					pins = "gpio18";
+					function = "gpio";
+					drive-strength = <8>;
+					bias-pull-down;
+				};
+			};
 		};
 
 		serial@78b3000 {
@@ -558,6 +567,18 @@
 				gpios = <&tlmm 34 GPIO_ACTIVE_LOW>;
 				linux,input-type = <1>;
 				debounce-interval = <60>;
+			};
+		};
+
+		leds {
+			compatible = "gpio-leds";
+			pinctrl-0 = <&led_pins>;
+			pinctrl-names = "default";
+
+			led_2g {
+				label = "led_2g";
+				gpio = <&tlmm 18 GPIO_ACTIVE_HIGH>;
+				default-state = "off";
 			};
 		};
 	};

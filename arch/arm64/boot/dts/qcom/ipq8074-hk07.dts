@@ -49,6 +49,22 @@
 					bias-pull-up;
 				};
 			};
+
+			led_pins: led_pins {
+				led_2g {
+					pins = "gpio42";
+					function = "gpio";
+					drive-strength = <8>;
+					bias-pull-down;
+				};
+
+				led_5g {
+					pins = "gpio43";
+					function = "gpio";
+					drive-strength = <8>;
+					bias-pull-down;
+				};
+			};
 		};
 
 		serial@78b3000 {
@@ -196,6 +212,24 @@
 				gpios = <&tlmm 57 GPIO_ACTIVE_LOW>;
 				linux,input-type = <1>;
 				debounce-interval = <60>;
+			};
+		};
+
+		leds {
+			compatible = "gpio-leds";
+			pinctrl-0 = <&led_pins>;
+			pinctrl-names = "default";
+
+			led_2g {
+				label = "led_2g";
+				gpio = <&tlmm 42 GPIO_ACTIVE_HIGH>;
+				default-state = "off";
+			};
+
+			led_5g {
+				label = "led_5g";
+				gpio = <&tlmm 43 GPIO_ACTIVE_HIGH>;
+				default-state = "off";
 			};
 		};
 
