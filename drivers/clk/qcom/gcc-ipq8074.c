@@ -5059,6 +5059,7 @@ static int gcc_ipq8074_probe(struct platform_device *pdev)
 {
 	struct regmap *regmap;
 	const int *soc_version_major;
+	struct device *dev = &pdev->dev;
 
 	soc_version_major = read_ipq_soc_version_major();
 	BUG_ON(!soc_version_major);
@@ -5076,6 +5077,12 @@ static int gcc_ipq8074_probe(struct platform_device *pdev)
 
 		v1fix_branch_clk_offset(gcc_snoc_bus_timeout2_ahb_clk);
 		v1fix_branch_clk_offset(gcc_snoc_bus_timeout3_ahb_clk);
+
+		clk_register_fixed_rate(dev, "pcie20_phy0_pipe_clk", NULL, 0,
+					125000000);
+	} else {
+		clk_register_fixed_rate(dev, "pcie20_phy0_pipe_clk", NULL, 0,
+					250000000);
 	}
 
 	regmap = qcom_cc_map(pdev, &gcc_ipq8074_desc);
