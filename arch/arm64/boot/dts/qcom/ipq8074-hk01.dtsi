@@ -112,13 +112,16 @@
 			status = "ok";
 		};
 
-				spi@78b5000 {
+		spi@78b5000 {
 			status = "ok";
+			pinctrl-0 = <&spi_0_pins>;
+			pinctrl-names = "default";
+			cs-select = <0>;
 
 			m25p80@0 {
+				  compatible = "jedec,spi-nor";
 				  #address-cells = <1>;
 				  #size-cells = <1>;
-				  compatible = "jedec,spi-nor";
 				  reg = <0>;
 				  spi-max-frequency = <50000000>;
 			};
