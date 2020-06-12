@@ -34,7 +34,7 @@ int mhitest_ss_powerup(struct rproc *subsys_desc)
 	MHITEST_VERB("temp:[%p]\n", temp);
 
 	if (!temp->pci_dev) {
-		pr_mhitest2("temp->pci_Dev is NUlll\n");
+		pr_mhitest2("temp->pci_Dev is NULL\n");
 		return -ENODEV;
 	}
 	snprintf(temp->fw_name, sizeof(temp->fw_name),

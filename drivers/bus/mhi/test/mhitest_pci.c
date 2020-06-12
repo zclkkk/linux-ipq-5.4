@@ -133,7 +133,7 @@ int mhitest_dump_info(struct mhitest_platform *mplat, bool in_panic)
 	int ret, i;
 	u16 device_id;
 
-	mhi_ctrl = mplat->mhi_ctrl;
+	mhi_ctrl = &mplat->mhi_ctrl;
 	pci_read_config_word(mplat->pci_dev, PCI_DEVICE_ID, &device_id);
 	MHITEST_EMERG("Read config space again, Device_id:0x%x\n", device_id);
 	if (device_id != mplat->pci_dev_id->device) {
@@ -317,11 +317,11 @@ int mhitest_pci_get_mhi_msi(struct mhitest_platform *mplat)
 		irq[i] = mhitest_get_msi_irq(&mplat->pci_dev->dev,
 							base_vector + i);
 
-	mplat->mhi_ctrl->irq = irq;
-	mplat->mhi_ctrl->nr_irqs = num_vectors;
+	mplat->mhi_ctrl.irq = irq;
+	mplat->mhi_ctrl.nr_irqs = num_vectors;
 
-	MHITEST_VERB("irq:[%p] msi_allocated :%d\n", mplat->mhi_ctrl->irq,
-				mplat->mhi_ctrl->nr_irqs);
+	MHITEST_VERB("irq:[%p] msi_allocated :%d\n", mplat->mhi_ctrl.irq,
+				mplat->mhi_ctrl.nr_irqs);
 
 	return 0;
 }
@@ -412,20 +412,32 @@ void mhitest_sch_do_recovery(struct mhitest_platform *mplat,
 	mhitest_post_event(mplat, data, MHITEST_RECOVERY_EVENT, 0);
 }
 
-int mhitest_mhi_link_status(struct mhi_controller *mhi_ctrl)
+int __must_check mhitest_read_reg(struct mhi_controller *mhi_cntrl,
+				  void __iomem *addr, u32 *out)
 {
+	u32 tmp = readl(addr);
 
-	MHITEST_LOG("Link status..return with 1\n");
-	return 1;
+	/* If the value is invalid, the link is down */
+	if (PCI_INVALID_READ(tmp))
+		return -EIO;
+
+	*out = tmp;
+
+	return 0;
+}
+
+void mhitest_write_reg(struct mhi_controller *mhi_cntrl, void __iomem *addr,
+		       u32 val)
+{
+	writel(val, addr);
 }
 
 void mhitest_mhi_notify_status(struct mhi_controller *mhi_cntrl,
 						enum mhi_callback reason)
 {
 	struct mhitest_platform *temp;
-	struct mhi_controller **mhi_ctrl = &mhi_cntrl;
 
-	temp = container_of(mhi_ctrl, struct mhitest_platform, mhi_ctrl);
+	temp = container_of(mhi_cntrl, struct mhitest_platform, mhi_ctrl);
 
 	MHITEST_VERB("Enter\n");
 	if (reason > MHI_CB_FATAL_ERROR) {
@@ -477,14 +489,7 @@ int mhitest_pci_register_mhi(struct mhitest_platform *mplat)
 	unsigned int *reg, *reg_end;
 	unsigned long start, size;
 
-	mhi_ctrl = kzalloc(sizeof(*mhi_ctrl), GFP_KERNEL);
-	if (!mhi_ctrl) {
-		MHITEST_ERR("Error: not able to allocate mhi_ctrl\n");
-		return -EINVAL;
-	}
-	MHITEST_LOG("MHI CTRL :%p\n", mhi_ctrl);
-
-	mplat->mhi_ctrl = mhi_ctrl;
+	mhi_ctrl = &mplat->mhi_ctrl;
 
 	mhi_ctrl->cntrl_dev = &pci_dev->dev;
 
@@ -532,11 +537,14 @@ int mhitest_pci_register_mhi(struct mhitest_platform *mplat)
 
 	MHITEST_VERB("iova_start:%x iova_stop:%x\n",
 			(unsigned int)mhi_ctrl->iova_start,
-				(unsigned int)mhi_ctrl->iova_stop);
-	mhi_ctrl->link_status = mhitest_mhi_link_status;
-	mhi_ctrl->status_cb =	mhitest_mhi_notify_status;
-	mhi_ctrl->runtime_get =	mhitest_mhi_pm_runtime_get;
+			(unsigned int)mhi_ctrl->iova_stop);
+
+	mhi_ctrl->status_cb = mhitest_mhi_notify_status;
+	mhi_ctrl->runtime_get = mhitest_mhi_pm_runtime_get;
 	mhi_ctrl->runtime_put = mhitest_mhi_pm_runtime_put_noidle;
+	mhi_ctrl->read_reg = mhitest_read_reg;
+	mhi_ctrl->write_reg = mhitest_write_reg;
+
 	mhi_ctrl->rddm_size = mplat->mhitest_rdinfo.ramdump_size;
 	mhi_ctrl->sbl_size = SZ_512K;
 	mhi_ctrl->seg_len = SZ_512K;
@@ -551,7 +559,6 @@ int mhitest_pci_register_mhi(struct mhitest_platform *mplat)
 	return  0;
 
 out:
-	kfree(mhi_ctrl);
 	return ret;
 }
 
@@ -661,9 +668,28 @@ out:
 
 void mhitest_global_soc_reset(struct mhitest_platform *mplat)
 {
+	u32 current_ee;
+	u32 count = 0;
+
+	current_ee = mhi_get_exec_env(&mplat->mhi_ctrl);
+
 	MHITEST_EMERG("Soc Globle Reset issued\n");
-	writel_relaxed(PCIE_SOC_GLOBAL_RESET_VALUE,
-			PCIE_SOC_GLOBAL_RESET_ADDRESS + mplat->bar);
+
+	do {
+		writel_relaxed(PCIE_SOC_GLOBAL_RESET_VALUE,
+			       PCIE_SOC_GLOBAL_RESET_ADDRESS +
+			       mplat->bar);
+		msleep(20);
+		current_ee = mhi_get_exec_env(&mplat->mhi_ctrl);
+		count++;
+	} while (current_ee != MHI_EE_PBL &&
+		count < MAX_SOC_GLOBAL_RESET_WAIT_CNT);
+
+	if (current_ee != MHI_EE_PBL && count >= MAX_SOC_GLOBAL_RESET_WAIT_CNT)
+		MHITEST_EMERG("SoC global reset failed! Reset count : %d\n",
+			     count);
+	else
+		MHITEST_ERR("SOC Global reset count: %d\n", count);
 }
 
 void mhitest_pci_disable_bus(struct mhitest_platform *mplat)
@@ -675,10 +701,10 @@ void mhitest_pci_disable_bus(struct mhitest_platform *mplat)
 
 	msleep(2000);
 
-	mhi_set_mhi_state(mplat->mhi_ctrl, MHI_STATE_RESET);
+	mhi_set_mhi_state(&mplat->mhi_ctrl, MHI_STATE_RESET);
 
         while (retries--) {
-                temp = readl_relaxed(mplat->mhi_ctrl->regs  + 0x38);
+                temp = readl_relaxed(mplat->mhi_ctrl.regs  + 0x38);
                 in_reset = (temp & 0x2) >> 0x1;
                 if (in_reset){
                         MHITEST_LOG("Number of retry left:%d- trying again\n",
@@ -879,17 +905,21 @@ int mhitest_pci_set_mhi_state(struct mhitest_platform *mplat,
 
 	switch (state) {
 	case MHI_INIT:
-		ret = mhi_prepare_for_power_up(mplat->mhi_ctrl);
+		ret = mhi_prepare_for_power_up(&mplat->mhi_ctrl);
 		break;
 	case MHI_POWER_ON:
-		ret = mhi_async_power_up(mplat->mhi_ctrl);
+		ret = mhi_sync_power_up(&mplat->mhi_ctrl);
 		break;
 	case MHI_DEINIT:
-		mhi_unprepare_after_power_down(mplat->mhi_ctrl);
+		mhi_unprepare_after_power_down(&mplat->mhi_ctrl);
 		ret = 0;
 		break;
 	case MHI_POWER_OFF:
-		mhi_power_down(mplat->mhi_ctrl, true);
+		mhi_power_down(&mplat->mhi_ctrl, true);
+		ret = 0;
+		break;
+	case MHI_FORCE_POWER_OFF:
+		mhi_power_down(&mplat->mhi_ctrl, false);
 		ret = 0;
 		break;
 	default:
@@ -905,12 +935,7 @@ int mhitest_pci_start_mhi(struct mhitest_platform *mplat)
 
 	MHITEST_VERB("Enter\n");
 
-	if (!mplat->mhi_ctrl) {
-		MHITEST_ERR("mhit_ctrl is NULL .. returning..\n");
-		return -EINVAL;
-	}
-
-	mplat->mhi_ctrl->timeout_ms = MHI_TIMEOUT_DEFAULT;
+	mplat->mhi_ctrl.timeout_ms = MHI_TIMEOUT_DEFAULT;
 
 	ret = mhitest_pci_set_mhi_state(mplat, MHI_INIT);
 	if (ret) {
@@ -984,7 +1009,7 @@ int mhitest_pci_probe(struct pci_dev *pci_dev, const struct pci_device_id *id)
 		MHITEST_ERR("temp is null..\n");
 		return -ENOMEM;
 	}
-	MHITEST_LOG("Vendor:0x%x Device:0x%x probe d id:0x%x d_instance:%d\n",
+	MHITEST_LOG("Vendor:0x%x Device:0x%x probed id:0x%x d_instance:%d\n",
 			pci_dev->vendor, pci_dev->device, id->device,
 					temp->d_instance);
 	/* store this tho main struct*/
@@ -1063,7 +1088,6 @@ void mhitest_pci_remove(struct pci_dev *pci_dev)
 	mhitest_subsystem_unregister(mplat);
 	mhitest_event_work_deinit(mplat);
 	pci_load_and_free_saved_state(pci_dev, &mplat->pci_dev_default_state);
-	kfree(mplat->mhi_ctrl);
 	mhitest_free_mplat(mplat);
 }
 
