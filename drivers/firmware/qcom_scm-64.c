@@ -900,3 +900,19 @@ int __qti_qcekey_release_xpu_prot(struct device *dev)
 
 	return ret ? : res.a1;
 }
+
+int __qti_scm_set_resettype(struct device *dev, u32 reset_type)
+{
+	int ret;
+	struct qcom_scm_desc desc = {0};
+	struct arm_smccc_res res;
+
+	desc.args[0] = reset_type;
+	desc.arginfo = SCM_ARGS(1);
+
+	ret = qcom_scm_call(dev, ARM_SMCCC_OWNER_SIP, QCOM_SCM_SVC_BOOT,
+			    QTI_SCM_SVC_RESETTYPE_CMD, &desc, &res);
+
+	return ret ? false : !!res.a1;
+
+}

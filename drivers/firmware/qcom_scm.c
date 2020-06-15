@@ -762,6 +762,27 @@ int qti_qcekey_release_xpu_prot(void)
 }
 EXPORT_SYMBOL(qti_qcekey_release_xpu_prot);
 
+/**
+ * qti_scm_resettype () - cold or warm reset
+ * @reset type: 0 for cold 1 for warm
+ *
+ * Returns 0 on success.
+ */
+int qti_scm_set_resettype(u32 reset_type)
+{
+	int ret;
+
+	ret = qcom_scm_clk_enable();
+	if (ret)
+		return ret;
+
+	ret = __qti_scm_set_resettype(__scm->dev, reset_type);
+	qcom_scm_clk_disable();
+
+	return ret;
+}
+EXPORT_SYMBOL(qti_scm_set_resettype);
+
 static int qcom_scm_probe(struct platform_device *pdev)
 {
 	struct device_node *np = (&pdev->dev)->of_node;

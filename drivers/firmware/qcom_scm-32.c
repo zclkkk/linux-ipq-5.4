@@ -1384,3 +1384,25 @@ int __qti_qcekey_release_xpu_prot(struct device *dev)
 
 	return ret;
 }
+
+int __qti_scm_set_resettype(struct device *dev, u32 reset_type)
+{
+	__le32 out;
+	__le32 in;
+	int ret;
+	struct scm_desc desc = {0};
+
+	if (!is_scm_armv8()) {
+		in = cpu_to_le32(reset_type);
+		ret = qcom_scm_call(dev, QCOM_SCM_SVC_BOOT,
+					QTI_SCM_SVC_RESETTYPE_CMD, &in,
+					sizeof(in), &out, sizeof(out));
+	} else {
+		desc.args[0] = reset_type;
+		desc.arginfo = SCM_ARGS(1);
+		ret = qti_scm_call2(dev, SCM_SIP_FNID(QCOM_SCM_SVC_BOOT,
+					QTI_SCM_SVC_RESETTYPE_CMD), &desc);
+		out = desc.ret[0];
+	}
+	return ret ? : le32_to_cpu(out);
+}

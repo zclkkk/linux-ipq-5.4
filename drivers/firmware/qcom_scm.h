@@ -252,4 +252,7 @@ extern int __qti_scm_tz_register_log_buf(struct device *dev,
 					 size_t req_size,
 					 struct qseecom_command_scm_resp
 					 *response, size_t resp_size);
+
+#define QTI_SCM_SVC_RESETTYPE_CMD	0x18
+extern int  __qti_scm_set_resettype(struct device *dev, u32 reset_type);
 #endif
