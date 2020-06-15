@@ -12,6 +12,7 @@ dtb-$(CONFIG_ARCH_QCOM)	+= ipq8074-hk08.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= ipq8074-hk09.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= ipq8074-hk10.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= ipq8074-hk10.c2.dtb
+dtb-$(CONFIG_ARCH_QCOM)	+= ipq8074-hk11.c1.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= ipq8074-hk14.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= msm8916-mtp.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= msm8916-longcheer-l8150.dtb

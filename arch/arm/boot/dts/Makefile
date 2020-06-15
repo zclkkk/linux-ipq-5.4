@@ -854,6 +854,7 @@ dtb-$(CONFIG_ARCH_QCOM) += \
 	ipq8074-hk09.dtb \
 	ipq8074-hk10.dtb \
 	ipq8074-hk10.c2.dtb \
+	ipq8074-hk11.c1.dtb \
 	ipq8074-hk14.dtb \
 	qcom-msm8660-surf.dtb \
 	qcom-msm8960-cdp.dtb \
