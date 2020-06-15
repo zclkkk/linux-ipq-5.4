@@ -148,6 +148,9 @@ int mhitest_dump_info(struct mhitest_platform *mplat, bool in_panic)
 		return ret;
 	}
 
+	MHITEST_LOG("Let's dump some more things...\n");
+	mhi_debug_reg_dump(mhi_ctrl);
+
 	rddm_img = mhi_ctrl->rddm_image;
 	fw_img = mhi_ctrl->fbc_image;
 	dump_data = &mplat->mhitest_rdinfo.dump_data;
