@@ -710,14 +710,13 @@ static int __exit qseecom_remove(struct platform_device *pdev)
 }
 
 static struct platform_driver qseecom_driver = {
-	.probe = qseecom_probe,
 	.remove = qseecom_remove,
 	.driver = {
 		.name = KBUILD_MODNAME,
 		.of_match_table = qseecom_of_table,
 	},
 };
-module_platform_driver(qseecom_driver);
+module_platform_driver_probe(qseecom_driver, qseecom_probe);
 
 MODULE_DESCRIPTION("QSEECOM Driver");
 MODULE_LICENSE("GPL v2");

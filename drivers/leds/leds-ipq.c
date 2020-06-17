@@ -379,7 +379,6 @@ static struct of_device_id ipq_match_table[] = {
 };
 
 static struct platform_driver ipq_led_driver = {
-	.probe  = ipq_led_probe,
 	.remove = ipq_led_remove,
 	.driver = {
 		.name   = LEDC_DRV_NAME,
@@ -388,7 +387,7 @@ static struct platform_driver ipq_led_driver = {
 	},
 };
 
-module_platform_driver(ipq_led_driver);
+module_platform_driver_probe(ipq_led_driver, ipq_led_probe);
 
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION("0.1");
