@@ -80,8 +80,11 @@ static void skbuff_debugobj_get_stack(void **ret)
 
 	frame.pc = (unsigned long)skbuff_debugobj_get_stack;
 
+#ifdef CONFIG_ARM64
+	walk_stackframe(current,&frame, skbuff_debugobj_walkstack, p);
+#else
 	walk_stackframe(&frame, skbuff_debugobj_walkstack, p);
-
+#endif
 	ret[w.pos] = NULL;
 }
 #else
@@ -272,7 +275,6 @@ static int __init disable_object_debug(char *str)
 early_param("no_skbuff_debug_objects", disable_object_debug);
 
 void skbuff_debugobj_print_skb_list(const struct sk_buff *skb_list,
-	pr_emerg("skb_debug: start skb list '%s'\n", list_title);
 				    const char *list_title, int cpu)
 {
 	int count;
