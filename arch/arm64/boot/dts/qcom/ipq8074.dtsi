@@ -281,6 +281,14 @@
 			dma-names = "rx", "tx";
 		};
 
+		rng: rng@e3000 {
+			compatible = "qcom,msm-rng";
+			reg = <0xe3000 0x1000>;
+			clocks = <&gcc GCC_PRNG_AHB_CLK>;
+			clock-names = "km_clk_src";
+			qcom,no-qrng-config;
+		};
+
 		apss_clk: qcom,apss_clk@b111000 {
 			compatible = "qcom,apss-ipq807x";
 			reg = <0xb111000 0x6000>;
