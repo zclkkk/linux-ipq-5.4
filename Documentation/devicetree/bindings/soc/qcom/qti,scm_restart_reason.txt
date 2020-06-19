@@ -11,6 +11,9 @@ Optional properties:
  - dload_status: indicate whether memory is reserved for crashdump.
  - dload_sec_status: indicate whether crashdump is enabled for
    secure boot.
+ - dload_warm_reset: set this property to 1 to retain IMEM data
+   during warm reset. dload_status also should be set to 1 when
+   setting this property to 1.
 
 Example for ipq40xx:
 
