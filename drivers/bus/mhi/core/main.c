@@ -401,8 +401,10 @@ irqreturn_t mhi_intvec_threaded_handler(int irq_number, void *priv)
 	 /* If device supports RDDM don't bother processing SYS error */
 	if (mhi_cntrl->rddm_image) {
 		if (mhi_cntrl->ee == MHI_EE_RDDM && mhi_cntrl->ee != ee) {
-			mhi_cntrl->status_cb(mhi_cntrl, MHI_CB_EE_RDDM);
-			wake_up_all(&mhi_cntrl->state_event);
+			if (state != MHI_STATE_RESET) {
+				mhi_cntrl->status_cb(mhi_cntrl, MHI_CB_EE_RDDM);
+				wake_up_all(&mhi_cntrl->state_event);
+			}
 		}
 		goto exit_intvec;
 	}
