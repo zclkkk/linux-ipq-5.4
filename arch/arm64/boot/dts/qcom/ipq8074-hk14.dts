@@ -30,6 +30,21 @@
 				};
 			};
 
+			pcie0_pins: pcie_pins {
+				pcie0_rst {
+					pins = "gpio58";
+					function = "pcie0_rst";
+					drive-strength = <8>;
+					bias-pull-down;
+				};
+				pcie0_wake {
+					pins = "gpio59";
+					function = "pcie0_wake";
+					drive-strength = <8>;
+					bias-pull-down;
+				};
+			};
+
 			mdio_pins: mdio_pinmux {
 				mux_0 {
 					pins = "gpio68";
