@@ -15,6 +15,8 @@
 
 #include "qcom_scm.h"
 
+#define SCM_SVC_ID_SHIFT		0xA
+
 #define QCOM_SCM_FLAG_COLDBOOT_CPU0	0x00
 #define QCOM_SCM_FLAG_COLDBOOT_CPU1	0x01
 #define QCOM_SCM_FLAG_COLDBOOT_CPU2	0x08
@@ -182,7 +184,7 @@ static int qcom_scm_call(struct device *dev, u32 svc_id, u32 cmd_id,
 	cmd->buf_offset = cpu_to_le32(sizeof(*cmd));
 	cmd->resp_hdr_offset = cpu_to_le32(sizeof(*cmd) + cmd_len);
 
-	cmd->id = cpu_to_le32((svc_id << 10) | cmd_id);
+	cmd->id = cpu_to_le32((svc_id << SCM_SVC_ID_SHIFT) | cmd_id);
 	if (cmd_buf)
 		memcpy(qcom_scm_get_command_buffer(cmd), cmd_buf, cmd_len);
 
@@ -729,7 +731,8 @@ int __qcom_scm_is_call_available(struct device *dev, u32 svc_id, u32 cmd_id)
 	int ret;
 
 	if (!is_scm_armv8()) {
-		__le32 svc_cmd = cpu_to_le32((svc_id << 10) | cmd_id);
+		__le32 svc_cmd = cpu_to_le32((svc_id << SCM_SVC_ID_SHIFT) |
+								cmd_id);
 		__le32 ret_val = 0;
 
 		ret = qcom_scm_call(dev, QCOM_SCM_SVC_INFO,
@@ -1380,4 +1383,26 @@ int __qti_qcekey_release_xpu_prot(struct device *dev)
 		return le32_to_cpu(scm_ret);
 
 	return ret;
+}
+
+int __qti_scm_set_resettype(struct device *dev, u32 reset_type)
+{
+	__le32 out;
+	__le32 in;
+	int ret;
+	struct scm_desc desc = {0};
+
+	if (!is_scm_armv8()) {
+		in = cpu_to_le32(reset_type);
+		ret = qcom_scm_call(dev, QCOM_SCM_SVC_BOOT,
+					QTI_SCM_SVC_RESETTYPE_CMD, &in,
+					sizeof(in), &out, sizeof(out));
+	} else {
+		desc.args[0] = reset_type;
+		desc.arginfo = SCM_ARGS(1);
+		ret = qti_scm_call2(dev, SCM_SIP_FNID(QCOM_SCM_SVC_BOOT,
+					QTI_SCM_SVC_RESETTYPE_CMD), &desc);
+		out = desc.ret[0];
+	}
+	return ret ? : le32_to_cpu(out);
 }
