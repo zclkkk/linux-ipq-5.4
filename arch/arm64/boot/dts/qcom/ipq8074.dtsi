@@ -306,6 +306,7 @@
 			pinctrl-0 = <&serial_4_pins>;
 			pinctrl-names = "default";
 			status = "disabled";
+			tx-watermark = <0>;
 		};
 
 		sdhc_1: sdhci@7824900 {
