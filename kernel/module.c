@@ -1275,6 +1275,7 @@ static struct module_attribute *modinfo_attrs[] = {
 
 static const char vermagic[] = VERMAGIC_STRING;
 
+#if defined (CONFIG_MODVERSIONS) || !defined (CONFIG_MODULE_STRIPPED)
 static int try_to_force_load(struct module *mod, const char *reason)
 {
 #ifdef CONFIG_MODULE_FORCE_LOAD
@@ -1286,6 +1287,7 @@ static int try_to_force_load(struct module *mod, const char *reason)
 	return -ENOEXEC;
 #endif
 }
+#endif
 
 #ifdef CONFIG_MODVERSIONS
 
