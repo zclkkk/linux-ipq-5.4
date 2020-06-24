@@ -1406,3 +1406,45 @@ int __qti_scm_set_resettype(struct device *dev, u32 reset_type)
 	}
 	return ret ? : le32_to_cpu(out);
 }
+
+int __qti_config_ice_sec(struct device *dev, void *conf_buf, int size)
+{
+	int ret;
+
+	if (!is_scm_armv8()) {
+		ret = qcom_scm_call(dev, QTI_SVC_ICE, SCM_ARGS(2,
+				QTI_SCM_PARAM_BUF_RO, QTI_SCM_PARAM_VAL),
+				NULL, 0, conf_buf, size);
+	} else {
+		__le32 scm_ret;
+		struct scm_desc desc = {0};
+		dma_addr_t conf_phys;
+
+		conf_phys = dma_map_single(dev, conf_buf, size, DMA_TO_DEVICE);
+
+		ret = dma_mapping_error(dev, conf_phys);
+
+		if (ret) {
+			dev_err(dev, "Allocation fail for conf buffer\n");
+			return -ENOMEM;
+		}
+
+		desc.arginfo = SCM_ARGS(2, QTI_SCM_PARAM_BUF_RO,
+						QTI_SCM_PARAM_VAL);
+		desc.args[0] = (u64)conf_phys;
+		desc.args[1] = size;
+
+		ret = qti_scm_call2(dev, SCM_SIP_FNID(QTI_SVC_ICE,
+				QTI_SCM_ICE_CMD), &desc);
+
+		scm_ret = desc.ret[0];
+
+		dma_unmap_single(dev, conf_phys, size, DMA_TO_DEVICE);
+
+		if (!ret)
+			return le32_to_cpu(scm_ret);
+	}
+
+	return ret;
+}
+

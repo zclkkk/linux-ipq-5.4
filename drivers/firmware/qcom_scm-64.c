@@ -590,6 +590,32 @@ int __qti_sec_upgrade_auth(struct device *dev, unsigned int scm_cmd_id,
 	return ret ? : res.a1;
 }
 
+int __qti_config_ice_sec(struct device *dev, void *conf_buf, int size)
+{
+	int ret;
+	struct arm_smccc_res res;
+	struct qcom_scm_desc desc = {0};
+	dma_addr_t conf_phys;
+
+	conf_phys = dma_map_single(dev, conf_buf, size, DMA_TO_DEVICE);
+
+	ret = dma_mapping_error(dev, conf_phys);
+	if (ret) {
+		dev_err(dev, "Allocation fail for conf buffer\n");
+		return -ENOMEM;
+	}
+	desc.arginfo = QCOM_SCM_ARGS(2, QTI_SCM_PARAM_BUF_RO,
+						QTI_SCM_PARAM_VAL);
+	desc.args[0] = (u64)conf_phys;
+	desc.args[1] = size;
+
+	ret = qcom_scm_call(dev, ARM_SMCCC_OWNER_SIP, QTI_SVC_ICE,
+						QTI_SCM_ICE_CMD, &desc, &res);
+
+	dma_unmap_single(dev, conf_phys, size, DMA_TO_DEVICE);
+	return ret ? : res.a1;
+}
+
 int __qti_fuseipq_scm_call(struct device *dev, u32 svc_id, u32 cmd_id,
 			    void *cmd_buf, size_t size)
 {

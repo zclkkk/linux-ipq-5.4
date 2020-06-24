@@ -783,6 +783,15 @@ int qti_scm_set_resettype(u32 reset_type)
 }
 EXPORT_SYMBOL(qti_scm_set_resettype);
 
+/*
+ * qti_config_sec_ice() - Configure ICE block securely
+ */
+int qti_config_sec_ice(void *buf, int size)
+{
+	return __qti_config_ice_sec(__scm->dev, buf, size);
+}
+EXPORT_SYMBOL(qti_config_sec_ice);
+
 static int qcom_scm_probe(struct platform_device *pdev)
 {
 	struct device_node *np = (&pdev->dev)->of_node;
