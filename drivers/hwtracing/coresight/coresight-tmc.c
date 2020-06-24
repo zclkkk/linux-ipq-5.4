@@ -24,6 +24,7 @@
 #include <linux/coresight.h>
 #include <linux/amba/bus.h>
 #include <linux/of_reserved_mem.h>
+#include <linux/of_irq.h>
 
 #include "coresight-priv.h"
 #include "coresight-tmc.h"
@@ -66,6 +67,7 @@ void tmc_enable_hw(struct tmc_drvdata *drvdata)
 	drvdata->enable = true;
 	writel_relaxed(TMC_CTL_CAPT_EN, drvdata->base + TMC_CTL);
 }
+EXPORT_SYMBOL(tmc_enable_hw);
 
 void tmc_disable_hw(struct tmc_drvdata *drvdata)
 {
@@ -416,12 +418,12 @@ static ssize_t out_mode_store(struct device *dev,
 			      const char *buf, size_t size)
 {
 	struct tmc_drvdata *drvdata = dev_get_drvdata(dev->parent);
-	char str[10] = "";
+	char str[16] = "";
 	int ret;
 
-	if (strlen(buf) >= 10)
+	if (strlen(buf) >= 16)
 		return -EINVAL;
-	if (sscanf(buf, "%10s", str) != 1)
+	if (sscanf(buf, "%16s", str) != 1)
 		return -EINVAL;
 	ret = tmc_etr_switch_mode(drvdata, str);
 	return ret ? ret : size;
@@ -574,6 +576,29 @@ static void tmc_get_q6_etr_region(struct device *dev)
 	}
 }
 
+static irqreturn_t etr_handler(int irq, void *data)
+{
+	struct tmc_drvdata *drvdata = data;
+	unsigned long flags;
+
+	spin_lock_irqsave(&drvdata->spinlock, flags);
+	if (drvdata->out_mode == TMC_ETR_OUT_MODE_Q6MEM_STREAM) {
+		CS_UNLOCK(drvdata->base);
+		atomic_add(PAGES_PER_DATA, &drvdata->seq_no);
+		if (atomic_read(&drvdata->seq_no) > COMP_PAGES_PER_DATA)
+			tmc_disable_hw(drvdata);
+		else
+			tmc_enable_hw(drvdata);
+		schedule_work(&drvdata->qld_stream_work);
+		CS_LOCK(drvdata->base);
+	}
+	spin_unlock_irqrestore(&drvdata->spinlock, flags);
+	return IRQ_HANDLED;
+}
+
+struct tmc_drvdata *tmc_drvdata_stream;
+EXPORT_SYMBOL(tmc_drvdata_stream);
+
 static int tmc_probe(struct amba_device *adev, const struct amba_id *id)
 {
 	int ret = 0;
@@ -586,6 +611,7 @@ static int tmc_probe(struct amba_device *adev, const struct amba_id *id)
 	struct coresight_desc desc = { 0 };
 	struct coresight_dev_list *dev_list = NULL;
 	struct coresight_cti_data *ctidata;
+	int irq;
 
 	ret = -ENOMEM;
 	drvdata = devm_kzalloc(dev, sizeof(*drvdata), GFP_KERNEL);
@@ -667,7 +693,19 @@ static int tmc_probe(struct amba_device *adev, const struct amba_id *id)
 					 coresight_get_uci_data(id));
 		if (ret)
 			goto out;
-		drvdata->byte_cntr = byte_cntr_init(adev, drvdata);
+		drvdata->byte_cntr = NULL;
+		irq = of_irq_get_byname(adev->dev.of_node, "byte-cntr-irq");
+		if (irq > 0) {
+			if (devm_request_irq(dev, irq, etr_handler,
+						IRQF_TRIGGER_RISING |
+						IRQF_SHARED,
+						"tmc-etr",
+						drvdata))
+				dev_err(dev, "Byte_cntr interrupt registration failed\n");
+		}
+		atomic_set(&drvdata->completed_seq_no, 0);
+		atomic_set(&drvdata->seq_no, 0);
+		tmc_drvdata_stream = drvdata;
 		ret = tmc_etr_bam_init(adev, drvdata);
 		if (ret)
 			goto out;

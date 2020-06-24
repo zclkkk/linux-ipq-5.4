@@ -154,6 +154,7 @@ enum tmc_etr_out_mode {
 	TMC_ETR_OUT_MODE_MEM,
 	TMC_ETR_OUT_MODE_USB,
 	TMC_ETR_OUT_MODE_Q6MEM,
+	TMC_ETR_OUT_MODE_Q6MEM_STREAM,
 };
 
 static const char * const str_tmc_etr_out_mode[] = {
@@ -161,6 +162,7 @@ static const char * const str_tmc_etr_out_mode[] = {
 	[TMC_ETR_OUT_MODE_MEM]		= "mem",
 	[TMC_ETR_OUT_MODE_USB]		= "usb",
 	[TMC_ETR_OUT_MODE_Q6MEM]	= "q6mem",
+	[TMC_ETR_OUT_MODE_Q6MEM_STREAM] = "q6mem_stream",
 };
 
 struct tmc_etr_bam_data {
@@ -267,6 +269,10 @@ struct tmc_drvdata {
 	void __iomem		*q6_etr_vaddr;
 	dma_addr_t		q6_etr_paddr;
 	u32			q6_size;
+	struct work_struct	qld_stream_work;
+	struct socket		*qld_stream_sock;
+	atomic_t		seq_no;
+	atomic_t		completed_seq_no;
 };
 
 struct etr_buf_operations {
@@ -283,11 +289,13 @@ struct etr_buf_operations {
  * @nr_pages:		Number of pages in the list.
  * @daddrs:		Array of DMA'able page address.
  * @pages:		Array pages for the buffer.
+ * @order:		Order of the page
  */
 struct tmc_pages {
 	int nr_pages;
 	dma_addr_t	*daddrs;
 	struct page	**pages;
+	int order;
 };
 
 /*
@@ -308,6 +316,62 @@ struct tmc_sg_table {
 	int node;
 	struct tmc_pages table_pages;
 	struct tmc_pages data_pages;
+};
+
+/*
+ * The TMC ETR SG has a page size of 4K. The SG table contains pointers
+ * to 4KB buffers. However, the OS may use a PAGE_SIZE different from
+ * 4K (i.e, 16KB or 64KB). This implies that a single OS page could
+ * contain more than one SG buffer and tables.
+ *
+ * A table entry has the following format:
+ *
+ * ---Bit31------------Bit4-------Bit1-----Bit0--
+ * |     Address[39:12]    | SBZ |  Entry Type  |
+ * ----------------------------------------------
+ *
+ * Address: Bits [39:12] of a physical page address. Bits [11:0] are
+ *	    always zero.
+ *
+ * Entry type:
+ *	b00 - Reserved.
+ *	b01 - Last entry in the tables, points to 4K page buffer.
+ *	b10 - Normal entry, points to 4K page buffer.
+ *	b11 - Link. The address points to the base of next table.
+ */
+
+typedef u32 sgte_t;
+
+#define ETR_SG_PAGE_SHIFT		12
+#define ETR_SG_PAGE_SIZE		(1UL << ETR_SG_PAGE_SHIFT)
+#define ETR_SG_PAGES_PER_SYSPAGE	(PAGE_SIZE / ETR_SG_PAGE_SIZE)
+#define ETR_SG_PTRS_PER_PAGE		(ETR_SG_PAGE_SIZE / sizeof(sgte_t))
+#define ETR_SG_PTRS_PER_SYSPAGE		(PAGE_SIZE / sizeof(sgte_t))
+
+#define ETR_SG_ET_MASK			0x3
+#define ETR_SG_ET_LAST			0x1
+#define ETR_SG_ET_NORMAL		0x2
+#define ETR_SG_ET_LINK			0x3
+
+#define ETR_SG_ADDR_SHIFT		4
+
+#define ETR_SG_ENTRY(addr, type) \
+	(sgte_t)((((addr) >> ETR_SG_PAGE_SHIFT) << ETR_SG_ADDR_SHIFT) | \
+		 (type & ETR_SG_ET_MASK))
+
+#define ETR_SG_ADDR(entry) \
+	(((dma_addr_t)(entry) >> ETR_SG_ADDR_SHIFT) << ETR_SG_PAGE_SHIFT)
+#define ETR_SG_ET(entry)		((entry) & ETR_SG_ET_MASK)
+
+/*
+ * struct etr_sg_table : ETR SG Table
+ * @sg_table:		Generic SG Table holding the data/table pages.
+ * @hwaddr:		hwaddress used by the TMC, which is the base
+ *			address of the table.
+ */
+struct etr_sg_table {
+	struct tmc_sg_table	*sg_table;
+	dma_addr_t		hwaddr;
 };
 
 /* Generic functions */
@@ -380,7 +444,7 @@ static inline bool tmc_etr_has_cap(struct tmc_drvdata *drvdata, u32 cap)
 	return !!(drvdata->etr_caps & cap);
 }
 
-struct tmc_sg_table *tmc_alloc_sg_table(struct device *dev,
+struct tmc_sg_table *tmc_alloc_sg_table(struct tmc_drvdata *drvdata,
 					int node,
 					int nr_tpages,
 					int nr_dpages,
