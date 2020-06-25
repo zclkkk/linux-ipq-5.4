@@ -1107,6 +1107,8 @@ static int msm_set_baud_rate(struct uart_port *port, unsigned int baud,
 	struct msm_port *msm_port = UART_TO_MSM(port);
 	const struct msm_baud_map *entry;
 	unsigned long flags, rate;
+	struct device *dev = msm_port->uart.dev;
+	u32 tx_watermark = 10;
 
 	flags = *saved_flags;
 	spin_unlock_irqrestore(&port->lock, flags);
@@ -1140,7 +1142,8 @@ static int msm_set_baud_rate(struct uart_port *port, unsigned int baud,
 	msm_write(port, watermark, UART_RFWR);
 
 	/* set TX watermark */
-	msm_write(port, 10, UART_TFWR);
+	of_property_read_u32(dev->of_node, "tx-watermark", &tx_watermark);
+	msm_write(port, tx_watermark, UART_TFWR);
 
 	msm_write(port, UART_CR_CMD_PROTECTION_EN, UART_CR);
 
@@ -1570,6 +1573,33 @@ static struct msm_port msm_uart_ports[] = {
 			.flags = UPF_BOOT_AUTOCONF,
 			.fifosize = 64,
 			.line = 2,
+		},
+	},
+	{
+		.uart = {
+			.iotype = UPIO_MEM,
+			.ops = &msm_uart_pops,
+			.flags = UPF_BOOT_AUTOCONF,
+			.fifosize = 64,
+			.line = 3,
+		},
+	},
+	{
+		.uart = {
+			.iotype = UPIO_MEM,
+			.ops = &msm_uart_pops,
+			.flags = UPF_BOOT_AUTOCONF,
+			.fifosize = 64,
+			.line = 4,
+		},
+	},
+	{
+		.uart = {
+			.iotype = UPIO_MEM,
+			.ops = &msm_uart_pops,
+			.flags = UPF_BOOT_AUTOCONF,
+			.fifosize = 64,
+			.line = 5,
 		},
 	},
 };
