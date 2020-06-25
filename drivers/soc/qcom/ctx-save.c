@@ -15,6 +15,7 @@ struct ctx_save_tlv_msg {
 	unsigned char *cur_pos;
 	unsigned int len;
 	spinlock_t spinlock;
+	bool is_panic;
 };
 
 struct ctx_save_props {
@@ -157,6 +158,17 @@ int ctx_save_add_tlv(unsigned char type, unsigned int size,
 }
 EXPORT_SYMBOL(ctx_save_add_tlv);
 
+static int ctx_save_panic_handler(struct notifier_block *nb,
+				  unsigned long event, void *ptr)
+{
+	ctx_tlv_msg.is_panic = true;
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block panic_nb = {
+	.notifier_call = ctx_save_panic_handler,
+};
+
 static int ctx_save_probe(struct platform_device *pdev)
 {
 	void *scm_regsave;
@@ -180,6 +192,7 @@ static int ctx_save_probe(struct platform_device *pdev)
 	uname = utsname();
 	ctx_save_add_tlv(CTX_SAVE_TLV_UNAME, sizeof(*uname), uname);
 
+	atomic_notifier_chain_register(&panic_notifier_list, &panic_nb);
 	ret = qti_scm_regsave(SCM_SVC_UTIL, SCM_CMD_SET_REGSAVE,
 			scm_regsave, prop->crashdump_page_size);
 	return ret;
