@@ -251,6 +251,11 @@ static void mod_update_bounds(struct module *mod)
 struct list_head *kdb_modules = &modules; /* kdb needs the list of modules */
 #endif /* CONFIG_KGDB_KDB */
 
+#ifdef CONFIG_QTI_CTXT_SAVE
+struct list_head *minidump_modules = &modules;
+EXPORT_SYMBOL(minidump_modules);
+#endif /* CONFIG_QTI_CTXT_SAVE */
+
 static void module_assert_mutex(void)
 {
 	lockdep_assert_held(&module_mutex);

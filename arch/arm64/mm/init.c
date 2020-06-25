@@ -616,3 +616,12 @@ static int __init register_mem_limit_dumper(void)
 	return 0;
 }
 __initcall(register_mem_limit_dumper);
+
+#ifdef CONFIG_QTI_CTXT_SAVE
+void minidump_get_pgd_info(uint64_t *pt_start, uint64_t *pt_len)
+{
+	*pt_start = (uintptr_t)swapper_pg_dir;
+	*pt_len = SZ_4K;
+}
+#endif /* CONFIG_QTI_CTXT_SAVE */
+
