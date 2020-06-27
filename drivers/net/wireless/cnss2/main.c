@@ -21,7 +21,9 @@
 #include <linux/timer.h>
 #include <linux/coresight.h>
 #include <soc/qcom/ramdump.h>
-#include <soc/qcom/subsystem_notif.h>
+#include <linux/remoteproc/qcom_rproc.h>
+#include <linux/remoteproc.h>
+#include <linux/of_address.h>
 
 #include "main.h"
 #include "debug.h"
@@ -1085,33 +1087,41 @@ static void cnss_put_resources(struct cnss_plat_data *plat_priv)
 }
 int cnss_unregister_qca8074_cb(struct cnss_plat_data *plat_priv)
 {
-	void *handler = plat_priv->esoc_info.modem_notify_handler;
+	int ret = 0;
 
-	if (handler) {
-		/* unregister atomic handler first */
-		subsys_notif_unregister_atomic_notifier(handler,
-			&plat_priv->modem_atomic_nb);
-		subsys_notif_unregister_notifier(handler, &plat_priv->modem_nb);
+	if (plat_priv->modem_nb.notifier_call) {
+		ret = rproc_unregister_subsys_notifier(
+				plat_priv->subsys_info.subsys_desc.name,
+				&plat_priv->modem_nb, &plat_priv->modem_atomic_nb);
+		if (ret) {
+			cnss_pr_err("%s: failed to unregister ret %d\n",__func__,ret);
+			return ret;
+		}
 		memset(&plat_priv->modem_nb, 0, sizeof(struct notifier_block));
-		plat_priv->esoc_info.modem_notify_handler = NULL;
+		memset(&plat_priv->modem_atomic_nb, 0, sizeof(struct notifier_block));
 	}
 	return 0;
 }
 
 int cnss_unregister_qcn9000_cb(struct cnss_plat_data *plat_priv)
 {
-	void *handler = plat_priv->esoc_info.modem_notify_handler;
+	int ret = 0;
 
-	if (handler) {
-		/* unregister atomic handler first */
-		subsys_notif_unregister_atomic_notifier(handler,
-						&plat_priv->modem_atomic_nb);
-		subsys_notif_unregister_notifier(handler, &plat_priv->modem_nb);
+	if (plat_priv->modem_nb.notifier_call) {
+		ret = rproc_unregister_subsys_notifier(
+				plat_priv->subsys_info.subsys_desc.name,
+				&plat_priv->modem_nb, &plat_priv->modem_atomic_nb);
+		if (ret) {
+			cnss_pr_err("%s: failed to unregister ret %d\n",__func__,ret);
+			return ret;
+		}
 		memset(&plat_priv->modem_nb, 0, sizeof(struct notifier_block));
-		plat_priv->esoc_info.modem_notify_handler = NULL;
+		memset(&plat_priv->modem_atomic_nb, 0, sizeof(struct notifier_block));
 	}
 	return 0;
+
 }
+
 
 static int cnss_qcn9000_notifier_atomic_nb(struct notifier_block *nb,
 					   unsigned long code,
@@ -1191,27 +1201,26 @@ void *cnss_register_qcn9000_cb(struct cnss_plat_data *plat_priv)
 {
 	struct cnss_subsys_info *subsys_info;
 	void *ss_handle = NULL;
-	int ret = 0, index;
+	int index;
+	int ret = 0;
 
 	subsys_info = &plat_priv->subsys_info;
 	index = plat_priv->wlfw_service_instance_id - NODE_ID_BASE;
 	subsys_info->subsys_desc.name = plat_priv->device_name;
+
 	plat_priv->modem_nb.notifier_call = cnss_qcn9000_notifier_nb;
-	ss_handle = subsys_notif_register_notifier(
-		subsys_info->subsys_desc.name, &plat_priv->modem_nb);
-	/* register the atomic notifier as well */
-	if (ss_handle) {
-		plat_priv->modem_atomic_nb.notifier_call =
-			cnss_qcn9000_notifier_atomic_nb;
-		ret = subsys_notif_register_atomic_notifier(ss_handle,
-					&plat_priv->modem_atomic_nb);
-		if (ret)
-			pr_err("atomic notifier registration failed\n");
-	} else {
-		pr_err("notifier registration failed\n");
+	plat_priv->modem_atomic_nb.notifier_call =
+				cnss_qcn9000_notifier_atomic_nb;
+	ret = rproc_register_subsys_notifier(subsys_info->subsys_desc.name,
+			&plat_priv->modem_nb, &plat_priv->modem_atomic_nb);
+	if (ret) {
+		cnss_pr_err("%s: failed to register rproc ret %d\n", __func__, ret);
+		return NULL;
 	}
+	ss_handle = subsys_info;
 
 	return ss_handle;
+
 }
 
 static int cnss_qca8074_notifier_nb(struct notifier_block *nb,
@@ -1254,19 +1263,20 @@ void *cnss_register_qca8074_cb(struct cnss_plat_data *plat_priv)
 {
 	struct cnss_subsys_info *subsys_info;
 	void *ss_handle = NULL;
+	int ret = 0;
 
 	subsys_info = &plat_priv->subsys_info;
 	plat_priv->modem_nb.notifier_call = cnss_qca8074_notifier_nb;
-	ss_handle = subsys_notif_register_notifier(
-		subsys_info->subsys_desc.name, &plat_priv->modem_nb);
-	/* register the atomic notifier as well */
-	if (ss_handle) {
-		plat_priv->modem_atomic_nb.notifier_call =
-			cnss_qca8074_notifier_atomic_nb;
-		subsys_notif_register_atomic_notifier(ss_handle,
-			&plat_priv->modem_atomic_nb);
+	plat_priv->modem_atomic_nb.notifier_call =
+					cnss_qca8074_notifier_atomic_nb;
+	ret = rproc_register_subsys_notifier(subsys_info->subsys_desc.name,
+			&plat_priv->modem_nb, &plat_priv->modem_atomic_nb);
+	if (ret) {
+		cnss_pr_err("%s: failed to register rproc ret %d\n", __func__, ret);
+		return NULL;
 	}
 
+	ss_handle = subsys_info;
 	return ss_handle;
 }
 
@@ -1304,13 +1314,22 @@ int cnss_wlan_register_driver(struct cnss_wlan_driver *driver_ops)
 					cnss_register_qca8074_cb(plat_priv);
 
 			subsys_info = &plat_priv->subsys_info;
+			if (of_property_read_u32(plat_priv->plat_dev->dev.of_node,
+					"qcom,rproc", &subsys_info->rproc_handle)) {
+				ret = -EINVAL;
+				goto reset_ctx;
+			}
 			subsys_info->subsys_handle =
-				subsystem_get(subsys_info->subsys_desc.name);
+				rproc_get_by_phandle(subsys_info->rproc_handle);
 			if (!subsys_info->subsys_handle) {
 				ret = -EINVAL;
 				goto reset_ctx;
 			} else if (IS_ERR(subsys_info->subsys_handle)) {
 				ret = PTR_ERR(subsys_info->subsys_handle);
+				goto reset_ctx;
+			}
+			if (rproc_boot(subsys_info->subsys_handle)) {
+				ret = -EINVAL;
 				goto reset_ctx;
 			}
 		}
@@ -1327,8 +1346,6 @@ int cnss_wlan_register_driver(struct cnss_wlan_driver *driver_ops)
 			plat_priv->driver_ops = driver_ops;
 			set_bit(CNSS_DRIVER_LOADING, &plat_priv->driver_state);
 			esoc_info = &plat_priv->esoc_info;
-			esoc_info->modem_notify_handler =
-					cnss_register_qcn9000_cb(plat_priv);
 			cnss_register_subsys(plat_priv);
 		}
 		plat_priv->driver_status = CNSS_INITIALIZED;
@@ -1423,7 +1440,7 @@ void cnss_wlan_unregister_driver(struct cnss_wlan_driver *driver_ops)
 			if (subsys_info->subsys_handle &&
 			    !subsys_info->subsystem_put_in_progress) {
 				subsys_info->subsystem_put_in_progress = true;
-				subsystem_put(subsys_info->subsys_handle);
+				rproc_shutdown(subsys_info->subsys_handle);
 				subsys_info->subsystem_put_in_progress = false;
 			} else {
 				ops->remove((struct pci_dev *)
@@ -1445,7 +1462,7 @@ void cnss_wlan_unregister_driver(struct cnss_wlan_driver *driver_ops)
 			if (subsys_info->subsys_handle &&
 			    !subsys_info->subsystem_put_in_progress) {
 				subsys_info->subsystem_put_in_progress = true;
-				subsystem_put(subsys_info->subsys_handle);
+				rproc_shutdown(subsys_info->subsys_handle);
 				subsys_info->subsys_handle = NULL;
 				subsys_info->subsystem_put_in_progress = false;
 			} else {
@@ -1486,8 +1503,18 @@ void  *cnss_subsystem_get(struct device *dev, int device_id)
 		       __func__, subsys_info->subsys_handle);
 		return NULL;
 	}
-	subsys_info->subsys_handle =
-				subsystem_get(subsys_info->subsys_desc.name);
+	subsys_info->subsys_handle = rproc_get_by_name(subsys_info->subsys_desc.name);
+	if (!subsys_info->subsys_handle) {
+		pr_err("%s:%d error: subsys handle is NULL\n",__func__,__LINE__);
+		return NULL;
+	} else if (IS_ERR(subsys_info->subsys_handle)) {
+		pr_err("%s:%d error: subsys handle ERR\n",__func__,__LINE__);
+		return NULL;
+	}
+	if (rproc_boot(subsys_info->subsys_handle)) {
+		pr_err("%s:%d error: rproc_boot failed\n",__func__,__LINE__);
+		return NULL;
+	}
 	return subsys_info->subsys_handle;
 }
 EXPORT_SYMBOL(cnss_subsystem_get);
@@ -1512,7 +1539,7 @@ void cnss_subsystem_put(struct device *dev)
 
 	if (!subsys_info->subsystem_put_in_progress) {
 		subsys_info->subsystem_put_in_progress = true;
-		subsystem_put(subsys_info->subsys_handle);
+		rproc_shutdown(subsys_info->subsys_handle);
 		subsys_info->subsystem_put_in_progress = false;
 		subsys_info->subsys_handle = NULL;
 	}
@@ -1586,17 +1613,13 @@ static int cnss_register_esoc(struct cnss_plat_data *plat_priv)
 
 	plat_priv->modem_nb.notifier_call = cnss_modem_notifier_nb;
 	esoc_info->modem_current_status = 0;
-	esoc_info->modem_notify_handler =
-		subsys_notif_register_notifier(esoc_info->esoc_desc ?
-					       esoc_info->esoc_desc->name :
-					       "modem", &plat_priv->modem_nb);
-	if (IS_ERR(esoc_info->modem_notify_handler)) {
-		ret = PTR_ERR(esoc_info->modem_notify_handler);
-		cnss_pr_err("Failed to register esoc notifier, err = %d\n",
-			    ret);
-		goto unreg_esoc;
+	ret = rproc_register_subsys_notifier(esoc_info->esoc_desc ?
+					 esoc_info->esoc_desc->name :
+					 "modem", &plat_priv->modem_nb, NULL);
+	if (ret) {
+		cnss_pr_err("%s: Failed register rproc. ret %d\n",__func__, ret);
+		return ret
 	}
-
 	return 0;
 unreg_esoc:
 	if (esoc_info->esoc_desc)
@@ -1607,32 +1630,23 @@ out:
 
 static void cnss_unregister_esoc(struct cnss_plat_data *plat_priv)
 {
-	struct device *dev;
 	struct cnss_esoc_info *esoc_info;
+	int ret = 0;
 
-	dev = &plat_priv->plat_dev->dev;
 	esoc_info = &plat_priv->esoc_info;
-
-	if (esoc_info->notify_modem_status)
-		subsys_notif_unregister_notifier
-		(esoc_info->modem_notify_handler,
-		 &plat_priv->modem_nb);
-	if (esoc_info->esoc_desc)
-		devm_unregister_esoc_client(dev, esoc_info->esoc_desc);
+	ret = rproc_unregister_subsys_notifier("modem", &plat_priv->modem_nb, NULL);
+	if (ret) {
+		cnss_pr_err("%s: Failed to unregister rproc. ret %d\n",__func__, ret);
+		return;
+	}
 }
 #endif
 
-static int cnss_subsys_powerup(const struct subsys_desc *subsys_desc)
+static int cnss_subsys_powerup(struct rproc *subsys_desc)
 {
 	int ret = 0;
 	struct cnss_plat_data *plat_priv;
-
-	if (!subsys_desc->dev) {
-		printk(KERN_ERR "dev from subsys_desc is NULL\n");
-		return -ENODEV;
-	}
-
-	plat_priv = dev_get_drvdata(subsys_desc->dev);
+	plat_priv = dev_get_drvdata(subsys_desc->dev.parent);
 	if (!plat_priv)
 		return -ENODEV;
 
@@ -1655,17 +1669,10 @@ static int cnss_subsys_powerup(const struct subsys_desc *subsys_desc)
 	return cnss_bus_dev_powerup(plat_priv);
 }
 
-static int cnss_subsys_shutdown(const struct subsys_desc *subsys_desc,
-				bool force_stop)
+static int cnss_subsys_shutdown(struct rproc *subsys_desc)
 {
 	struct cnss_plat_data *plat_priv;
-
-	if (!subsys_desc->dev) {
-		pr_err("dev from subsys_desc is NULL\n");
-		return -ENODEV;
-	}
-
-	plat_priv = dev_get_drvdata(subsys_desc->dev);
+	plat_priv = dev_get_drvdata(subsys_desc->dev.parent);
 	if (!plat_priv) {
 		printk(KERN_ERR "plat_priv is NULL!\n");
 		return -ENODEV;
@@ -1679,6 +1686,12 @@ static int cnss_subsys_shutdown(const struct subsys_desc *subsys_desc,
 	return cnss_bus_dev_shutdown(plat_priv);
 }
 
+static int cnss_subsys_dummy_load(struct rproc *subsys_desc, const struct firmware *fw)
+{
+	/*no firmware load it will be taken care by pci and mhi*/
+	return 0;
+}
+
 void cnss_device_crashed(struct device *dev)
 {
 	struct cnss_plat_data *plat_priv = cnss_bus_dev_to_plat_priv(dev);
@@ -1688,17 +1701,17 @@ void cnss_device_crashed(struct device *dev)
 		return;
 
 	subsys_info = &plat_priv->subsys_info;
-	if (subsys_info->subsys_device) {
+	if (subsys_info->subsys_handle) {
 		set_bit(CNSS_DRIVER_RECOVERY, &plat_priv->driver_state);
-		subsys_set_crash_status(subsys_info->subsys_device, true);
-		subsystem_restart_dev(subsys_info->subsys_device);
+		rproc_report_crash(subsys_info->subsys_handle,
+						RPROC_FATAL_ERROR);
 	}
 }
 EXPORT_SYMBOL(cnss_device_crashed);
 
-static void cnss_subsys_crash_shutdown(const struct subsys_desc *subsys_desc)
+static void cnss_subsys_crash_shutdown(struct rproc *subsys_desc)
 {
-	struct cnss_plat_data *plat_priv = dev_get_drvdata(subsys_desc->dev);
+	struct cnss_plat_data *plat_priv = dev_get_drvdata(subsys_desc->dev.parent);
 
 	if (!plat_priv) {
 		cnss_pr_err("plat_priv is NULL\n");
@@ -1708,20 +1721,35 @@ static void cnss_subsys_crash_shutdown(const struct subsys_desc *subsys_desc)
 	cnss_bus_dev_crash_shutdown(plat_priv);
 }
 
-static int cnss_subsys_ramdump(int enable,
-			       const struct subsys_desc *subsys_desc)
+static void cnss_subsys_ramdump(struct rproc *subsys_desc, struct rproc_dump_segment *segment,
+					void  *dest)
 {
-	struct cnss_plat_data *plat_priv = dev_get_drvdata(subsys_desc->dev);
+	struct cnss_plat_data *plat_priv = dev_get_drvdata(subsys_desc->dev.parent);
 
 	if (!plat_priv) {
 		cnss_pr_err("plat_priv is NULL\n");
-		return -ENODEV;
+		return;
 	}
 
-	if (!enable)
-		return 0;
+	cnss_bus_dev_ramdump(plat_priv);
+}
 
-	return cnss_bus_dev_ramdump(plat_priv);
+static int cnss_subsys_add_ramdump_callback(struct rproc *subsys_desc,
+		const struct firmware *firmware)
+{
+	struct cnss_plat_data *plat_priv = dev_get_drvdata(subsys_desc->dev.parent);
+	int ret = 0;
+	if (!plat_priv) {
+		cnss_pr_err("%s: plat_priv is NULL\n",__func__);
+		return -1;
+	}
+	ret = rproc_coredump_add_custom_segment(subsys_desc, 0, 0,
+						cnss_subsys_ramdump, NULL);
+        if (ret) {
+               cnss_pr_err("%s: Failed to add custom segment ret %d\n",__func__, ret);
+               return ret;
+        }
+        return ret;
 }
 
 void *cnss_get_virt_ramdump_mem(struct device *dev, unsigned long *size)
@@ -1792,12 +1820,9 @@ static int cnss_do_recovery(struct cnss_plat_data *plat_priv,
 	if (plat_priv->ramdump_enabled)
 		cnss_bus_dev_ramdump(plat_priv);
 
-	if (!subsys_info->subsys_device)
+	if (!subsys_info->subsys_handle)
 		return 0;
-
-	subsys_set_crash_status(subsys_info->subsys_device, true);
-	subsystem_restart_dev(subsys_info->subsys_device);
-
+	rproc_report_crash(subsys_info->subsys_handle, RPROC_FATAL_ERROR);
 	return 0;
 
 self_recovery:
@@ -2221,18 +2246,18 @@ static int cnss_qdss_trace_free_hdlr(struct cnss_plat_data *plat_priv)
 	return 0;
 }
 
-static void open_timeout_func(unsigned long data)
+static void open_timeout_func(struct timer_list *data)
 {
 	atomic_set(&m3_dump_open_timedout, 1);
 	complete(&m3_dump_open_complete);
 	pr_err("open time Out: M3 dump collection failed\n");
 }
 
-static void dump_timeout_func(unsigned long data)
+static void dump_timeout_func(struct timer_list *data)
 {
 	pr_err("Time Out: Q6 crash dump collection failed\n");
 
-	m3_dump_timer.data = -ETIMEDOUT;
+	m3_dump_timer.expires = -ETIMEDOUT;
 	if (m3_dump_data.task)
 		send_sig(SIGKILL, m3_dump_data.task, 0);
 	complete(&m3_dump_complete);
@@ -2252,7 +2277,7 @@ static int m3_dump_open(struct inode *inode, struct file *file)
 	m3_dump_file_open = true;
 
 	init_completion(&m3_dump_complete);
-	setup_timer(&m3_dump_timer, dump_timeout_func, 0);
+	timer_setup(&m3_dump_timer, dump_timeout_func, 0);
 	mod_timer(&m3_dump_timer,
 		  jiffies + msecs_to_jiffies(M3_DUMP_COMPLETE_TIMEOUT));
 
@@ -2338,7 +2363,7 @@ static int cnss_do_m3_dump_upload(struct cnss_plat_data *plat_priv,
 	/* This avoids race condition between the scheduled timer and the opened
 	 * file discriptor during delay in user space app execution.
 	 */
-	setup_timer(&m3_dump_open_timer, open_timeout_func, 0);
+	timer_setup(&m3_dump_open_timer, open_timeout_func, 0);
 
 	mod_timer(&m3_dump_open_timer,
 		  jiffies + msecs_to_jiffies(M3_DUMP_OPEN_TIMEOUT));
@@ -2353,10 +2378,10 @@ static int cnss_do_m3_dump_upload(struct cnss_plat_data *plat_priv,
 
 	wait_for_completion(&m3_dump_complete);
 
-	if (m3_dump_timer.data == -ETIMEDOUT) {
-		ret = m3_dump_timer.data;
+	if (m3_dump_timer.expires == -ETIMEDOUT) {
+		ret = m3_dump_timer.expires;
 		cnss_pr_err("%s: Failed to collect M3 dump", __func__);
-		m3_dump_timer.data = 0;
+		m3_dump_timer.expires = 0;
 	}
 
 	del_timer_sync(&m3_dump_timer);
@@ -2555,9 +2580,17 @@ static void cnss_driver_event_work(struct work_struct *work)
 #endif
 }
 
+const struct rproc_ops cnss_rproc_ops = {
+	.start = cnss_subsys_powerup,
+	.stop = cnss_subsys_shutdown,
+	.load = cnss_subsys_dummy_load,
+	.parse_fw = cnss_subsys_add_ramdump_callback,
+	.report_panic = cnss_subsys_crash_shutdown,
+};
+
 int cnss_register_subsys(struct cnss_plat_data *plat_priv)
 {
-	int ret = 0, index;
+	int  index;
 	struct cnss_subsys_info *subsys_info;
 
 	subsys_info = &plat_priv->subsys_info;
@@ -2575,47 +2608,46 @@ int cnss_register_subsys(struct cnss_plat_data *plat_priv)
 	case QCA8074V2_DEVICE_ID:
 	case QCA5018_DEVICE_ID:
 	case QCA6018_DEVICE_ID:
-		subsys_info->subsys_desc.name = "qcom_q6v5_wcss";
+		subsys_info->subsys_desc.name = "cd00000.q6v5_wcss";
 		return 0;
 	default:
 		cnss_pr_err("Unknown device ID: 0x%lx\n", plat_priv->device_id);
-		ret = -ENODEV;
-		goto out;
+		return -ENODEV;
 	}
 
 	if (!plat_priv->pci_dev)
 		return 0;
+	subsys_info->subsys_handle = rproc_alloc(&plat_priv->plat_dev->dev,
+				subsys_info->subsys_desc.name,
+				&cnss_rproc_ops, "qcn9000/amss.bin", 0);
 
-	subsys_info->subsys_desc.owner = THIS_MODULE;
-	subsys_info->subsys_desc.powerup = cnss_subsys_powerup;
-	subsys_info->subsys_desc.shutdown = cnss_subsys_shutdown;
-	subsys_info->subsys_desc.ramdump = cnss_subsys_ramdump;
-	subsys_info->subsys_desc.crash_shutdown = cnss_subsys_crash_shutdown;
-	subsys_info->subsys_desc.dev = &plat_priv->plat_dev->dev;
-
-	subsys_info->subsys_device = subsys_register(&subsys_info->subsys_desc);
-	if (IS_ERR(subsys_info->subsys_device)) {
-		ret = PTR_ERR(subsys_info->subsys_device);
-		cnss_pr_err("Failed to register subsys, err = %d\n", ret);
-		goto out;
-	}
-	subsys_info->subsys_handle =
-		subsystem_get(subsys_info->subsys_desc.name);
 	if (!subsys_info->subsys_handle) {
-		cnss_pr_err("Failed to get subsys_handle!\n");
-		ret = -EINVAL;
-		goto unregister_subsys;
-	} else if (IS_ERR(subsys_info->subsys_handle)) {
-		ret = PTR_ERR(subsys_info->subsys_handle);
-		cnss_pr_err("Failed to do subsystem_get, err = %d\n", ret);
-		goto unregister_subsys;
+		cnss_pr_err("%s:%d subsys_handle NULL\n", __func__,__LINE__);
+		return -EINVAL;
+        } else if (IS_ERR(subsys_info->subsys_handle)) {
+		cnss_pr_err("%s:%d subsys_handle ERR\n", __func__,__LINE__);
+		return PTR_ERR(subsys_info->subsys_handle);
+        }
+
+	subsys_info->subsys_handle->auto_boot = false;
+	if (rproc_add(subsys_info->subsys_handle)) {
+		cnss_pr_err("%s:%d failed\n", __func__,__LINE__);
+		return -EINVAL;
+        }
+
+	if (plat_priv->device_id == QCN9000_DEVICE_ID && plat_priv->pci_dev &&
+		(strcmp(plat_priv->driver_ops->name, "pld_pcie") == 0)) {
+			plat_priv->esoc_info.modem_notify_handler =
+					cnss_register_qcn9000_cb(plat_priv);
 	}
+
+	if (rproc_boot(subsys_info->subsys_handle)) {
+		cnss_pr_err("%s:%d failed\n", __func__,__LINE__);
+		return -EINVAL;
+	}
+
 	return 0;
 
-unregister_subsys:
-	subsys_unregister(subsys_info->subsys_device);
-out:
-	return ret;
 }
 
 void cnss_unregister_subsys(struct cnss_plat_data *plat_priv)
@@ -2634,10 +2666,8 @@ void cnss_unregister_subsys(struct cnss_plat_data *plat_priv)
 
 	subsys_info = &plat_priv->subsys_info;
 	if (subsys_info->subsys_handle)
-		subsystem_put(subsys_info->subsys_handle);
+		rproc_shutdown(subsys_info->subsys_handle);
 	subsys_info->subsys_handle = NULL;
-	subsys_unregister(subsys_info->subsys_device);
-	subsys_info->subsys_device = NULL;
 }
 
 static int cnss_init_dump_entry(struct cnss_plat_data *plat_priv)
@@ -2978,7 +3008,7 @@ static int cnss_misc_init(struct cnss_plat_data *plat_priv)
 {
 	int ret;
 
-	setup_timer(&plat_priv->fw_boot_timer,
+	timer_setup(&plat_priv->fw_boot_timer,
 		    cnss_bus_fw_boot_timeout_hdlr,
 		    (unsigned long)plat_priv);
 #ifdef CONFIG_CNSS2_PM

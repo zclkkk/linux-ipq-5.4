@@ -65,7 +65,6 @@ static struct nla_policy cnss_genl_msg_policy[CNSS_GENL_ATTR_MAX + 1] = {
 static struct genl_ops cnss_genl_ops[] = {
 	{
 		.cmd = CNSS_GENL_CMD_MSG,
-		.policy = cnss_genl_msg_policy,
 		.doit = cnss_genl_process_msg,
 	},
 };
@@ -105,7 +104,7 @@ int cnss_genl_process_msg(struct sk_buff *skb, struct genl_info *info)
 	}
 
 	ret = genlmsg_parse(nl_header, &cnss_genl_family, attrs,
-			    CNSS_GENL_ATTR_MAX, NULL);
+			    CNSS_GENL_ATTR_MAX, NULL, NULL);
 	if (ret < 0) {
 		pr_err("%s: RX NLMSG: Parse fail %d", __func__, ret);
 		return -EINVAL;

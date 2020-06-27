@@ -15,6 +15,7 @@
 
 #include <linux/ipc_logging.h>
 #include <linux/printk.h>
+#include <linux/of.h>
 
 #define CNSS_IPC_LOG_PAGES		32
 

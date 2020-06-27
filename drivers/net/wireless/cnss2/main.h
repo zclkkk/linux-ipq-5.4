@@ -13,14 +13,12 @@
 #ifndef _CNSS_MAIN_H
 #define _CNSS_MAIN_H
 #include <asm/arch_timer.h>
-#include <linux/esoc_client.h>
 #include <linux/etherdevice.h>
-#include <linux/msm-bus.h>
 #include <linux/pm_qos.h>
 #include <net/cnss2.h>
 #include <soc/qcom/memory_dump.h>
-#include <soc/qcom/subsystem_restart.h>
-
+#include <linux/of.h>
+#include <linux/platform_device.h>
 #include "qmi.h"
 #include "bus.h"
 
@@ -82,10 +80,15 @@ struct cnss_pinctrl_info {
 	struct pinctrl_state *wlan_en_sleep;
 };
 
+struct subsys_desc {
+        const char *name;
+	struct device *dev;
+};
+
 struct cnss_subsys_info {
-	struct subsys_device *subsys_device;
 	struct subsys_desc subsys_desc;
-	void *subsys_handle;
+	phandle rproc_handle;
+	struct rproc *subsys_handle;
 	bool subsystem_put_in_progress;
 };
 
@@ -402,7 +405,7 @@ struct cnss_plat_data {
 #ifdef CONFIG_ARCH_QCOM
 static inline u64 cnss_get_host_timestamp(struct cnss_plat_data *plat_priv)
 {
-	u64 ticks = arch_counter_get_cntvct();
+	u64 ticks = __arch_counter_get_cntvct();
 	u32 freq = arch_timer_get_cntfrq();
 
 	do_div(ticks, freq / 100000);
@@ -456,5 +459,6 @@ int cnss_qca9000_shutdown_part2(struct cnss_plat_data *plat_priv);
 int cnss_get_cpr_info(struct cnss_plat_data *plat_priv);
 int cnss_update_cpr_info(struct cnss_plat_data *plat_priv);
 void cnss_update_platform_feature_support(u8 type, u32 instance_id, u32 value);
+void coresight_abort(void);
 
 #endif /* _CNSS_MAIN_H */

@@ -16,6 +16,7 @@
 #include "main.h"
 #include "debug.h"
 #include "pci.h"
+#include <linux/moduleparam.h>
 #define CNSS_IPC_LOG_PAGES		32
 
 void *cnss_ipc_log_context;

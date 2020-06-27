@@ -15,6 +15,7 @@ struct bhi_vec_entry;
 struct mhi_timesync;
 struct mhi_buf_info;
 
+#define MHI_RAMDUMP_DUMP_COMPLETE 0x5000
 /**
  * enum MHI_CB - MHI callback
  * @MHI_CB_IDLE: MHI entered idle state
@@ -591,7 +592,7 @@ static inline bool mhi_is_active(struct mhi_device *mhi_dev)
 }
 
 void mhi_wdt_panic_handler(void);
-#ifdef CONFIG_QRTR_MHI
+#ifndef CONFIG_QRTR_MHI
 /**
  * mhi_prepare_for_power_up - Do pre-initialization before power up
  * This is optional, call this before power up if controller do not
@@ -664,8 +665,13 @@ int mhi_download_rddm_img(struct mhi_controller *mhi_cntrl, bool in_panic);
  * @mhi_cntrl: MHI controller
  */
 void mhi_debug_reg_dump(struct mhi_controller *mhi_cntrl);
+enum mhi_ee mhi_get_exec_env(struct mhi_controller *mhi_cntrl);
 
 #else
+static inline enum mhi_ee mhi_get_exec_env(struct mhi_controller *mhi_cntrl)
+{
+	return  MHI_EE_MAX;
+}
 static inline int mhi_prepare_for_power_up(struct mhi_controller *mhi_cntrl)
 {
 	return -1;

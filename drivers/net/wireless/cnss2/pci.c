@@ -369,19 +369,13 @@ MODULE_PARM_DESC(fbc_bypass,
 
 int cnss_pcie_rescan(void)
 {
-#ifdef CONFIG_PCIE_QCOM
-	return qcom_pcie_rescan();
-#else
-	return -EINVAL;
-#endif
+	return 0;
 }
 EXPORT_SYMBOL(cnss_pcie_rescan);
 
 void cnss_pcie_remove_bus(void)
 {
-#ifdef CONFIG_PCIE_QCOM
-	qcom_pcie_remove_bus();
-#endif
+	return;
 }
 EXPORT_SYMBOL(cnss_pcie_remove_bus);
 
@@ -3148,7 +3142,7 @@ static int cnss_pci_enable_msi(struct cnss_pci_data *pci_priv)
 	num_vectors = pci_alloc_irq_vectors(pci_dev,
 					    msi_config->total_vectors,
 					    msi_config->total_vectors,
-					    PCI_IRQ_NOMSIX);
+					    PCI_IRQ_MSI);
 	if (num_vectors != msi_config->total_vectors) {
 		cnss_pr_err("Failed to get enough MSI vectors (%d), available vectors = %d",
 			    msi_config->total_vectors, num_vectors);
@@ -3669,7 +3663,7 @@ static char *cnss_mhi_notify_status_to_str(enum MHI_CB status)
 	}
 };
 
-static void cnss_dev_rddm_timeout_hdlr(unsigned long data)
+static void cnss_dev_rddm_timeout_hdlr(struct timer_list *data)
 {
 	struct cnss_pci_data *pci_priv = (struct cnss_pci_data *)data;
 
@@ -3949,7 +3943,7 @@ int cnss_pci_probe(struct pci_dev *pci_dev,
 	case QCN9000_DEVICE_ID:
 	case QCA6390_DEVICE_ID:
 	case QCA6490_DEVICE_ID:
-		setup_timer(&pci_priv->dev_rddm_timer,
+		timer_setup(&pci_priv->dev_rddm_timer,
 			    cnss_dev_rddm_timeout_hdlr,
 			    (unsigned long)pci_priv);
 		INIT_DELAYED_WORK(&pci_priv->time_sync_work,

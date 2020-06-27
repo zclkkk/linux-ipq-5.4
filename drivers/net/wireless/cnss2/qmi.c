@@ -15,6 +15,7 @@
 #include <linux/ktime.h>
 #include <linux/mutex.h>
 #include <linux/soc/qcom/qmi.h>
+#include <linux/of.h>
 
 #include "bus.h"
 #include "debug.h"

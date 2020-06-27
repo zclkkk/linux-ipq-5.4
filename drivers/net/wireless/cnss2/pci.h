@@ -27,7 +27,9 @@
 #include <linux/slab.h>
 //#include <linux/mhi.h>
 #include "mhi.h"
+#ifdef CONFIG_PCI_MSM
 #include <linux/msm_pcie.h>
+#endif
 #include <linux/pci.h>
 
 #include "main.h"
@@ -103,7 +105,9 @@ struct cnss_pci_data {
 	u8 pci_link_down_ind;
 	struct pci_saved_state *saved_state;
 	struct pci_saved_state *default_state;
+#ifdef CONFIG_PCI_MSM
 	struct msm_pcie_register_event msm_pci_event;
+#endif
 	atomic_t auto_suspended;
 	atomic_t drv_connected;
 	u8 drv_connected_last;

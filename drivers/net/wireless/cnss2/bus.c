@@ -275,7 +275,7 @@ int cnss_bus_force_fw_assert_hdlr(struct cnss_plat_data *plat_priv)
 	}
 }
 
-void cnss_bus_fw_boot_timeout_hdlr(unsigned long data)
+void cnss_bus_fw_boot_timeout_hdlr(struct timer_list *data)
 {
 	struct cnss_plat_data *plat_priv = (struct cnss_plat_data *)data;
 	if (!plat_priv)
