@@ -714,8 +714,10 @@ int add_mtd_device(struct mtd_info *mtd)
 
 	return 0;
 
+#ifdef CONFIG_MTD_SUPPORTS_NVMEM
 fail_nvmem_add:
 	device_unregister(&mtd->dev);
+#endif
 fail_added:
 	of_node_put(mtd_get_of_node(mtd));
 	idr_remove(&mtd_idr, i);
