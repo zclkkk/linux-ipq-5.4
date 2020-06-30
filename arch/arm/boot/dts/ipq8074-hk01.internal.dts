@@ -25,20 +25,44 @@
 		qcom,secure;
 		reg = <0x4ab000 0x4>;
 	};
+
+	acc0: clock-controller@b188000 {
+		compatible = "qcom,arm-cortex-acc";
+		reg = <0x0b188000 0x1000>;
+	};
+
+	acc1: clock-controller@b198000 {
+		compatible = "qcom,arm-cortex-acc";
+		reg = <0x0b198000 0x1000>;
+	};
+
+	acc2: clock-controller@b1a8000 {
+		compatible = "qcom,arm-cortex-acc";
+		reg = <0x0b1a8000 0x1000>;
+	};
+
+	acc3: clock-controller@b1b8000 {
+		compatible = "qcom,arm-cortex-acc";
+		reg = <0x0b1b8000 0x1000>;
+	};
 };
 
 &CPU0 {
 	enable-method = "qcom,arm-cortex-acc";
+	qcom,acc = <&acc0>;
 };
 
 &CPU1 {
 	enable-method = "qcom,arm-cortex-acc";
+	qcom,acc = <&acc1>;
 };
 
 &CPU2 {
 	enable-method = "qcom,arm-cortex-acc";
+	qcom,acc = <&acc2>;
 };
 
 &CPU3 {
 	enable-method = "qcom,arm-cortex-acc";
+	qcom,acc = <&acc3>;
 };
