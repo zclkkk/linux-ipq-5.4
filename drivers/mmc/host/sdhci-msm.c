@@ -1749,26 +1749,6 @@ static int sdhci_msm_setup_ice_clk(struct sdhci_msm_host *msm_host,
 	return 0;
 }
 
-static int sdhci_msm_initialize_ice(struct sdhci_msm_host *msm_host,
-						struct platform_device *pdev,
-						struct sdhci_host *host)
-{
-	int ret;
-
-	if (!msm_host->ice.pdev)
-		return 0;
-
-	ret = sdhci_msm_ice_init(host);
-	if (ret) {
-		dev_err(&pdev->dev, "%s: SDHCi ICE init failed (%d)\n",
-				mmc_hostname(host->mmc), ret);
-		return -EINVAL;
-	}
-	host->is_crypto_en = true;
-
-	return 0;
-}
-
 static int sdhci_msm_get_ice_device_vops(struct sdhci_host *host,
 					struct platform_device *pdev)
 {
