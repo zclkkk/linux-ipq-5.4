@@ -34,17 +34,6 @@ struct panel_id {
 #define NO_PANEL		0xffff	/* No Panel */
 #define EBI2_PANEL		1	/* EBI2 */
 
-static inline const char *mdss_panel2str(u32 panel)
-{
-	static const char const *names[] = {
-	};
-
-	if (panel >= ARRAY_SIZE(names) || !names[panel])
-		return "UNKNOWN";
-
-	return names[panel];
-}
-
 /* panel class */
 enum {
 	DISPLAY_LCD = 0,	/* lcd = ebi2/mddi */
