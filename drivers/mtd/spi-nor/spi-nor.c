@@ -4547,7 +4547,9 @@ static void spi_nor_info_init_params(struct spi_nor *nor)
 	struct spi_nor_erase_map *map = &params->erase_map;
 	const struct flash_info *info = nor->info;
 	struct device_node *np = spi_nor_get_flash_node(nor);
+#ifdef CONFIG_MTD_SPI_NOR_USE_4K_SECTORS
 	struct mtd_info *mtd = &nor->mtd;
+#endif
 	u8 i, erase_mask;
 
 	/* Initialize legacy flash parameters and settings. */
