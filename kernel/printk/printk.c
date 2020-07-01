@@ -2060,6 +2060,14 @@ asmlinkage __visible int printk(const char *fmt, ...)
 }
 EXPORT_SYMBOL(printk);
 
+#ifdef CONFIG_QTI_CTXT_SAVE
+void minidump_get_log_buf_info(uint64_t *plog_buf, uint64_t *plog_buf_len)
+{
+	*plog_buf = (uint64_t)(uintptr_t)log_buf;
+	*plog_buf_len = (uint64_t)__pa(&log_buf_len);
+}
+#endif /* CONFIG_QTI_CTXT_SAVE */
+
 #else /* CONFIG_PRINTK */
 
 #define LOG_LINE_MAX		0
