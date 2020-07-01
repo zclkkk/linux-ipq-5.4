@@ -103,7 +103,7 @@
 			cs-select = <0>;
 
 			m25p80@0 {
-				  compatible = "jedec,spi-nor";
+				  compatible = "n25q128a11";
 				  #address-cells = <1>;
 				  #size-cells = <1>;
 				  reg = <0>;
