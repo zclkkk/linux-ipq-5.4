@@ -2084,6 +2084,21 @@ source "lib/Kconfig.ubsan"
 config ARCH_HAS_DEVMEM_IS_ALLOWED
 	bool
 
+config STOPWATCH
+       bool
+       prompt "API to measure time elapsed between two events"
+       default n
+       help
+         This feature provides APIs to measure time elaspsed between any two
+         events with nanosecond precision. Multiple samples can be collected
+         by calling the STOPWATCH_(START/STOP) APIs.  The min, avg and max
+         values of all the samples can be viewed at /proc/stopwatch/<event>.
+         The counters are reset everytime the file is viewed.
+
+         If in doubt, say N here.
+
+
+
 config STRICT_DEVMEM
 	bool "Filter access to /dev/mem"
 	depends on MMU && DEVMEM
