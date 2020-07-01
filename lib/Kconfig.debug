@@ -2097,7 +2097,16 @@ config STOPWATCH
 
          If in doubt, say N here.
 
+config STOPWATCH_SOFT_IRQ
+	bool
+	depends on STOPWATCH
+	prompt "Measure soft IRQ processing time using stopwatch"
+	default n
+	help
+	  Measure the time taken to process each soft IRQ.
+	  The values can be viewed at /proc/stopwatch/softirq
 
+	  If in doubt, say N here.
 
 config STRICT_DEVMEM
 	bool "Filter access to /dev/mem"
