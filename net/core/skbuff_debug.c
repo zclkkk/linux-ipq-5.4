@@ -144,11 +144,7 @@ EXPORT_SYMBOL(skbuff_debugobj_print_skb);
  *	Called when an error is detected in the state machine for
  *	the objects
  */
-#if defined(CONFIG_ARM64)
 static bool skbuff_debugobj_fixup(void *addr, enum debug_obj_state state)
-#else
-static int skbuff_debugobj_fixup(void *addr, enum debug_obj_state state)
-#endif
 {
 	struct sk_buff *skb = (struct sk_buff *)addr;
 	ftrace_dump(DUMP_ALL);
@@ -156,11 +152,7 @@ static int skbuff_debugobj_fixup(void *addr, enum debug_obj_state state)
 	     state, skb, skb->sum, skbuff_debugobj_sum(skb));
 	skb_recycler_notifier_send_event(SKB_RECYCLER_NOTIFIER_FSM, skb);
 
-#ifdef CONFIG_ARM64
 	return true;
-#else
-	return 0;
-#endif
 }
 
 static struct debug_obj_descr skbuff_debug_descr = {
