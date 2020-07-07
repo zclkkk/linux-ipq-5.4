@@ -71,10 +71,10 @@ config QCOM_SDM845_LLCC
 	  LLCC slices.
 
 config IPQ_SUBSYSTEM_RAMDUMP
-	bool "Qualcomm Technologies, Inc. QCOM Subsystem ramdump driver"
+	bool "QTI, Subsystem ramdump driver"
 	depends on ARCH_QCOM
 	help
-	  Qualcomm subsystem ramdump driver exposes APIs for the subsystem
+	  QTI subsystem ramdump driver exposes APIs for the subsystem
 	  to enable ramdump collection.
 
 config QCOM_MDT_LOADER
