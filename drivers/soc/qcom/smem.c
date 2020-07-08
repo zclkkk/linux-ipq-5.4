@@ -249,9 +249,9 @@ struct smem_region {
  * struct qcom_smem - device data for the smem device
  * @dev:	device pointer
  * @hwlock:	reference to a hwspinlock
- *		processor/host
  * @global_partition_entry: pointer to global partition entry when in use
  * @ptable_entries: list of pointers to partitions table entry of current
+ *		processor/host
  * @item_count: max accepted item number
  * @num_regions: number of @regions
  * @regions:	list of the memory regions defining the shared memory
@@ -359,13 +359,13 @@ static int qcom_smem_alloc_private(struct qcom_smem *smem,
 	void *p_end;
 
 	phdr = ptable_entry_to_phdr(entry);
-	p_end = (void*)phdr + le32_to_cpu(entry->size);
+	p_end = (void *)phdr + le32_to_cpu(entry->size);
 
 	hdr = phdr_to_first_uncached_entry(phdr);
 	end = phdr_to_last_uncached_entry(phdr);
 	cached = phdr_to_last_cached_entry(phdr);
 
-	if (WARN_ON((void*)end > p_end || (void*)cached > p_end))
+	if (WARN_ON((void *)end > p_end || (void *)cached > p_end))
 		return -EINVAL;
 
 	while (hdr < end) {
@@ -376,7 +376,7 @@ static int qcom_smem_alloc_private(struct qcom_smem *smem,
 
 		hdr = uncached_entry_next(hdr);
 	}
-	if (WARN_ON((void*)hdr > p_end))
+	if (WARN_ON((void *)hdr > p_end))
 		return -EINVAL;
 
 	/* Check that we don't grow into the cached region */
@@ -496,7 +496,7 @@ static void *qcom_smem_get_global(struct qcom_smem *smem,
 {
 	struct smem_global_entry *entry;
 	struct smem_header *header;
-	struct smem_region *region;
+	struct smem_region *area;
 	u64 entry_offset;
 	u32 e_size;
 	u32 aux_base;
@@ -510,19 +510,19 @@ static void *qcom_smem_get_global(struct qcom_smem *smem,
 	aux_base = le32_to_cpu(entry->aux_base) & AUX_BASE_MASK;
 
 	for (i = 0; i < smem->num_regions; i++) {
-		region = &smem->regions[i];
+		area = &smem->regions[i];
 
-		if (region->aux_base == aux_base || !aux_base) {
+		if (area->aux_base == aux_base || !aux_base) {
 			e_size = le32_to_cpu(entry->size);
 			entry_offset = le32_to_cpu(entry->offset);
 
-			if (WARN_ON(e_size + entry_offset > region->size))
+			if (WARN_ON(e_size + entry_offset > area->size))
 				return ERR_PTR(-EINVAL);
 
 			if (size != NULL)
 				*size = e_size;
 
-			return region->virt_base + le32_to_cpu(entry->offset);
+			return area->virt_base + entry_offset;
 		}
 	}
 
@@ -559,7 +559,7 @@ static void *qcom_smem_get_private(struct qcom_smem *smem,
 
 		if (le16_to_cpu(e->item) == item) {
 			if (size != NULL) {
-				e_size = le32_to_cpu(e_size);
+				e_size = le32_to_cpu(e->size);
 				padding_data = le16_to_cpu(e->padding_data);
 
 				if (e_size < partition_size
@@ -575,11 +575,11 @@ static void *qcom_smem_get_private(struct qcom_smem *smem,
 
 			return item_ptr;
 		}
-		if (WARN_ON((void *)e > p_end))
-			return ERR_PTR(-EINVAL);
 
 		e = uncached_entry_next(e);
 	}
+	if (WARN_ON((void *)e > p_end))
+		return ERR_PTR(-EINVAL);
 
 	/* Item was not found in the uncached list, search the cached list */
 
