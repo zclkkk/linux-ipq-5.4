@@ -1448,3 +1448,11 @@ int __qti_config_ice_sec(struct device *dev, void *conf_buf, int size)
 	return ret;
 }
 
+int __qti_scm_pshold(struct device *dev)
+{
+	if (is_scm_armv8())
+		return -ENOTSUPP;
+
+	return qcom_scm_call(dev, QCOM_SCM_SVC_BOOT, QTI_SCM_CMD_PSHOLD,
+							NULL, 0, NULL, 0);
+}

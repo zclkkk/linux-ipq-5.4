@@ -792,6 +792,24 @@ int qti_config_sec_ice(void *buf, int size)
 }
 EXPORT_SYMBOL(qti_config_sec_ice);
 
+/*
+ * qti_scm_pshold() - TZ performs the PSHOLD operation
+ */
+int qti_scm_pshold(void)
+{
+	int ret;
+
+	ret = qcom_scm_clk_enable();
+	if (ret)
+		return ret;
+	ret = __qti_scm_pshold(__scm->dev);
+
+	qcom_scm_clk_disable();
+
+	return ret;
+}
+EXPORT_SYMBOL(qti_scm_pshold);
+
 static int qcom_scm_probe(struct platform_device *pdev)
 {
 	struct device_node *np = (&pdev->dev)->of_node;

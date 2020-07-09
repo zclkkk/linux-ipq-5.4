@@ -261,4 +261,7 @@ extern int __qti_scm_tz_register_log_buf(struct device *dev,
 
 #define QTI_SCM_SVC_RESETTYPE_CMD	0x18
 extern int  __qti_scm_set_resettype(struct device *dev, u32 reset_type);
+
+#define QTI_SCM_CMD_PSHOLD	0x16
+extern int __qti_scm_pshold(struct device *);
 #endif

@@ -226,6 +226,7 @@ extern int qti_set_qcekey_sec(void *buf, int size);
 extern int qti_qcekey_release_xpu_prot(void);
 extern int qti_scm_set_resettype(u32 reset_type);
 extern int qti_config_sec_ice(void *buf, int size);
+extern int qti_scm_pshold(void);
 #else
 
 #include <linux/errno.h>
@@ -302,5 +303,6 @@ static inline bool is_scm_armv8(void) { return false; }
 int qti_set_qcekey_sec(void *buf, int size) { return -ENODEV; }
 int qti_qcekey_release_xpu_prot(void) { return -ENODEV; }
 static inline int qcom_scm_set_resettype(u32 reset_type) { return -ENODEV; }
+static int qti_scm_pshold(void) { return -ENODEV; }
 #endif
 #endif

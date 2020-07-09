@@ -942,3 +942,8 @@ int __qti_scm_set_resettype(struct device *dev, u32 reset_type)
 	return ret ? false : !!res.a1;
 
 }
+
+int __qti_scm_pshold(struct device *dev)
+{
+	return -ENOTSUPP;
+}
