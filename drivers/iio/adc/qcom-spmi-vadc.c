@@ -694,7 +694,7 @@ struct vadc_channels {
  * Every index in the array is equal to the channel number per datasheet. The
  * gaps in the array should be treated as reserved channels.
  */
-static const struct vadc_channels default_vadc_chans[] = {
+static struct vadc_channels default_vadc_chans[] = {
 	VADC_CHAN_VOLT(USBIN, 4, SCALE_DEFAULT)
 	VADC_CHAN_VOLT(DCIN, 4, SCALE_DEFAULT)
 	VADC_CHAN_NO_SCALE(VCHG_SNS, 3)
