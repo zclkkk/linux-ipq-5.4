@@ -9,6 +9,7 @@
 	#size-cells = <0x2>;
 	model = "Qualcomm Technologies, Inc. IPQ8074/AP-HK11-C1";
 	compatible = "qcom,ipq8074-ap-hk11", "qcom,ipq8074";
+	qcom,msm-id = <0x143 0x0>, <0x158 0x0>, <0x186 0x0>, <0x188 0x0>;
 	interrupt-parent = <&intc>;
 
 	aliases {
