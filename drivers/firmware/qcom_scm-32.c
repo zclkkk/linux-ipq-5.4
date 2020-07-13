@@ -1175,6 +1175,25 @@ static int __qti_scm_dload_v8(struct device *dev, void *cmd_buf)
 	return le32_to_cpu(desc.ret[0]);
 }
 
+static int __qcom_scm_wcss_boot_v8(struct device *dev, void *cmd_buf)
+{
+	struct scm_desc desc = {0};
+	int ret;
+	unsigned int enable;
+
+	enable = cmd_buf ? *((unsigned int *)cmd_buf) : 0;
+	desc.args[0] = TCSR_Q6SS_BOOT_TRIG_REG;
+	desc.args[1] = enable;
+
+	desc.arginfo = SCM_ARGS(2, SCM_VAL, SCM_VAL);
+	ret = qcom_scm_call2(SCM_SIP_FNID(SCM_SVC_IO_ACCESS,
+			     SCM_IO_WRITE), &desc);
+	if (ret)
+		return ret;
+
+	return le32_to_cpu(desc.ret[0]);
+}
+
 int __qti_scm_dload(struct device *dev, u32 svc_id, u32 cmd_id, void *cmd_buf)
 {
 	long ret;
