@@ -63,6 +63,18 @@
 		method = "smc";
 	};
 
+	firmware {
+		scm {
+			compatible = "qcom,scm";
+		};
+	};
+
+	tcsr_mutex: hwlock {
+		compatible = "qcom,tcsr-mutex";
+		syscon = <&tcsr_mutex_regs 0 0x80>;
+		#hwlock-cells = <1>;
+	};
+
 	reserved-memory {
 		#address-cells = <2>;
 		#size-cells = <2>;
@@ -72,6 +84,22 @@
 			reg = <0x0 0x4ac00000 0x0 0x00400000>;
 			no-map;
 		};
+
+		smem_region: memory@4ab00000 {
+			reg = <0x0 0x4ab00000 0x0 0x00100000>;
+			no-map;
+		};
+
+		q6_region: memory@4b000000 {
+			reg = <0x0 0x4b000000 0x0 0x02800000>;
+			no-map;
+		};
+	};
+
+	smem {
+		compatible = "qcom,smem";
+		memory-region = <&smem_region>;
+		hwlocks = <&tcsr_mutex 0>;
 	};
 
 	soc: soc {
@@ -141,6 +169,11 @@
 				drive-strength = <8>;
 				bias-pull-down;
 			};
+		};
+
+		tcsr_mutex_regs: syscon@1905000 {
+			compatible = "syscon";
+			reg = <0x01905000 0x8000>;
 		};
 
 		gcc: gcc@1800000 {
@@ -325,6 +358,13 @@
 			interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
 		};
 
+		apcs_glb: mailbox@b111000 {
+			compatible = "qcom,ipq8074-apcs-apps-global";
+			reg = <0x0b111000 0xc>;
+
+			#mbox-cells = <1>;
+		};
+
 		timer {
 			compatible = "arm,armv8-timer";
 			interrupts = <GIC_PPI 2 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>,
@@ -494,6 +534,100 @@
 
 			pcie_x2_rp: pcie_x2_rp {
 				reg = <0 0 0 0 0>;
+			};
+		};
+
+		q6v5_wcss: remoteproc@cd00000 {
+			compatible = "qcom,qcs5018-wcss-pil";
+			reg = <0x0cd00000 0x4040>,
+				<0x004ab000 0x20>;
+			reg-names = "qdsp6",
+				    "rmb";
+			interrupts-extended = <&intc GIC_SPI 291 IRQ_TYPE_EDGE_RISING>,
+					      <&wcss_smp2p_in 0 0>,
+					      <&wcss_smp2p_in 1 0>,
+					      <&wcss_smp2p_in 2 0>,
+					      <&wcss_smp2p_in 3 0>;
+			interrupt-names = "wdog",
+					  "fatal",
+					  "ready",
+					  "handover",
+					  "stop-ack";
+
+			resets = <&gcc GCC_WCSSAON_RESET>,
+				 <&gcc GCC_WCSS_BCR>,
+				 <&gcc GCC_WCSS_Q6_BCR>,
+				 <&gcc GCC_CE_BCR>;
+
+			reset-names = "wcss_aon_reset",
+				      "wcss_reset",
+				      "wcss_q6_reset",
+				      "ce_reset";
+
+
+                        clocks = <&gcc GCC_Q6_AXIS_CLK>,
+                                        <&gcc GCC_WCSS_AHB_S_CLK>,
+                                        <&gcc GCC_WCSS_ECAHB_CLK>,
+                                        <&gcc GCC_WCSS_ACMT_CLK>,
+                                        <&gcc GCC_WCSS_AXI_M_CLK>,
+                                        <&gcc GCC_Q6_AXIM_CLK>,
+                                        <&gcc GCC_Q6_AXIM2_CLK>,
+                                        <&gcc GCC_Q6_AHB_CLK>,
+                                        <&gcc GCC_Q6_AHB_S_CLK>,
+                                        <&gcc GCC_WCSS_AXI_S_CLK>;
+                        clock-names = "gcc_q6_axis_clk",
+                                        "gcc_wcss_ahb_s_clk",
+                                        "gcc_wcss_ecahb_clk",
+                                        "gcc_wcss_acmt_clk",
+                                        "gcc_wcss_axi_m_clk",
+                                        "gcc_q6_axim_clk",
+                                        "gcc_q6_axim2_clk",
+                                        "gcc_q6_ahb_clk",
+                                        "gcc_q6_ahb_s_clk",
+                                        "gcc_wcss_axi_s_clk";
+
+			qcom,halt-regs = <&tcsr_q6_block 0xa000 0xd000 0x0>;
+
+			qcom,smem-states = <&wcss_smp2p_out 0>,
+					   <&wcss_smp2p_out 1>;
+			qcom,smem-state-names = "shutdown",
+						"stop";
+
+			memory-region = <&q6_region>;
+
+			glink-edge {
+				interrupts = <GIC_SPI 179 IRQ_TYPE_EDGE_RISING>;
+				qcom,remote-pid = <1>;
+				mboxes = <&apcs_glb 8>;
+
+				qrtr_requests {
+					qcom,glink-channels = "IPCRTR";
+				};
+			};
+		};
+
+		wcss: wcss-smp2p {
+			compatible = "qcom,smp2p";
+			qcom,smem = <435>, <428>;
+
+			interrupt-parent = <&intc>;
+			interrupts = <GIC_SPI 177 IRQ_TYPE_EDGE_RISING>;
+
+			mboxes = <&apcs_glb 9>;
+
+			qcom,local-pid = <0>;
+			qcom,remote-pid = <1>;
+
+			wcss_smp2p_out: master-kernel {
+				qcom,entry-name = "master-kernel";
+				qcom,smp2p-feature-ssr-ack;
+				#qcom,smem-state-cells = <1>;
+			};
+
+			wcss_smp2p_in: slave-kernel {
+				qcom,entry-name = "slave-kernel";
+				interrupt-controller;
+				#interrupt-cells = <2>;
 			};
 		};
 	};
