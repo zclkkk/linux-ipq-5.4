@@ -73,11 +73,16 @@ static void qcom_wdt_bite(struct qcom_wdt *wdt, unsigned int ticks)
 	pr_info("Watchdog bark! Now = %lu.%06lu\n", (unsigned long) t,
 							nanosec_rem / 1000);
 
+	pr_info("Causing a watchdog bite!");
 	writel(0, wdt_addr(wdt, WDT_EN));
 	writel(1, wdt_addr(wdt, WDT_RST));
+	mb(); /* Avoid unpredictable behaviour in concurrent executions */
+	pr_info("Configuring Watchdog Timer\n");
 	writel(ticks, wdt_addr(wdt, WDT_BARK_TIME));
 	writel(ticks, wdt_addr(wdt, WDT_BITE_TIME));
 	writel(QCOM_WDT_ENABLE, wdt_addr(wdt, WDT_EN));
+	mb(); /* Make sure the above sequence hits hardware before Reboot. */
+	pr_info("Waiting for Reboot\n");
 
 	/*
 	 * Actually make sure the above sequence hits hardware before sleeping.
