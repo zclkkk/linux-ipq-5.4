@@ -26,6 +26,11 @@
 				};
 			};
 		};
+
+		i2c@78b6000 {
+			 status = "disabled";
+		};
+
 		mdio@90000 {
 			pinctrl-0 = <&mdio_pins>;
 			pinctrl-names = "default";
