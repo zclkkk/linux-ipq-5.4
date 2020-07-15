@@ -59,8 +59,11 @@ static void qce_ahash_done(void *data)
 
 	req->src = rctx->src_orig;
 	req->nbytes = rctx->nbytes_orig;
+	if (!req->result)
+		req->result = rctx->result_orig;
 	rctx->last_blk = false;
 	rctx->first_blk = false;
+	rctx->result_orig = NULL;
 
 	qce->async_req_done(tmpl->qce, error);
 }
@@ -203,10 +206,18 @@ static int qce_import_common(struct ahash_request *req, u64 in_count,
 
 static int qce_ahash_import(struct ahash_request *req, const void *in)
 {
-	struct qce_sha_reqctx *rctx = ahash_request_ctx(req);
-	unsigned long flags = rctx->flags;
-	bool hmac = IS_SHA_HMAC(flags);
-	int ret = -EINVAL;
+	struct qce_sha_reqctx *rctx;
+	unsigned long flags;
+	bool hmac;
+	int ret;
+
+	ret = qce_ahash_init(req);
+	if (ret)
+		return ret;
+
+	rctx = ahash_request_ctx(req);
+	flags = rctx->flags;
+	hmac = IS_SHA_HMAC(flags);
 
 	if (IS_SHA1(flags) || IS_SHA1_HMAC(flags)) {
 		const struct sha1_state *state = in;
@@ -252,6 +263,12 @@ static int qce_ahash_update(struct ahash_request *req)
 	rctx->src_orig = req->src;
 	rctx->nbytes_orig = req->nbytes;
 
+	/* As per tcrypto we should not touch result buf in update */
+	if (req->result) {
+		rctx->result_orig = req->result;
+		req->result = NULL;
+	}
+
 	/*
 	 * if we have data from previous update copy them on buffer. The old
 	 * data will be combined with current request bytes.
@@ -283,8 +300,6 @@ static int qce_ahash_update(struct ahash_request *req)
 
 	if (!sg_last)
 		return -EINVAL;
-
-	sg_mark_end(sg_last);
 
 	if (rctx->buflen) {
 		sg_init_table(rctx->sg, 2);
