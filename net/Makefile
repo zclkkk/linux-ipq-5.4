@@ -6,6 +6,8 @@
 # Rewritten to use lists instead of if-statements.
 #
 
+KBUILD_CFLAGS := $(filter-out -Werror, $(KBUILD_CFLAGS))
+
 obj-$(CONFIG_NET)		:= socket.o core/
 
 tmp-$(CONFIG_COMPAT) 		:= compat.o

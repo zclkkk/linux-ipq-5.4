@@ -6,6 +6,7 @@
 #
 # Networking Core Drivers
 #
+KBUILD_CFLAGS := $(filter-out -Werror, $(KBUILD_CFLAGS))
 obj-$(CONFIG_BONDING) += bonding/
 obj-$(CONFIG_IPVLAN) += ipvlan/
 obj-$(CONFIG_IPVTAP) += ipvlan/
