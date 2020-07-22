@@ -3874,6 +3874,11 @@ static int alg_test_null(const struct alg_test_desc *desc,
 	return 0;
 }
 
+static const char *test_disabled_algs[] = {
+	"essiv(cbc-aes-qce,sha256-generic)",
+	NULL,
+};
+
 #define __VECS(tv)	{ .vecs = tv, .count = ARRAY_SIZE(tv) }
 
 /* Please keep this list sorted by algorithm name. */
@@ -5203,6 +5208,19 @@ static int alg_find_test(const char *alg)
 	return -1;
 }
 
+static bool alg_test_is_disabled(const char *alg)
+{
+	int curr = 0;
+
+	while (test_disabled_algs[curr]) {
+		if (!strcmp(test_disabled_algs[curr], alg))
+			return true;
+		curr++;
+	}
+
+	return false;
+}
+
 int alg_test(const char *driver, const char *alg, u32 type, u32 mask)
 {
 	int i;
@@ -5233,6 +5251,9 @@ int alg_test(const char *driver, const char *alg, u32 type, u32 mask)
 		rc = alg_test_cipher(alg_test_descs + i, driver, type, mask);
 		goto test_done;
 	}
+
+	if (alg_test_is_disabled(driver))
+		goto notest;
 
 	i = alg_find_test(alg);
 	j = alg_find_test(driver);
