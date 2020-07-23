@@ -2740,6 +2740,20 @@ char *ppp_dev_name(struct ppp_channel *chan)
 	return name;
 }
 
+/* Return the PPP net device index */
+int ppp_dev_index(struct ppp_channel *chan)
+{
+	struct channel *pch = chan->ppp;
+	int ifindex = 0;
+
+	if (pch) {
+		read_lock_bh(&pch->upl);
+		if (pch->ppp && pch->ppp->dev)
+			ifindex = pch->ppp->dev->ifindex;
+		read_unlock_bh(&pch->upl);
+	}
+	return ifindex;
+}
 
 /*
  * Disconnect a channel from the generic layer.
@@ -3455,6 +3469,32 @@ int ppp_is_multilink(struct net_device *dev)
 }
 EXPORT_SYMBOL(ppp_is_multilink);
 
+/* __ppp_is_multilink()
+ *	Returns >0 if the device is a multilink PPP netdevice, 0 if not or < 0
+ *	if the device is not PPP. Caller should acquire ppp_lock before calling
+ *	this function
+ */
+int __ppp_is_multilink(struct net_device *dev)
+{
+	struct ppp *ppp;
+	unsigned int flags;
+
+	if (!dev)
+		return -1;
+
+	if (dev->type != ARPHRD_PPP)
+		return -1;
+
+	ppp = netdev_priv(dev);
+	flags = ppp->flags;
+
+	if (flags & SC_MULTILINK)
+		return 1;
+
+	return 0;
+}
+EXPORT_SYMBOL(__ppp_is_multilink);
+
 /* ppp_channel_get_protocol()
  *	Call this to obtain the underlying protocol of the PPP channel,
  *	e.g. PX_PROTO_OE
@@ -3559,6 +3599,59 @@ int ppp_hold_channels(struct net_device *dev, struct ppp_channel *channels[],
 }
 EXPORT_SYMBOL(ppp_hold_channels);
 
+/* __ppp_hold_channels()
+ *	Returns the PPP channels of the PPP device, storing each one
+ *	into channels[].
+ *
+ * channels[] has chan_sz elements.
+ * This function returns the number of channels stored, up to chan_sz.
+ * It will return < 0 if the device is not PPP.
+ *
+ * You MUST acquire ppp_lock and  release the channels using
+ * ppp_release_channels().
+ */
+int __ppp_hold_channels(struct net_device *dev, struct ppp_channel *channels[],
+			unsigned int chan_sz)
+{
+	struct ppp *ppp;
+	int c;
+	struct channel *pch;
+
+	if (!dev)
+		return -1;
+
+	if (dev->type != ARPHRD_PPP)
+		return -1;
+
+	ppp = netdev_priv(dev);
+
+	c = 0;
+	list_for_each_entry(pch, &ppp->channels, clist) {
+		struct ppp_channel *chan;
+
+		if (!pch->chan) {
+			/* Channel is going / gone away*/
+			continue;
+		}
+		if (c == chan_sz) {
+			/* No space to record channel */
+			return c;
+		}
+
+		/* Hold the channel, if supported */
+		chan = pch->chan;
+		if (!chan->ops->hold)
+			continue;
+
+		chan->ops->hold(chan);
+
+		/* Record the channel */
+		channels[c++] = chan;
+	}
+	return c;
+}
+EXPORT_SYMBOL(__ppp_hold_channels);
+
 /* ppp_release_channels()
  *	Releases channels
  */
@@ -3586,6 +3679,7 @@ EXPORT_SYMBOL(ppp_unregister_channel);
 EXPORT_SYMBOL(ppp_channel_index);
 EXPORT_SYMBOL(ppp_unit_number);
 EXPORT_SYMBOL(ppp_dev_name);
+EXPORT_SYMBOL(ppp_dev_index);
 EXPORT_SYMBOL(ppp_input);
 EXPORT_SYMBOL(ppp_input_error);
 EXPORT_SYMBOL(ppp_output_wakeup);
