@@ -35,12 +35,12 @@ static int unload_app_libs(void)
 				     &resp, sizeof(resp));
 
 	if (ret) {
-		pr_err("\nscm_call to unload app libs failed, ret val = %d",
+		pr_err("scm_call to unload app libs failed, ret val = %d\n",
 		      ret);
 		return ret;
 	}
 
-	pr_info("\nApp libs unloaded successfully");
+	pr_info("App libs unloaded successfully\n");
 
 	return 0;
 }
@@ -69,14 +69,14 @@ static int tzdbg_register_qsee_log_buf(struct device *dev)
 					  &resp, sizeof(resp));
 
 	if (ret) {
-		pr_err("\nSCM Call failed..SCM Call return value = %d\n", ret);
+		pr_err("SCM Call failed..SCM Call return value = %d\n", ret);
 		dma_free_coherent(dev, len, (void *)g_qsee_log, dma_log_buf);
 		return ret;
 	}
 
 	if (resp.result) {
 		ret = resp.result;
-		pr_err("\nResponse status failure..return value = %d\n", ret);
+		pr_err("Response status failure..return value = %d\n", ret);
 		dma_free_coherent(dev, len, (void *)g_qsee_log, dma_log_buf);
 		return ret;
 	}
@@ -208,7 +208,7 @@ static int qseecom_unload_app(void)
 				     &resp, sizeof(resp));
 	if (ret) {
 		pr_err("scm_call to unload app (id = %d) failed\n", req.app_id);
-		pr_info("scm call ret value = %d", ret);
+		pr_info("scm call ret value = %d\n", ret);
 		return ret;
 	}
 
@@ -241,7 +241,7 @@ static int tzapp_test(struct device *dev, void *input,
 	 */
 	pg_tmp = alloc_page(GFP_KERNEL);
 	if (!pg_tmp) {
-		pr_err("\nFailed to allocate page");
+		pr_err("Failed to allocate page\n");
 		return -ENOMEM;
 	}
 	/*
@@ -279,7 +279,7 @@ static int tzapp_test(struct device *dev, void *input,
 		msgreq->cmd_id = CLIENT_CMD8_RUN_CRYPTO_TEST;
 		break;
 	default:
-		pr_err("\n Invalid Option");
+		pr_err("Invalid Option\n");
 		goto fn_exit;
 	}
 	if (option == 2 || option == 3) {
@@ -292,7 +292,7 @@ static int tzapp_test(struct device *dev, void *input,
 		ret2 = dma_mapping_error(dev, msgreq->data2);
 
 		if (ret1 || ret2) {
-			pr_err("\nDMA Mapping Error:input:%d output:%d",
+			pr_err("DMA Mapping Error:input:%d output:%d\n",
 			      ret1, ret2);
 			if (!ret1) {
 				dma_unmap_single(dev, msgreq->data,
@@ -348,7 +348,7 @@ static int tzapp_test(struct device *dev, void *input,
 	}
 
 	if (ret1 || ret2) {
-		pr_err("\nDMA Mapping Error:req_ptr:%d rsp_ptr:%d",
+		pr_err("DMA Mapping Error:req_ptr:%d rsp_ptr:%d\n",
 		      ret1, ret2);
 		return ret1 ? ret1 : ret2;
 	}
@@ -412,7 +412,7 @@ static int32_t copy_files(int *img_size)
 		memcpy(buf, seg_file, seg_size);
 		buf += seg_size;
 	} else {
-		pr_err("\nSampleapp file Inputs not provided\n");
+		pr_err("Sampleapp file Inputs not provided\n");
 		return -EINVAL;
 	}
 	return 0;
@@ -447,7 +447,7 @@ static int load_request(struct device *dev, uint32_t smc_id,
 				img_size, DMA_TO_DEVICE);
 	}
 	if (ret1) {
-		pr_err("\nDMA Mapping error (qsee_sbuffer)");
+		pr_err("DMA Mapping error (qsee_sbuffer)\n");
 		return ret1;
 	}
 	if (ret) {
@@ -469,7 +469,7 @@ static int load_request(struct device *dev, uint32_t smc_id,
 		return -EFAULT;
 	}
 
-	pr_info("\nSuccessfully loaded app and services!!!!!\n");
+	pr_info("Successfully loaded app and services!!!!!\n");
 
 	qsee_app_id = resp.data;
 	return 0;
@@ -492,11 +492,11 @@ store_basic_input(struct device *dev, struct device_attribute *attr,
 	uint32_t ret = 0;
 	basic_data_len = count;
 	if ((count - 1) == 0) {
-		pr_err("\n Input cannot be NULL!");
+		pr_err("Input cannot be NULL!\n");
 		return -EINVAL;
 	}
 	if (kstrtouint(buf, 10, (unsigned int *)&basic_input) || basic_input > (U32_MAX / 10))
-		pr_err("\n Please enter a valid unsigned integer less than %u",
+		pr_err("Please enter a valid unsigned integer less than %u\n",
 			(U32_MAX / 10));
 	else
 		ret = tzapp_test(dev, &basic_input, NULL, 0, 1);
@@ -516,10 +516,10 @@ store_load_start(struct device *dev, struct device_attribute *attr,
 	dev = qdev;
 
 	if (kstrtouint(buf, 10, &load_cmd)) {
-		pr_err("\n Provide valid integer input!");
-		pr_err("\nEcho 0 to load app libs");
-		pr_err("\nEcho 1 to load app");
-		pr_err("\nEcho 2 to unload app");
+		pr_err("Provide valid integer input!\n");
+		pr_err("Echo 0 to load app libs\n");
+		pr_err("Echo 1 to load app\n");
+		pr_err("Echo 2 to unload app\n");
 		return -EINVAL;
 	}
 	if (load_cmd == 0) {
@@ -529,15 +529,15 @@ store_load_start(struct device *dev, struct device_attribute *attr,
 			cmd_id = QSEE_LOAD_SERV_IMAGE_COMMAND;
 			req_size = sizeof(struct qseecom_load_lib_ireq);
 			if (load_request(dev, smc_id, cmd_id, req_size))
-				pr_info("\nLoading app libs failed");
+				pr_info("Loading app libs failed\n");
 			else
 				app_libs_state = 1;
 			if (props->logging_support_enabled) {
 				if (tzdbg_register_qsee_log_buf(dev))
-					pr_info("\nRegistering log buf failed");
+					pr_info("Registering log buf failed\n");
 			}
 		} else {
-			pr_info("\nLibraries are either already loaded or are inbuilt in this platform");
+			pr_info("Libraries are either already loaded or are inbuilt in this platform\n");
 		}
 	} else if (load_cmd == 1) {
 		if (app_libs_state) {
@@ -548,29 +548,29 @@ store_load_start(struct device *dev, struct device_attribute *attr,
 				cmd_id = QSEOS_APP_START_COMMAND;
 				req_size = sizeof(struct qseecom_load_app_ireq);
 				if (load_request(dev, smc_id, cmd_id, req_size))
-					pr_info("\nLoading app failed");
+					pr_info("Loading app failed\n");
 				else
 					app_state = 1;
 			} else {
-				pr_info("\nApp already loaded...");
+				pr_info("App already loaded...\n");
 			}
 		} else {
 			if (!app_libs_state)
-				pr_info("\nApp libs must be loaded first");
+				pr_info("App libs must be loaded first\n");
 		}
 	} else if (load_cmd == 2) {
 		if (app_state) {
 			if (qseecom_unload_app())
-				pr_info("\nApp unload failed");
+				pr_info("App unload failed\n");
 			else
 				app_state = 0;
 		} else {
-			pr_info("\nApp already unloaded...");
+			pr_info("App already unloaded...\n");
 		}
 	} else {
-		pr_info("\nEcho 0 to load app libs");
-		pr_info("\nEcho 1 to load app");
-		pr_info("\nEcho 2 to unload app");
+		pr_info("Echo 0 to load app libs\n");
+		pr_info("Echo 1 to load app\n");
+		pr_info("Echo 2 to unload app\n");
 	}
 
 	return count;
@@ -592,7 +592,7 @@ static int __init tzapp_init(void)
 				+ 1) * sizeof(*tzapp_attrs), GFP_KERNEL);
 
 	if (!tzapp_attrs) {
-		pr_err("\nCannot allocate memory..tzapp");
+		pr_err("Cannot allocate memory..tzapp\n");
 		return -ENOMEM;
 	}
 
@@ -672,9 +672,9 @@ load:
 	sysfs_create_bin_file(firmware_kobj, &seg_attr);
 
 	if (!tzapp_init())
-		pr_info("\nLoaded tz app Module Successfully!\n");
+		pr_info("Loaded tz app Module Successfully!\n");
 	else
-		pr_info("\nFailed to load tz app module\n");
+		pr_info("Failed to load tz app module\n");
 
 	return 0;
 }
@@ -683,7 +683,7 @@ static int __exit qseecom_remove(struct platform_device *pdev)
 {
 	if (app_state) {
 		if (qseecom_unload_app())
-			pr_err("\nApp unload failed");
+			pr_err("App unload failed\n");
 		else
 			app_state = 0;
 	}
@@ -701,7 +701,7 @@ static int __exit qseecom_remove(struct platform_device *pdev)
 
 	if (app_libs_state) {
 		if (unload_app_libs())
-			pr_err("\nApp libs unload failed");
+			pr_err("App libs unload failed\n");
 		else
 			app_libs_state = 0;
 	}
