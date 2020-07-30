@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016, 2019, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2016, 2019-2020, The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -248,7 +248,7 @@ static int skb_cpu_callback(unsigned int ocpu)
 	spin_unlock(&glob_recycler.lock);
 #endif
 
-	return NOTIFY_OK;
+	return NOTIFY_DONE;
 }
 
 #ifdef CONFIG_SKB_RECYCLER_PREALLOC
@@ -536,7 +536,7 @@ void __init skb_recycler_init(void)
 	if (skb_prealloc_init_list())
 		pr_err("Failed to preallocate SKBs for recycle list\n");
 #endif
-	cpuhp_setup_state_nocalls(CPUHP_NET_DEV_DEAD, "net/skbuff_recycler:dead:",NULL, skb_cpu_callback);
+	cpuhp_setup_state_nocalls(CPUHP_SKB_RECYCLER_DEAD, "net/skbuff_recycler:dead:",NULL, skb_cpu_callback);
 	skbuff_debugobj_register_callback();
 	skb_recycler_init_procfs();
 }
