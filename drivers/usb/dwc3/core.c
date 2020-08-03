@@ -1027,6 +1027,12 @@ static int dwc3_core_init(struct dwc3 *dwc)
 		dwc3_writel(dwc->regs, DWC3_GUCTL2, reg);
 	}
 
+	if (dwc->dis_ep_cache_eviction_quirk) {
+		reg = dwc3_readl(dwc->regs, DWC3_GUCTL2);
+		reg |= DWC3_GUCTL2_ENABLEEPCACHEEVICT;
+		dwc3_writel(dwc->regs, DWC3_GUCTL2, reg);
+	}
+
 	if (dwc->revision >= DWC3_REVISION_250A) {
 		reg = dwc3_readl(dwc->regs, DWC3_GUCTL1);
 
@@ -1366,6 +1372,8 @@ static void dwc3_get_properties(struct dwc3 *dwc)
 				 &dwc->ref_clk_adj);
 	device_property_read_u32(dev, "snps,quirk-ref-clock-period",
 				 &dwc->ref_clk_per);
+	dwc->dis_ep_cache_eviction_quirk = device_property_read_bool(dev,
+				"snps,dis_ep_cache_eviction");
 
 	dwc->dis_metastability_quirk = device_property_read_bool(dev,
 				"snps,dis_metastability_quirk");
