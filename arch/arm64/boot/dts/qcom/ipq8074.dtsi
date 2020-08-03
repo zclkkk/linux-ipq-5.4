@@ -311,6 +311,11 @@
 			tx-watermark = <0>;
 		};
 
+		tlmm_csr: syscon@1100000 {
+			compatible = "syscon";
+			reg = <0x1100000 0xAFFF>;
+		};
+
 		sdcc1_ice: sdcc1ice@7803000 {
 			compatible = "qcom,ice";
 			reg = <0x7803000 0x2000>;
@@ -339,6 +344,7 @@
 			clock-names = "xo", "iface", "core", "ice_core_clk";
 			qcom,ice-clk-rates = <160000000 308570000>;
 			max-frequency = <384000000>;
+			syscon = <&tlmm_csr 0xA000 0x0019E5B>;
 			mmc-ddr-1_8v;
 			mmc-hs200-1_8v;
 			mmc-hs400-1_8v;

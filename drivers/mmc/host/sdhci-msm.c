@@ -13,6 +13,8 @@
 #include <linux/slab.h>
 #include <linux/iopoll.h>
 #include <linux/regulator/consumer.h>
+#include <linux/mfd/syscon.h>
+#include <linux/regmap.h>
 
 #include "sdhci-msm.h"
 #include "sdhci-msm-ice.h"
@@ -1824,6 +1826,33 @@ static int sdhci_msm_dt_get_array(struct device *dev, const char *prop_name,
 	return ret;
 }
 
+static void set_sdcc_hdrv_pull(struct platform_device *pdev,
+		struct device_node *syscon)
+{
+	struct regmap *regmap;
+	u32 base, regval;
+	int ret;
+
+	regmap = syscon_node_to_regmap(syscon);
+	if (IS_ERR(regmap))
+		return;
+
+	ret = of_property_read_u32_index(pdev->dev.of_node, "syscon", 1, &base);
+	if (ret < 0)
+		return;
+
+	ret = of_property_read_u32_index(pdev->dev.of_node, "syscon", 2, &regval);
+	if (ret < 0)
+		return;
+
+	/* write register TLMM_SDC1_HDRV_PULL_CTL for required drive strength
+	 * base on mask value
+	 */
+	ret = regmap_write(regmap, base, regval);
+	if (ret)
+		dev_err(&pdev->dev, "Failed to set SDCC drive strength:0x%08x\n", regval);
+}
+
 static int sdhci_msm_probe(struct platform_device *pdev)
 {
 	struct sdhci_host *host;
@@ -1839,6 +1868,7 @@ static int sdhci_msm_probe(struct platform_device *pdev)
 	const struct sdhci_msm_variant_info *var_info;
 	u32 *ice_clk_table;
 	int ice_clk_table_len;
+	struct device_node *syscon_node;
 
 	host = sdhci_pltfm_init(pdev, &sdhci_msm_pdata, sizeof(*msm_host));
 	if (IS_ERR(host))
@@ -1868,6 +1898,10 @@ static int sdhci_msm_probe(struct platform_device *pdev)
 	msm_offset = msm_host->offset;
 
 	sdhci_get_of_property(pdev);
+
+	syscon_node = of_parse_phandle(pdev->dev.of_node, "syscon", 0);
+	if (syscon_node)
+		set_sdcc_hdrv_pull(pdev, syscon_node);
 
 	/* get the ice device vops if present */
 	ret = sdhci_msm_get_ice_device_vops(host, pdev);
