@@ -34,6 +34,15 @@
 #include <linux/ipc_logging.h>
 #include <linux/mhi.h>
 
+enum {
+	MHI_1,
+	MHI_2,
+#ifdef CONFIG_MHI_DCI
+	MHI_DCI_1,
+#endif
+	NUM_MHI_DEV,
+};
+
 #define MHI_1			0
 #define MHI_DCI_1		1
 #define NUM_MHI_DEV		2

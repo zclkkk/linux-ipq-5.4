@@ -16,6 +16,7 @@
 #include <linux/diagchar.h>
 #include <linux/sched.h>
 #include <linux/err.h>
+#include <linux/kmemleak.h>
 #include <linux/ratelimit.h>
 #include <linux/workqueue.h>
 #include <linux/pm_runtime.h>
@@ -62,7 +63,24 @@ struct diag_mhi_info diag_mhi[NUM_MHI_DEV] = {
 		}
 	},
 	{
-		.id = MHI_DCI_1,
+		.id = MHI_2,
+		.dev_id = DIAGFWD_MDM_2,
+		.name = "MDM_2",
+		.enabled = 0,
+		.num_read = 0,
+		.mempool = POOL_TYPE_MDM2,
+		.mempool_init = 0,
+		.mhi_wq = NULL,
+		.mhi_dev = NULL,
+		.read_ch = {
+			.type = TYPE_MHI_READ_CH,
+		},
+		.write_ch = {
+			.type = TYPE_MHI_WRITE_CH,
+		}
+	},
+#ifdef	CONFIG_MHI_DCI
+	{
 		.dev_id = DIAGFWD_MDM_DCI,
 		.name = "MDM_DCI",
 		.enabled = 0,
@@ -77,7 +95,8 @@ struct diag_mhi_info diag_mhi[NUM_MHI_DEV] = {
 		.write_ch = {
 			.type = TYPE_MHI_WRITE_CH,
 		}
-	}
+	},
+#endif
 };
 
 static int mhi_buf_tbl_add(struct diag_mhi_info *mhi_info, int type,
@@ -231,8 +250,6 @@ static int __mhi_close(struct diag_mhi_info *mhi_info, int close_flag)
 	atomic_set(&(mhi_info->read_ch.opened), 0);
 	atomic_set(&(mhi_info->write_ch.opened), 0);
 
-	cancel_work(&mhi_info->read_work);
-	cancel_work(&mhi_info->read_done_work);
 	flush_workqueue(mhi_info->mhi_wq);
 
 	if (close_flag == CLOSE_CHANNELS) {
@@ -421,7 +438,7 @@ static void mhi_read_work_fn(struct work_struct *work)
 {
 	int err = 0;
 	unsigned char *buf = NULL;
-	enum MHI_FLAGS mhi_flags = MHI_EOT;
+	enum mhi_flags mhi_flags = MHI_EOT;
 	struct diag_mhi_ch_t *read_ch = NULL;
 	unsigned long flags;
 	struct diag_mhi_info *mhi_info = container_of(work,
@@ -457,7 +474,7 @@ static void mhi_read_work_fn(struct work_struct *work)
 			 "queueing a read buf %pK, ch: %s\n",
 			 buf, mhi_info->name);
 
-		err = mhi_queue_transfer(mhi_info->mhi_dev, DMA_FROM_DEVICE,
+		err = mhi_queue_buf(mhi_info->mhi_dev, DMA_FROM_DEVICE,
 					buf, DIAG_MDM_BUF_SIZE, mhi_flags);
 		spin_unlock_irqrestore(&read_ch->lock, flags);
 		if (err) {
@@ -489,7 +506,7 @@ static int mhi_queue_read(int id)
 static int mhi_write(int id, unsigned char *buf, int len, int ctxt)
 {
 	int err = 0;
-	enum MHI_FLAGS mhi_flags = MHI_EOT;
+	enum mhi_flags mhi_flags = MHI_EOT;
 	unsigned long flags;
 	struct diag_mhi_ch_t *ch = NULL;
 
@@ -526,7 +543,7 @@ static int mhi_write(int id, unsigned char *buf, int len, int ctxt)
 		goto fail;
 	}
 
-	err = mhi_queue_transfer(diag_mhi[id].mhi_dev, DMA_TO_DEVICE, buf,
+	err = mhi_queue_buf(diag_mhi[id].mhi_dev, DMA_TO_DEVICE, buf,
 				len, mhi_flags);
 	spin_unlock_irqrestore(&ch->lock, flags);
 	if (err) {
@@ -561,9 +578,9 @@ static int mhi_fwd_complete(int id, unsigned char *buf, int len, int ctxt)
 	return 0;
 }
 
-static int mhi_remote_proc_check(void)
+static int mhi_remote_proc_check(int index)
 {
-	return diag_mhi[MHI_1].enabled;
+	return diag_mhi[index].enabled;
 }
 
 static struct diag_mhi_info *diag_get_mhi_info(struct mhi_device *mhi_dev)
@@ -679,14 +696,21 @@ static void diag_mhi_remove(struct mhi_device *mhi_dev)
 static int diag_mhi_probe(struct mhi_device *mhi_dev,
 			const struct mhi_device_id *id)
 {
-	int index = id->driver_data;
+	int index;
 	int ret = 0;
 	unsigned long flags;
-	struct diag_mhi_info *mhi_info = &diag_mhi[index];
+	struct diag_mhi_info *mhi_info;
 
-	DIAG_LOG(DIAG_DEBUG_BRIDGE,
-		"received probe for %d\n",
-		index);
+	DIAG_LOG(DIAG_DEBUG_BRIDGE, "received probe\n");
+	for (index = 0; index < NUM_MHI_DEV; index++) {
+		if (!diag_mhi[index].enabled)
+			break;
+	}
+
+	if (index == NUM_MHI_DEV)
+		return -ENODEV;
+
+	mhi_info = &diag_mhi[index];
 	diag_mhi[index].mhi_dev = mhi_dev;
 	DIAG_LOG(DIAG_DEBUG_BRIDGE,
 		"diag: mhi device is ready to open\n");
@@ -778,7 +802,9 @@ void diag_mhi_exit(void)
 
 static const struct mhi_device_id diag_mhi_match_table[] = {
 	{ .chan = "DIAG", .driver_data = MHI_1 },
+#ifdef CONFIG_MHI_DCI
 	{ .chan = "DCI", .driver_data = MHI_DCI_1 },
+#endif
 	{},
 };
 

@@ -17,8 +17,12 @@
  * Add Data channels at the top half and the DCI channels at the
  * bottom half of this list.
  */
-#define DIAGFWD_MDM		0
-#define NUM_REMOTE_DATA_DEV	1
+enum {
+	DIAGFWD_MDM,
+	DIAGFWD_MDM_2,
+	NUM_REMOTE_DATA_DEV,
+};
+
 #define DIAGFWD_MDM_DCI		NUM_REMOTE_DATA_DEV
 #define NUM_REMOTE_DCI_DEV	(DIAGFWD_MDM_DCI - NUM_REMOTE_DATA_DEV + 1)
 #define NUM_REMOTE_DEV		(NUM_REMOTE_DATA_DEV + NUM_REMOTE_DCI_DEV)
@@ -32,7 +36,7 @@ struct diag_remote_dev_ops {
 	int (*queue_read)(int id);
 	int (*write)(int id, unsigned char *buf, int len, int ctxt);
 	int (*fwd_complete)(int id, unsigned char *buf, int len, int ctxt);
-	int (*remote_proc_check)(void);
+	int (*remote_proc_check)(int i);
 };
 
 struct diagfwd_bridge_info {

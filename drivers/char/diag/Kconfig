@@ -26,7 +26,7 @@ config DIAG_OVER_USB
 config DIAGFWD_BRIDGE_CODE
 	bool "Enable remote DIAG traffic over MHI/HSIC"
 	depends on DIAG_CHAR
-	depends on USB_QTI_DIAG_BRIDGE || DIAG_OVER_PCIE
+	depends on USB_QTI_DIAG_BRIDGE || DIAG_OVER_PCIE || DIAG_MHI
 	default y
 	help
 	  MHI/HSIC Transport Layer for DIAG Router. When the MHI/HSIC endpoints
@@ -36,12 +36,18 @@ config DIAGFWD_BRIDGE_CODE
 config DIAG_OVER_PCIE
 	bool "Enable Diag traffic to go over PCIE"
 	depends on DIAG_CHAR
-	depends on MSM_MHI_DEV
+	depends on MHI_BUS
 	help
 	  Diag over PCIE enables sending diag traffic over PCIE endpoint when
 	  pcie is available. Diag PCIE channels should be configured
 	  and connected to use the transport. If PCIE is not configured
 	  diag will switch to usb mode and diag traffic will be routed
 	  over USB.
+
+config DIAG_MHI
+	bool "Enable receiving diag packets through MHI"
+	depends on MHI_BUS
+	help
+	  Enable MHI clients to send data to diag.
 
 endmenu
