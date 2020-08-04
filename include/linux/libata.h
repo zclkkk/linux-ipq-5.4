@@ -25,6 +25,7 @@
 #ifdef CONFIG_ATA_LEDS
 #include <linux/leds.h>
 #endif
+#include <linux/async.h>
 
 /*
  * Define if arch has non-standard setup.  This is a _PCI_ standard
@@ -872,6 +873,8 @@ struct ata_port {
 
 	struct timer_list	fastdrain_timer;
 	unsigned long		fastdrain_cnt;
+
+	async_cookie_t		cookie;
 
 	int			em_message_type;
 	void			*private_data;
