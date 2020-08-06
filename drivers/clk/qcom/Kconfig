@@ -133,6 +133,14 @@ config IPQ_GCC_6018
 	  i2c, USB, SD/eMMC, etc. Select this for the root clock
 	  of ipq6018.
 
+config IPQ_APSS_PLL
+	tristate "IPQ APSS PLL"
+	help
+	  Support for APSS PLL on ipq devices. The APSS PLL is the main
+	  clock that feeds the CPUs on ipq based devices.
+	  Say Y if you want to support CPU frequency scaling on ipq based
+	  devices.
+
 config MSM_GCC_8660
 	tristate "MSM8660 Global Clock Controller"
 	help
