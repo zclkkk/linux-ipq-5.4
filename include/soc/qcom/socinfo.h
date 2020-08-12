@@ -16,18 +16,6 @@
 
 #include <linux/of.h>
 
-#define CPU_IPQ4018 272
-#define CPU_IPQ4019 273
-#define CPU_IPQ4028 287
-#define CPU_IPQ4029 288
-
-#define CPU_IPQ8062 201
-#define CPU_IPQ8064 202
-#define CPU_IPQ8066 203
-#define CPU_IPQ8065 280
-#define CPU_IPQ8068 204
-#define CPU_IPQ8069 281
-
 #define CPU_IPQ8074 323
 #define CPU_IPQ8072 342
 #define CPU_IPQ8076 343
@@ -74,118 +62,8 @@ static inline int read_ipq_cpu_type(void)
 	 * Return Default CPU type if "cpu_type" property is not found in DTSI
 	 */
 	if (!prop)
-		return CPU_IPQ8064;
+		return CPU_IPQ8074;
 	return *prop;
-}
-
-static inline int cpu_is_ipq4018(void)
-{
-#ifdef CONFIG_ARCH_QCOM
-	return read_ipq_cpu_type() == CPU_IPQ4018;
-#else
-	return 0;
-#endif
-}
-
-static inline int cpu_is_ipq4019(void)
-{
-#ifdef CONFIG_ARCH_QCOM
-	return read_ipq_cpu_type() == CPU_IPQ4019;
-#else
-	return 0;
-#endif
-}
-
-static inline int cpu_is_ipq4028(void)
-{
-#ifdef CONFIG_ARCH_QCOM
-	return read_ipq_cpu_type() == CPU_IPQ4028;
-#else
-	return 0;
-#endif
-}
-
-static inline int cpu_is_ipq4029(void)
-{
-#ifdef CONFIG_ARCH_QCOM
-	return read_ipq_cpu_type() == CPU_IPQ4029;
-#else
-	return 0;
-#endif
-}
-
-static inline int cpu_is_ipq40xx(void)
-{
-#ifdef CONFIG_ARCH_QCOM
-	return  cpu_is_ipq4018() || cpu_is_ipq4019() ||
-		cpu_is_ipq4028() || cpu_is_ipq4029();
-#else
-	return 0;
-#endif
-}
-
-static inline int cpu_is_ipq8062(void)
-{
-#ifdef CONFIG_ARCH_QCOM
-	return read_ipq_cpu_type() == CPU_IPQ8062;
-#else
-	return 0;
-#endif
-}
-
-static inline int cpu_is_ipq8064(void)
-{
-#ifdef CONFIG_ARCH_QCOM
-	return read_ipq_cpu_type() == CPU_IPQ8064;
-#else
-	return 0;
-#endif
-}
-
-static inline int cpu_is_ipq8066(void)
-{
-#ifdef CONFIG_ARCH_QCOM
-	return read_ipq_cpu_type() == CPU_IPQ8066;
-#else
-	return 0;
-#endif
-}
-
-static inline int cpu_is_ipq8068(void)
-{
-#ifdef CONFIG_ARCH_QCOM
-	return read_ipq_cpu_type() == CPU_IPQ8068;
-#else
-	return 0;
-#endif
-}
-
-static inline int cpu_is_ipq8065(void)
-{
-#ifdef CONFIG_ARCH_QCOM
-	return read_ipq_cpu_type() == CPU_IPQ8065;
-#else
-	return 0;
-#endif
-}
-
-static inline int cpu_is_ipq8069(void)
-{
-#ifdef CONFIG_ARCH_QCOM
-	return read_ipq_cpu_type() == CPU_IPQ8069;
-#else
-	return 0;
-#endif
-}
-static inline int cpu_is_ipq806x(void)
-{
-#ifdef CONFIG_ARCH_QCOM
-	return  cpu_is_ipq8062() || cpu_is_ipq8064() ||
-		cpu_is_ipq8066() || cpu_is_ipq8068() ||
-		cpu_is_ipq8065() || cpu_is_ipq8069();
-#else
-	return 0;
-#endif
 }
 
 static inline int cpu_is_ipq8070(void)
