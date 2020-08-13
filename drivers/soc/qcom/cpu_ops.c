@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016, 2020, The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -104,11 +104,6 @@ static int __init qti_cpu_init(unsigned int cpu)
 
 static int __init qti_cpu_prepare(unsigned int cpu)
 {
-	if (qcom_scm_set_cold_boot_addr(secondary_startup, cpu_present_mask)) {
-		set_cpu_present(cpu, false);
-		pr_warn("Failed to set CPU boot address, disabling SMP\n");
-		return -ENOSYS;
-	}
 	return 0;
 }
 

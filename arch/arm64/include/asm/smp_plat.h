@@ -25,7 +25,9 @@ static inline u32 mpidr_hash_size(void)
 	return 1 << mpidr_hash.bits;
 }
 
+#ifdef CONFIG_QTI_APSS_ACC
 extern void secondary_startup(void);
+#endif
 
 /*
  * Retrieve logical cpu index corresponding to a given MPIDR.Aff*
