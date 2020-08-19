@@ -815,7 +815,6 @@ int minidump_dump_wlan_modules(void){
 		while (minidump_module_list_index < MINIDUMP_MODULE_COUNT) {
 			if (!strcmp(minidump_module_list[minidump_module_list_index], mod->name))
 				break;
-			pr_err("minidump_module_list_index = %d\n",minidump_module_list_index);
 			minidump_module_list_index ++;
 		}
 
