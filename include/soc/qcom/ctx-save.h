@@ -49,8 +49,7 @@ int minidump_store_mmu_info(const unsigned long va, const unsigned long pa);
 int minidump_remove_segments(const uint64_t virtual_address);
 
 struct module_sect_attr {
-	struct module_attribute mattr;
-	char *name;
+	struct bin_attribute battr;
 	unsigned long address;
 };
 
