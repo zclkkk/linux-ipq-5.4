@@ -214,6 +214,11 @@ static const struct soc_id soc_id[] = {
 	{ CPU_IPQ8172, "IPQ8172" },
 	{ CPU_IPQ8173, "IPQ8173" },
 	{ CPU_IPQ8174, "IPQ8174" },
+	{ CPU_IPQ6018, "IPQ6018" },
+	{ CPU_IPQ6028, "IPQ6028" },
+	{ CPU_IPQ6000, "IPQ6000" },
+	{ CPU_IPQ6010, "IPQ6010" },
+	{ CPU_IPQ6005, "IPQ6005" },
 };
 
 static const char *socinfo_machine(struct device *dev, unsigned int id)
