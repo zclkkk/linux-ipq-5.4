@@ -210,6 +210,24 @@ config CRYPTO_TEST
 	help
 	  Quick & dirty crypto test module.
 
+config CRYPTO_DISABLE_OUTOFPLACE_TESTS
+	bool "Disable out-of-place tests"
+	default y
+	help
+	  Disable out-of-place tests
+
+config CRYPTO_DISABLE_AUTH_SPLIT_TESTS
+	bool "Disable test cases where authentication data is split between buffers"
+	default y
+	help
+	  Disable authentication split tests
+
+config CRYPTO_DISABLE_HW_UNSUPPORTED_TESTS
+	bool "Disable test cases not supported by HW"
+	default y
+	help
+	  Disable hw unsupported test cases
+
 config CRYPTO_SIMD
 	tristate
 	select CRYPTO_CRYPTD
