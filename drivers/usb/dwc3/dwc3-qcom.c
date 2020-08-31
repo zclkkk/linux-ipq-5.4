@@ -12,7 +12,9 @@
 #include <linux/clk-provider.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
+#if defined(CONFIG_IPQ_DWC3_QTI_EXTCON)
 #include <linux/extcon.h>
+#endif
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
 #include <linux/phy/phy.h>
@@ -68,10 +70,18 @@ struct dwc3_qcom {
 	int			dm_hs_phy_irq;
 	int			ss_phy_irq;
 
+#if defined(CONFIG_IPQ_DWC3_QTI_EXTCON)
 	struct extcon_dev	*edev;
 	struct extcon_dev	*host_edev;
 	struct notifier_block	vbus_nb;
 	struct notifier_block	host_nb;
+
+	bool			vbus_status;
+	bool			id_status;
+	struct work_struct	vbus_work;
+	struct work_struct	host_work;
+	struct workqueue_struct	*dwc3_wq;
+#endif
 
 	const struct dwc3_acpi_pdata *acpi_pdata;
 
@@ -122,10 +132,61 @@ static void dwc3_qcom_vbus_overrride_enable(struct dwc3_qcom *qcom, bool enable)
 	}
 }
 
+#if defined(CONFIG_IPQ_DWC3_QTI_EXTCON)
+static void dwc3_otg_start_peripheral(struct work_struct *w)
+{
+	struct dwc3_qcom *qcom = container_of(w, struct dwc3_qcom, vbus_work);
+	struct dwc3 *dwc = platform_get_drvdata(qcom->dwc3);
+	int ret;
+
+	dwc3_qcom_vbus_overrride_enable(qcom, qcom->vbus_status);
+	if (qcom->vbus_status) {
+		dev_dbg(qcom->dev, "turn on dwc3 gadget\n");
+		dwc3_set_mode(dwc, DWC3_GCTL_PRTCAP_DEVICE);
+		ret = usb_gadget_vbus_connect(&dwc->gadget);
+		if (ret)
+			dev_err(qcom->dev, "%s: vbus connect  failed\n",
+								__func__);
+	} else {
+		dev_dbg(qcom->dev, "turn off dwc3 gadget\n");
+		ret = usb_gadget_vbus_disconnect(&dwc->gadget);
+		if (ret)
+			dev_err(qcom->dev, "%s: vbus disconnect failed\n",
+								__func__);
+	}
+}
+
+static void dwc3_otg_start_host(struct work_struct *w)
+{
+	struct dwc3_qcom *qcom = container_of(w, struct dwc3_qcom, host_work);
+	struct dwc3 *dwc = platform_get_drvdata(qcom->dwc3);
+	int ret;
+
+	dwc3_qcom_vbus_overrride_enable(qcom, qcom->id_status);
+	if (qcom->id_status) {
+		dev_dbg(qcom->dev, "turn on dwc3 host\n");
+		dwc3_set_mode(dwc, DWC3_GCTL_PRTCAP_HOST);
+		ret = dwc3_host_init(dwc);
+		if (ret)
+			dev_err(dwc->dev, "failed to register xHCI device\n");
+
+	} else {
+		dev_dbg(qcom->dev, "turn off dwc3 host\n");
+		dwc3_host_exit(dwc);
+	}
+}
+
+
 static int dwc3_qcom_vbus_notifier(struct notifier_block *nb,
 				   unsigned long event, void *ptr)
 {
 	struct dwc3_qcom *qcom = container_of(nb, struct dwc3_qcom, vbus_nb);
+
+	if (qcom->vbus_status == event)
+		return NOTIFY_DONE;
+
+	qcom->vbus_status = event;
+	queue_work(qcom->dwc3_wq, &qcom->vbus_work);
 
 	/* enable vbus override for device mode */
 	dwc3_qcom_vbus_overrride_enable(qcom, event);
@@ -138,6 +199,12 @@ static int dwc3_qcom_host_notifier(struct notifier_block *nb,
 				   unsigned long event, void *ptr)
 {
 	struct dwc3_qcom *qcom = container_of(nb, struct dwc3_qcom, host_nb);
+
+	if (qcom->vbus_status == event)
+		return NOTIFY_DONE;
+
+	qcom->vbus_status = event;
+	queue_work(qcom->dwc3_wq, &qcom->vbus_work);
 
 	/* disable vbus override in host mode */
 	dwc3_qcom_vbus_overrride_enable(qcom, !event);
@@ -194,6 +261,7 @@ static int dwc3_qcom_register_extcon(struct dwc3_qcom *qcom)
 
 	return 0;
 }
+#endif
 
 static void dwc3_qcom_disable_interrupts(struct dwc3_qcom *qcom)
 {
@@ -616,6 +684,17 @@ static int dwc3_qcom_probe(struct platform_device *pdev)
 	if (qcom->phy_mux)
 		dwc3_qcom_phy_sel(qcom);
 
+#if defined(CONFIG_IPQ_DWC3_QTI_EXTCON)
+	INIT_WORK(&qcom->vbus_work, dwc3_otg_start_peripheral);
+	INIT_WORK(&qcom->host_work, dwc3_otg_start_host);
+
+	qcom->dwc3_wq = alloc_ordered_workqueue("dwc3_wq", 0);
+	if (!qcom->dwc3_wq) {
+		pr_err("%s: Unable to create workqueue dwc3_wq\n", __func__);
+		return -ENOMEM;
+	}
+#endif
+
 	qcom->resets = devm_reset_control_array_get_optional_exclusive(dev);
 	if (IS_ERR(qcom->resets)) {
 		ret = PTR_ERR(qcom->resets);
@@ -710,10 +789,12 @@ static int dwc3_qcom_probe(struct platform_device *pdev)
 	if (qcom->mode == USB_DR_MODE_PERIPHERAL)
 		dwc3_qcom_vbus_overrride_enable(qcom, true);
 
+#if defined(CONFIG_IPQ_DWC3_QTI_EXTCON)
 	/* register extcon to override sw_vbus on Vbus change later */
 	ret = dwc3_qcom_register_extcon(qcom);
 	if (ret)
 		goto depopulate;
+#endif
 
 	device_init_wakeup(&pdev->dev, 1);
 	qcom->is_suspended = false;
@@ -736,6 +817,9 @@ clk_disable:
 reset_assert:
 	reset_control_assert(qcom->resets);
 
+#if defined(CONFIG_IPQ_DWC3_QTI_EXTCON)
+	destroy_workqueue(qcom->dwc3_wq);
+#endif
 	return ret;
 }
 
@@ -745,6 +829,12 @@ static int dwc3_qcom_remove(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	int i;
 
+#if defined(CONFIG_IPQ_DWC3_QTI_EXTCON)
+	extcon_unregister_notifier(qcom->edev, EXTCON_USB, &qcom->vbus_nb);
+	extcon_unregister_notifier(qcom->host_edev, EXTCON_USB_HOST,
+				   &qcom->host_nb);
+	destroy_workqueue(qcom->dwc3_wq);
+#endif
 	of_platform_depopulate(dev);
 
 	reset_control_assert(qcom->resets);
@@ -813,6 +903,7 @@ static const struct of_device_id dwc3_qcom_of_match[] = {
 	{ .compatible = "qcom,sdm845-dwc3" },
 	{ .compatible = "qcom,ipq6018-dwc3" },
 	{ .compatible = "qcom,ipq807x-dwc3" },
+	{ .compatible = "qcom,ipq5018-dwc3" },
 	{ }
 };
 MODULE_DEVICE_TABLE(of, dwc3_qcom_of_match);
