@@ -47,6 +47,7 @@ int minidump_fill_segments(const uint64_t start_addr, uint64_t size, minidump_tl
 int minidump_store_module_info(const char *name , const unsigned long va, const unsigned long pa, minidump_tlv_type_t type);
 int minidump_store_mmu_info(const unsigned long va, const unsigned long pa);
 int minidump_remove_segments(const uint64_t virtual_address);
+int do_minidump(void);
 
 struct module_sect_attr {
 	struct bin_attribute battr;
