@@ -246,4 +246,15 @@ config QTI_CTXT_SAVE
 	  Enable the context save driver, this driver provides a memory to
 	  TZ for crashdump collection, also it provides a TLV buffer for
 	  storing user specific buffer info into crashdump.
+
+config QTI_APSS_ACC
+	bool "QTI APSS Application Clock Controller"
+	depends on ARM64 && QCOM_SCM
+	help
+	  The ACC provides clock, power domain, and reset control to a CPU.
+	  There is one ACC register region per CPU within the APSS remapped
+	  region as well as an alias register region that remaps accesses
+	  to the ACC associated with the CPU accessing the region.
+
+	  If unsure, say N.
 endmenu
