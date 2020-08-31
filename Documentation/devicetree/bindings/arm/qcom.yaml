@@ -34,6 +34,7 @@ description: |
   	msm8994
   	msm8996
   	mdm9615
+	ipq6018
   	ipq8074
   	sdm845
 
@@ -162,5 +163,10 @@ properties:
               - qcom,ipq8074-ap-ac03
               - qcom,ipq8074-ap-ac04
           - const: qcom,ipq8074
+
+      - items:
+          - enum:
+              - qcom,ipq6018-cp01-c1
+          - const: qcom,ipq6018
 
 ...
