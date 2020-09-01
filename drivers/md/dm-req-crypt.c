@@ -151,7 +151,7 @@ static int req_crypt_map(struct dm_target *ti, struct request *rq,
 		 */
 		blk_partition_remap(bio_src);
 		if (copy_bio_sector_to_req == 0) {
-			clone->__sector = bio_src->bi_iter.bi_sector;
+			rq->__sector = bio_src->bi_iter.bi_sector;
 			copy_bio_sector_to_req++;
 		}
 		blk_queue_bounce(clone->q, &bio_src);
