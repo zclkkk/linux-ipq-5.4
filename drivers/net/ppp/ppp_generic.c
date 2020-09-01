@@ -3298,20 +3298,16 @@ ppp_connect_channel(struct channel *pch, int unit)
 		switch (version) {
 		case 2:
 			ppp->dev->priv_flags_ext |= IFF_EXT_PPP_L2TPV2;
-			ret = 0;
 			break;
 		case 3:
 			ppp->dev->priv_flags_ext |= IFF_EXT_PPP_L2TPV3;
-			ret = 0;
-			break;
-		default:
 			break;
 		}
+
 		break;
 
 	case PX_PROTO_PPTP:
 		ppp->dev->priv_flags_ext |= IFF_EXT_PPP_PPTP;
-		ret = 0;
 		break;
 
 	default:
@@ -3321,6 +3317,7 @@ ppp_connect_channel(struct channel *pch, int unit)
 	notify = 1;
 
 	ppp_unlock(ppp);
+	ret = 0;
 
  outl:
 	write_unlock_bh(&pch->upl);
