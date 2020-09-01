@@ -4063,6 +4063,8 @@ load:
 
 static int __exit qseecom_remove(struct platform_device *pdev)
 {
+	int ret = -1;
+
 	if (app_state) {
 		if (qseecom_unload_app())
 			pr_err("App unload failed\n");
@@ -4203,6 +4205,10 @@ static int __exit qseecom_remove(struct platform_device *pdev)
 		else
 			app_libs_state = 0;
 	}
+
+	ret = qti_scm_qseecom_remove_xpu();
+	if (ret && (ret != -ENOTSUPP))
+		pr_err("scm call failed with error %d\n", ret);
 
 	return 0;
 }
