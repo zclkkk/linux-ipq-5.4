@@ -842,7 +842,7 @@ int minidump_dump_wlan_modules(void){
 			}
 
 			for (i = 0; i <= mod->sect_attrs->nsections; i++) {
-				if ((!strcmp(".bss", mod->sect_attrs->attrs[i].name))) {
+				if ((!strcmp(".bss", mod->sect_attrs->attrs[i].battr.attr.name))) {
 					module_tlv_info.start = (unsigned long)
 					mod->sect_attrs->attrs[i].address;
 					module_tlv_info.size = (unsigned long)mod->core_layout.base
