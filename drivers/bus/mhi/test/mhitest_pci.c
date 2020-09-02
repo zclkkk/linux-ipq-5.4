@@ -117,12 +117,18 @@ static struct mhi_controller_config mhitest_mhi_config = {
 };
 
 static struct mhitest_msi_config msi_config = {
-	.total_vectors = 3,
+	.total_vectors = 128,
 	.total_users = 1,
 	.users = (struct mhitest_msi_user[]) {
-		{ .name = "MHI-TEST", .num_vectors = 3, .base_vector = 0 },
+		{ .name = "MHI-TEST", .num_vectors = 128, .base_vector = 0 },
 	},
 };
+
+irqreturn_t mhitest_msi_handlr(int irq_number, void *dev)
+{
+	printk("mhitest_msi_handlr irq_number==%d\n",irq_number);
+	return IRQ_HANDLED;
+}
 
 int mhitest_dump_info(struct mhitest_platform *mplat, bool in_panic)
 {
@@ -897,6 +903,7 @@ int mhitest_pci_set_mhi_state(struct mhitest_platform *mplat,
 						enum MHI_STATE state)
 {
 	int ret = 0;
+	int i = 0;
 
 	if (state < 0) {
 		MHITEST_ERR("Invalid MHI state : %d\n", state);
@@ -909,12 +916,42 @@ int mhitest_pci_set_mhi_state(struct mhitest_platform *mplat,
 	switch (state) {
 	case MHI_INIT:
 		ret = mhi_prepare_for_power_up(&mplat->mhi_ctrl);
+
+		/* Registering dummy interrupt handler for vectors
+		 * 3 to 127 to demonstrate the usage of multiple
+		 * PCI-MSI interrupts
+		 */
+		if (!ret && mplat->msi_config->total_vectors > 3) {
+			for (i = 3; i < 128; i++) {
+				ret = request_irq(mplat->mhi_ctrl.irq[i],
+						  mhitest_msi_handlr,
+						  IRQF_SHARED,
+						  "mhi_rem_vec",
+						  &mplat->mhi_ctrl);
+				if (ret) {
+					MHITEST_ERR("Error requesting irq:%d for vector:%d----error_code-%d\n",
+						    mplat->mhi_ctrl.irq[i], i, ret);
+				}
+			}
+
+			/* Updating ret to 0.
+			 * Since vectors 3 t0 127 are unused any failure
+			 * in registering interrupt handler should not
+			 * affect the flow of FBC.
+			 */
+			ret = 0;
+		}
 		break;
 	case MHI_POWER_ON:
 		ret = mhi_sync_power_up(&mplat->mhi_ctrl);
 		break;
 	case MHI_DEINIT:
 		mhi_unprepare_after_power_down(&mplat->mhi_ctrl);
+		if (mplat->msi_config->total_vectors > 3) {
+			for (i = 3; i < mplat->msi_config->total_vectors; i++) {
+				free_irq(mplat->mhi_ctrl.irq[i], &mplat->mhi_ctrl);
+			}
+		}
 		ret = 0;
 		break;
 	case MHI_POWER_OFF:
