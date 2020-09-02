@@ -219,6 +219,9 @@ struct qcom_pcie {
 	const struct qcom_pcie_ops *ops;
 };
 
+#define MAX_MSI_CTRLS_IPQ8074	4
+int msi_dev_irq[MAX_MSI_CTRLS_IPQ8074];
+
 #define to_qcom_pcie(x)		dev_get_drvdata((x)->dev)
 
 static void qcom_ep_reset_assert(struct qcom_pcie *pcie)
@@ -1372,8 +1375,21 @@ err_deinit:
 	return ret;
 }
 
+static void qcom_pcie_set_num_vectors(struct pcie_port *pp)
+{
+	pp->num_vectors = MAX_MSI_CTRLS_IPQ8074 * MAX_MSI_IRQS_PER_CTRL;
+}
+
+static irqreturn_t qcom_pcie_msi_irq_handler(int irq, void *arg)
+{
+	struct pcie_port *pp = arg;
+
+	return dw_handle_msi_irq(pp);
+}
+
 static const struct dw_pcie_host_ops qcom_pcie_dw_ops = {
 	.host_init = qcom_pcie_host_init,
+	.set_num_vectors = qcom_pcie_set_num_vectors,
 };
 
 /* Qcom IP rev.: 2.1.0	Synopsys IP rev.: 4.01a */
@@ -1470,6 +1486,8 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 	struct qcom_pcie_of_data *data;
 	const int *soc_version_major;
 	int ret;
+	int i;
+	char irq_name[20];
 
 	pcie = devm_kzalloc(dev, sizeof(*pcie), GFP_KERNEL);
 	if (!pcie)
@@ -1598,10 +1616,22 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 	pp->ops = &qcom_pcie_dw_ops;
 
 	if (IS_ENABLED(CONFIG_PCI_MSI)) {
-		pp->msi_irq = platform_get_irq_byname(pdev, "msi");
-		if (pp->msi_irq < 0) {
-			ret = pp->msi_irq;
-			goto err_pm_runtime_put;
+		for (i = 0; i < MAX_MSI_CTRLS_IPQ8074; i++) {
+			snprintf(irq_name, sizeof(irq_name), "msi_dev%d", i);
+			msi_dev_irq[i] = platform_get_irq_byname(pdev,
+								     irq_name);
+			if (msi_dev_irq[i] < 0) {
+				ret = msi_dev_irq[i];
+				goto err_pm_runtime_put;
+			}
+			ret = devm_request_irq(dev, msi_dev_irq[i],
+					      qcom_pcie_msi_irq_handler,
+					      IRQF_SHARED,
+					      "qcom-pcie-msi", pp);
+			if (ret) {
+				dev_err(dev, "cannot request msi_dev irq\n");
+				goto err_pm_runtime_put;
+			}
 		}
 	}
 
