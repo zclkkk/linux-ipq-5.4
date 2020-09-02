@@ -34,7 +34,7 @@ static const struct qcom_apcs_ipc_data ipq6018_apcs_data = {
 };
 
 static const struct qcom_apcs_ipc_data ipq8074_apcs_data = {
-	.offset = 8, .clk_name = NULL
+	.offset = 8, .clk_name = "qcom,apss-ipq807x"
 };
 
 static const struct qcom_apcs_ipc_data msm8916_apcs_data = {
@@ -72,16 +72,6 @@ static int qcom_apcs_ipc_send_data(struct mbox_chan *chan, void *data)
 
 static const struct mbox_chan_ops qcom_apcs_ipc_ops = {
 	.send_data = qcom_apcs_ipc_send_data,
-};
-
-static const struct of_device_id apcs_clk_match_table[] = {
-	{ .compatible = "qcom,msm8916-apcs-kpss-global",
-	  . data = "qcom-apcs-msm8916-clk", 		},
-	{ .compatible = "qcom,qcs404-apcs-apps-global",
-	  .data = "qcom-apcs-msm8916-clk",		},
-	{ .compatible = "qcom,ipq8074-apcs-apps-global",
-	  .data = "qcom,apss-ipq807x",			},
-	{}
 };
 
 static int qcom_apcs_ipc_probe(struct platform_device *pdev)
