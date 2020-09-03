@@ -1727,12 +1727,16 @@ static int do_test(const char *alg, u32 type, u32 mask, int m, u32 num_mb)
 	case 10:
 		ret += tcrypt_test("ecb(aes)");
 		ret += tcrypt_test("cbc(aes)");
+#ifdef CONFIG_CRYPTO_LRW
 		ret += tcrypt_test("lrw(aes)");
+#endif
 		ret += tcrypt_test("xts(aes)");
 		ret += tcrypt_test("ctr(aes)");
 		ret += tcrypt_test("rfc3686(ctr(aes))");
 		ret += tcrypt_test("ofb(aes)");
+#ifdef CRYPTO_DISABLE_HW_UNSUPPORTED_TESTS
 		ret += tcrypt_test("cfb(aes)");
+#endif
 		break;
 
 	case 11:
@@ -1918,6 +1922,14 @@ static int do_test(const char *alg, u32 type, u32 mask, int m, u32 num_mb)
 		ret += tcrypt_test("streebog512");
 		break;
 
+	case 55:
+		ret += tcrypt_test("ecb(aes)");
+		break;
+
+	case 56:
+		ret += tcrypt_test("rfc3686(ctr(aes))");
+		break;
+
 	case 100:
 		ret += tcrypt_test("hmac(md5)");
 		break;
@@ -2069,10 +2081,12 @@ static int do_test(const char *alg, u32 type, u32 mask, int m, u32 num_mb)
 				speed_template_16_24_32);
 		test_cipher_speed("cbc(aes)", DECRYPT, sec, NULL, 0,
 				speed_template_16_24_32);
+#ifdef CONFIG_CRYPTO_LRW
 		test_cipher_speed("lrw(aes)", ENCRYPT, sec, NULL, 0,
 				speed_template_32_40_48);
 		test_cipher_speed("lrw(aes)", DECRYPT, sec, NULL, 0,
 				speed_template_32_40_48);
+#endif
 		test_cipher_speed("xts(aes)", ENCRYPT, sec, NULL, 0,
 				speed_template_32_64);
 		test_cipher_speed("xts(aes)", DECRYPT, sec, NULL, 0,
@@ -2085,10 +2099,12 @@ static int do_test(const char *alg, u32 type, u32 mask, int m, u32 num_mb)
 				speed_template_16_24_32);
 		test_cipher_speed("ctr(aes)", DECRYPT, sec, NULL, 0,
 				speed_template_16_24_32);
+#ifdef CRYPTO_DISABLE_HW_UNSUPPORTED_TESTS
 		test_cipher_speed("cfb(aes)", ENCRYPT, sec, NULL, 0,
 				speed_template_16_24_32);
 		test_cipher_speed("cfb(aes)", DECRYPT, sec, NULL, 0,
 				speed_template_16_24_32);
+#endif
 		break;
 
 	case 201:
