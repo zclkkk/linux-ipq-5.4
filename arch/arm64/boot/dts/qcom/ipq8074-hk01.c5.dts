@@ -469,6 +469,8 @@
 	pinctrl-0 = <&pcie_sdx_pins>;
 	pinctrl-names = "default";
 
+	link_retries_count = <100>;
+
 	status = "ok";
 
 	pcie0_rp: pcie0_rp {

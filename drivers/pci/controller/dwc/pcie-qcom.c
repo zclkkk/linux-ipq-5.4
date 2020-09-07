@@ -1604,6 +1604,7 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 	int ret;
 	int i, domain;
 	char irq_name[20];
+	u32 link_retries_count = 0;
 
 	pcie = devm_kzalloc(dev, sizeof(*pcie), GFP_KERNEL);
 	if (!pcie)
@@ -1640,6 +1641,10 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 		ret = PTR_ERR(pcie->reset);
 		goto err_pm_runtime_put;
 	}
+
+	of_property_read_u32(pdev->dev.of_node, "link_retries_count",
+			     &link_retries_count);
+	pci->link_retries_count = link_retries_count;
 
 	if (of_device_is_compatible(pdev->dev.of_node,
 					"qcom,pcie-gen3-ipq8074")) {
