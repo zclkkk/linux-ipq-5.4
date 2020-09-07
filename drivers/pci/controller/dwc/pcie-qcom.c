@@ -1283,7 +1283,7 @@ static int qcom_pcie_init_2_9_0(struct qcom_pcie *pcie)
 	writel(PCIE_CAP_CURR_DEEMPHASIS | SPEED_GEN3,
 		pci->dbi_base + PCIE20_LNK_CONTROL2_LINK_STATUS2);
 
-	for (i = 0;i < 255;i++)
+	for (i = 0;i < 256;i++)
 		writel(0x0, pcie->parf + PARF_BDF_TO_SID_TABLE + (4 * i));
 
 	writel(0x4, pci->atu_base + PCIE_ATU_CR1_OUTBOUND_6_GEN3);
