@@ -260,7 +260,7 @@ void mhitest_pci_disable_msi(struct mhitest_platform *mplat)
 
 void mhitest_pci_unregister_mhi(struct mhitest_platform *mplat)
 {
-	struct mhi_controller *mhi_ctrl = &mplat->mhi_ctrl;
+	struct mhi_controller *mhi_ctrl = mplat->mhi_ctrl;
 
 	mhi_unregister_controller(mhi_ctrl);
 	kfree(mhi_ctrl->irq);

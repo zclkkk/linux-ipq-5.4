@@ -139,7 +139,7 @@ int mhitest_dump_info(struct mhitest_platform *mplat, bool in_panic)
 	int ret, i;
 	u16 device_id;
 
-	mhi_ctrl = &mplat->mhi_ctrl;
+	mhi_ctrl = mplat->mhi_ctrl;
 	pci_read_config_word(mplat->pci_dev, PCI_DEVICE_ID, &device_id);
 	MHITEST_EMERG("Read config space again, Device_id:0x%x\n", device_id);
 	if (device_id != mplat->pci_dev_id->device) {
@@ -326,11 +326,11 @@ int mhitest_pci_get_mhi_msi(struct mhitest_platform *mplat)
 		irq[i] = mhitest_get_msi_irq(&mplat->pci_dev->dev,
 							base_vector + i);
 
-	mplat->mhi_ctrl.irq = irq;
-	mplat->mhi_ctrl.nr_irqs = num_vectors;
+	mplat->mhi_ctrl->irq = irq;
+	mplat->mhi_ctrl->nr_irqs = num_vectors;
 
-	MHITEST_VERB("irq:[%p] msi_allocated :%d\n", mplat->mhi_ctrl.irq,
-				mplat->mhi_ctrl.nr_irqs);
+	MHITEST_VERB("irq:[%p] msi_allocated :%d\n", mplat->mhi_ctrl->irq,
+				mplat->mhi_ctrl->nr_irqs);
 
 	return 0;
 }
@@ -446,7 +446,7 @@ void mhitest_mhi_notify_status(struct mhi_controller *mhi_cntrl,
 {
 	struct mhitest_platform *temp;
 
-	temp = container_of(mhi_cntrl, struct mhitest_platform, mhi_ctrl);
+	temp = dev_get_drvdata(mhi_cntrl->cntrl_dev);
 
 	MHITEST_VERB("Enter\n");
 	if (reason > MHI_CB_FATAL_ERROR) {
@@ -498,8 +498,15 @@ int mhitest_pci_register_mhi(struct mhitest_platform *mplat)
 	unsigned int *reg, *reg_end;
 	unsigned long start, size;
 
-	mhi_ctrl = &mplat->mhi_ctrl;
+	mhi_ctrl = kzalloc(sizeof(*mhi_ctrl), GFP_KERNEL);
+	if (!mhi_ctrl) {
+		MHITEST_ERR("Error: not able to allocate mhi_ctrl\n");
+		return -EINVAL;
+	}
+	MHITEST_LOG("MHI CTRL :%p\n", mhi_ctrl);
 
+	mplat->mhi_ctrl = mhi_ctrl;
+	dev_set_drvdata(&pci_dev->dev, mplat);
 	mhi_ctrl->cntrl_dev = &pci_dev->dev;
 
 	if (!mplat->fw_name) {
@@ -568,6 +575,7 @@ int mhitest_pci_register_mhi(struct mhitest_platform *mplat)
 	return  0;
 
 out:
+	kfree(mhi_ctrl);
 	return ret;
 }
 
@@ -680,7 +688,7 @@ void mhitest_global_soc_reset(struct mhitest_platform *mplat)
 	u32 current_ee;
 	u32 count = 0;
 
-	current_ee = mhi_get_exec_env(&mplat->mhi_ctrl);
+	current_ee = mhi_get_exec_env(mplat->mhi_ctrl);
 
 	MHITEST_EMERG("Soc Globle Reset issued\n");
 
@@ -689,7 +697,7 @@ void mhitest_global_soc_reset(struct mhitest_platform *mplat)
 			       PCIE_SOC_GLOBAL_RESET_ADDRESS +
 			       mplat->bar);
 		msleep(20);
-		current_ee = mhi_get_exec_env(&mplat->mhi_ctrl);
+		current_ee = mhi_get_exec_env(mplat->mhi_ctrl);
 		count++;
 	} while (current_ee != MHI_EE_PBL &&
 		count < MAX_SOC_GLOBAL_RESET_WAIT_CNT);
@@ -710,10 +718,10 @@ void mhitest_pci_disable_bus(struct mhitest_platform *mplat)
 
 	msleep(2000);
 
-	mhi_set_mhi_state(&mplat->mhi_ctrl, MHI_STATE_RESET);
+	mhi_set_mhi_state(mplat->mhi_ctrl, MHI_STATE_RESET);
 
         while (retries--) {
-                temp = readl_relaxed(mplat->mhi_ctrl.regs  + 0x38);
+                temp = readl_relaxed(mplat->mhi_ctrl->regs  + 0x38);
                 in_reset = (temp & 0x2) >> 0x1;
                 if (in_reset){
                         MHITEST_LOG("Number of retry left:%d- trying again\n",
@@ -915,7 +923,7 @@ int mhitest_pci_set_mhi_state(struct mhitest_platform *mplat,
 
 	switch (state) {
 	case MHI_INIT:
-		ret = mhi_prepare_for_power_up(&mplat->mhi_ctrl);
+		ret = mhi_prepare_for_power_up(mplat->mhi_ctrl);
 
 		/* Registering dummy interrupt handler for vectors
 		 * 3 to 127 to demonstrate the usage of multiple
@@ -923,14 +931,14 @@ int mhitest_pci_set_mhi_state(struct mhitest_platform *mplat,
 		 */
 		if (!ret && mplat->msi_config->total_vectors > 3) {
 			for (i = 3; i < 128; i++) {
-				ret = request_irq(mplat->mhi_ctrl.irq[i],
+				ret = request_irq(mplat->mhi_ctrl->irq[i],
 						  mhitest_msi_handlr,
 						  IRQF_SHARED,
 						  "mhi_rem_vec",
-						  &mplat->mhi_ctrl);
+						  mplat->mhi_ctrl);
 				if (ret) {
 					MHITEST_ERR("Error requesting irq:%d for vector:%d----error_code-%d\n",
-						    mplat->mhi_ctrl.irq[i], i, ret);
+						    mplat->mhi_ctrl->irq[i], i, ret);
 				}
 			}
 
@@ -943,23 +951,23 @@ int mhitest_pci_set_mhi_state(struct mhitest_platform *mplat,
 		}
 		break;
 	case MHI_POWER_ON:
-		ret = mhi_sync_power_up(&mplat->mhi_ctrl);
+		ret = mhi_sync_power_up(mplat->mhi_ctrl);
 		break;
 	case MHI_DEINIT:
-		mhi_unprepare_after_power_down(&mplat->mhi_ctrl);
+		mhi_unprepare_after_power_down(mplat->mhi_ctrl);
 		if (mplat->msi_config->total_vectors > 3) {
 			for (i = 3; i < mplat->msi_config->total_vectors; i++) {
-				free_irq(mplat->mhi_ctrl.irq[i], &mplat->mhi_ctrl);
+				free_irq(mplat->mhi_ctrl->irq[i], mplat->mhi_ctrl);
 			}
 		}
 		ret = 0;
 		break;
 	case MHI_POWER_OFF:
-		mhi_power_down(&mplat->mhi_ctrl, true);
+		mhi_power_down(mplat->mhi_ctrl, true);
 		ret = 0;
 		break;
 	case MHI_FORCE_POWER_OFF:
-		mhi_power_down(&mplat->mhi_ctrl, false);
+		mhi_power_down(mplat->mhi_ctrl, false);
 		ret = 0;
 		break;
 	default:
@@ -975,7 +983,12 @@ int mhitest_pci_start_mhi(struct mhitest_platform *mplat)
 
 	MHITEST_VERB("Enter\n");
 
-	mplat->mhi_ctrl.timeout_ms = MHI_TIMEOUT_DEFAULT;
+	if (!mplat->mhi_ctrl) {
+		MHITEST_ERR("mhi_ctrl is NULL .. returning..\n");
+		return -EINVAL;
+	}
+
+	mplat->mhi_ctrl->timeout_ms = MHI_TIMEOUT_DEFAULT;
 
 	ret = mhitest_pci_set_mhi_state(mplat, MHI_INIT);
 	if (ret) {
@@ -1128,6 +1141,7 @@ void mhitest_pci_remove(struct pci_dev *pci_dev)
 	mhitest_subsystem_unregister(mplat);
 	mhitest_event_work_deinit(mplat);
 	pci_load_and_free_saved_state(pci_dev, &mplat->pci_dev_default_state);
+	kfree(mplat->mhi_ctrl);
 	mhitest_free_mplat(mplat);
 }
 

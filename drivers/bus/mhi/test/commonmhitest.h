@@ -142,7 +142,7 @@ struct mhitest_platform {
 /*mhi  msi */
 	struct mhitest_msi_config *msi_config;
 	u32 msi_ep_base_data;
-	struct mhi_controller mhi_ctrl;
+	struct mhi_controller *mhi_ctrl;
 /* subsystem related */
 	char *mhitest_ss_desc_name;
 	phandle rproc_handle;
