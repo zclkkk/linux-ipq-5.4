@@ -635,3 +635,15 @@
 		};
 	};
 };
+
+&wifi0 {
+	status = "disabled";
+};
+
+&wifi1 {
+	/* hw-mode id 7 belongs to PHYB2G mode
+	 */
+	wlan-hw-mode =  <7>;
+	qcom,board_id = <0x216>;
+	status = "disabled";
+};

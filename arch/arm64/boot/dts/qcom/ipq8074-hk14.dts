@@ -588,3 +588,12 @@
 	mx-supply = <&dummy_reg>;
 };
 #endif
+
+&wifi0 {
+	status = "disabled";
+};
+
+&wifi1 {
+	qcom,board_id = <0x294>;
+	status = "ok";
+};

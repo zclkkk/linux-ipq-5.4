@@ -664,3 +664,11 @@
 		};
 	};
 };
+
+&wifi0 {
+	status = "disabled";
+};
+
+&wifi1 {
+	status = "disabled";
+};
