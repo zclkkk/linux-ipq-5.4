@@ -543,8 +543,6 @@ static void __socket_close_channel(struct diag_socket_info *info)
 		mutex_unlock(&info->socket_info_mutex);
 		return;
 	}
-	sock_release(info->hdl);
-	info->hdl = NULL;
 	mutex_unlock(&info->socket_info_mutex);
 	wake_up_interruptible(&info->read_wait_q);
 
