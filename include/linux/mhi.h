@@ -367,6 +367,7 @@ struct mhi_controller_config {
 struct mhi_controller {
 	struct device *cntrl_dev;
 	struct mhi_device *mhi_dev;
+	struct device_node *of_node;
 	void __iomem *regs;
 	void __iomem *bhi;
 	void __iomem *bhie;
