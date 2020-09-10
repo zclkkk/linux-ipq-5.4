@@ -597,6 +597,8 @@ static void mhi_uci_remove(struct mhi_device *mhi_dev)
 /* .driver_data stores max mtu */
 static const struct mhi_device_id mhi_uci_match_table[] = {
 	{ .chan = "LOOPBACK", .driver_data = 0x1000 },
+	{ .chan = "QMI0", .driver_data = 0x1000 },
+	{ .chan = "QMI1", .driver_data = 0x1000 },
 	{},
 };
 MODULE_DEVICE_TABLE(mhi, mhi_uci_match_table);
