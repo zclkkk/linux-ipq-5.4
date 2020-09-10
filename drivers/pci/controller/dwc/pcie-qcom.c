@@ -1512,6 +1512,9 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 	pcie->pci = pci;
 
 	data = (struct qcom_pcie_of_data *)(of_device_get_match_data(dev));
+	if (!data)
+		return -EINVAL;
+
 	pcie->ops = data->ops;
 	pci->version = data->version;
 
