@@ -134,8 +134,6 @@ const struct rproc_ops mhitest_rproc_ops = {
 
 int mhitest_subsystem_register(struct mhitest_platform *mplat)
 {
-	int ret;
-
 	MHITEST_VERB("Going for ss_reg.\n");
 
 	if (mplat->d_instance == 0)
@@ -151,10 +149,9 @@ int mhitest_subsystem_register(struct mhitest_platform *mplat)
 					  &mhitest_rproc_ops,
 					  DEFAULT_FW_FILE_NAME, 0);
 
-	if (IS_ERR(mplat->subsys_handle)) {
-		ret = PTR_ERR(mplat->subsys_handle);
-		MHITEST_ERR("Error SS reg ret:%d\n", ret);
-		return ret;
+	if (!mplat->subsys_handle) {
+		MHITEST_ERR("rproc_alloc returned NULL..\n");
+		return -EINVAL;
 	}
 
 	mplat->subsys_handle->auto_boot = false;
