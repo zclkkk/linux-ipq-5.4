@@ -13,4 +13,13 @@ config MHI_UCI
 	  by this driver. Please check mhi_uci_match_table for all supported
 	  channels that are exposed to userspace.
 
+config MHI_NETDEV
+	tristate "MHI NETDEV"
+	depends on MHI_BUS
+	help
+	  MHI based net device driver for transferring IP traffic
+	  between host and modem. By enabling this driver, clients
+	  can transfer data using standard network interface. Over
+	  the air traffic goes thru mhi netdev interface.
+
 endmenu
