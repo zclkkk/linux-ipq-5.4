@@ -119,6 +119,12 @@ enum {
 
 #define TCA_STAB_MAX (__TCA_STAB_MAX - 1)
 
+enum {
+	TCA_NSS_ACCEL_MODE_NSS_FW,
+	TCA_NSS_ACCEL_MODE_PPE,
+	TCA_NSS_ACCEL_MODE_MAX
+};
+
 /* NSSFIFO section */
 
 enum {
@@ -130,8 +136,9 @@ enum {
 #define TCA_NSSFIFO_MAX	(__TCA_NSSFIFO_MAX - 1)
 
 struct tc_nssfifo_qopt {
-	__u32	limit;	/* Queue length: bytes for bfifo, packets for pfifo */
-	__u8	set_default;/* Sets qdisc to be the default qdisc for enqueue */
+	__u32	limit;		/* Queue length: bytes for bfifo, packets for pfifo */
+	__u8	set_default;	/* Sets qdisc to be the default qdisc for enqueue */
+	__u8	accel_mode;	/* Dictates which data plane offloads the qdisc */
 };
 
 /* NSSWRED section */
@@ -167,16 +174,18 @@ enum tc_nsswred_weight_modes {
 
 struct tc_nsswred_qopt {
 	__u32	limit;			/* Queue length */
-	enum tc_nsswred_weight_modes weight_mode;	/* Weight mode */
-	__u32	traffic_classes;/* How many traffic classes: DPs */
-	__u32	def_traffic_class;/* Default traffic if no match: def_DP */
-	__u32	traffic_id;/* The traffic id to be configured: DP */
-	__u32	weight_mode_value;/* Weight mode value */
-	struct tc_red_alg_parameter rap;	/* RED algorithm parameters */
+	enum tc_nsswred_weight_modes weight_mode;
+					/* Weight mode */
+	__u32	traffic_classes;	/* How many traffic classes: DPs */
+	__u32	def_traffic_class;	/* Default traffic if no match: def_DP */
+	__u32	traffic_id;		/* The traffic id to be configured: DP */
+	__u32	weight_mode_value;	/* Weight mode value */
+	struct tc_red_alg_parameter rap;/* RED algorithm parameters */
 	struct tc_nsswred_traffic_class tntc[NSSWRED_CLASS_MAX];
 					/* Traffic settings for dumpping */
-	__u8	ecn;		/* Setting ECN bit or dropping */
-	__u8	set_default;	/* Sets qdisc to be the default for enqueue */
+	__u8	ecn;			/* Setting ECN bit or dropping */
+	__u8	set_default;		/* Sets qdisc to be the default for enqueue */
+	__u8	accel_mode;		/* Dictates which data plane offloads the qdisc */
 };
 
 /* NSSCODEL section */
@@ -190,15 +199,30 @@ enum {
 #define TCA_NSSCODEL_MAX	(__TCA_NSSCODEL_MAX - 1)
 
 struct tc_nsscodel_qopt {
-	__u32	target;/* Acceptable queueing delay */
-	__u32	limit;/* Max number of packets that can be held in the queue */
-	__u32	interval;/* Monitoring interval */
-	__u8	set_default;/* Sets qdisc to be the default qdisc for enqueue */
+	__u32	target;		/* Acceptable queueing delay */
+	__u32	limit;		/* Max number of packets that can be held in the queue */
+	__u32	interval;	/* Monitoring interval */
+	__u32	flows;		/* Number of flow buckets */
+	__u32	quantum;	/* Weight (in bytes) used for DRR of flow buckets */
+	__u8	ecn;		/* 0 - disable ECN, 1 - enable ECN */
+	__u8	set_default;	/* Sets qdisc to be the default qdisc for enqueue */
+	__u8	accel_mode;	/* Dictates which data plane offloads the qdisc */
 };
 
 struct tc_nsscodel_xstats {
-	__u32 peak_queue_delay;/* Peak delay experienced by a dequeued packet */
-	__u32 peak_drop_delay;/* Peak delay experienced by a dropped packet */
+	__u32 peak_queue_delay;	/* Peak delay experienced by a dequeued packet */
+	__u32 peak_drop_delay;	/* Peak delay experienced by a dropped packet */
+};
+
+/* NSSFQ_CODEL section */
+
+struct tc_nssfq_codel_xstats {
+	__u32 new_flow_count;	/* Total number of new flows seen */
+	__u32 new_flows_len;	/* Current number of new flows */
+	__u32 old_flows_len;	/* Current number of old flows */
+	__u32 ecn_mark;		/* Number of packets marked with ECN */
+	__u32 drop_overlimit;	/* Number of packets dropped due to overlimit */
+	__u32 maxpacket;	/* The largest packet seen so far in the queue */
 };
 
 /* NSSTBL section */
@@ -212,10 +236,11 @@ enum {
 #define TCA_NSSTBL_MAX	(__TCA_NSSTBL_MAX - 1)
 
 struct tc_nsstbl_qopt {
-	__u32	burst;	/* Maximum burst size */
-	__u32	rate;	/* Limiting rate of TBF */
-	__u32	peakrate;/* Maximum rate at which TBF is allowed to send */
-	__u32	mtu;	/* Max size of packet, or minumim burst size */
+	__u32	burst;		/* Maximum burst size */
+	__u32	rate;		/* Limiting rate of TBF */
+	__u32	peakrate;	/* Maximum rate at which TBF is allowed to send */
+	__u32	mtu;		/* Max size of packet, or minumim burst size */
+	__u8	accel_mode;	/* Dictates which data plane offloads the qdisc */
 };
 
 /* NSSPRIO section */
@@ -231,7 +256,8 @@ enum {
 #define TCA_NSSPRIO_MAX	(__TCA_NSSPRIO_MAX - 1)
 
 struct tc_nssprio_qopt {
-	int	bands;				/* Number of bands */
+	__u32	bands;		/* Number of bands */
+	__u8	accel_mode;	/* Dictates which data plane offloads the qdisc */
 };
 
 /* NSSBF section */
@@ -254,6 +280,7 @@ struct tc_nssbf_class_qopt {
 
 struct tc_nssbf_qopt {
 	__u16	defcls;		/* Default class value */
+	__u8	accel_mode;	/* Dictates which data plane offloads the qdisc */
 };
 
 /* NSSWRR section */
@@ -261,6 +288,7 @@ struct tc_nssbf_qopt {
 enum {
 	TCA_NSSWRR_UNSPEC,
 	TCA_NSSWRR_CLASS_PARMS,
+	TCA_NSSWRR_QDISC_PARMS,
 	__TCA_NSSWRR_MAX
 };
 
@@ -270,11 +298,16 @@ struct tc_nsswrr_class_qopt {
 	__u32	quantum;	/* Weight associated to this class */
 };
 
+struct tc_nsswrr_qopt {
+	__u8	accel_mode;	/* Dictates which data plane offloads the qdisc */
+};
+
 /* NSSWFQ section */
 
 enum {
 	TCA_NSSWFQ_UNSPEC,
 	TCA_NSSWFQ_CLASS_PARMS,
+	TCA_NSSWFQ_QDISC_PARMS,
 	__TCA_NSSWFQ_MAX
 };
 
@@ -282,6 +315,10 @@ enum {
 
 struct tc_nsswfq_class_qopt {
 	__u32	quantum;	/* Weight associated to this class */
+};
+
+struct tc_nsswfq_qopt {
+	__u8	accel_mode;	/* Dictates which data plane offloads the qdisc */
 };
 
 /* NSSHTB section */
@@ -307,6 +344,7 @@ struct tc_nsshtb_class_qopt {
 
 struct tc_nsshtb_qopt {
 	__u32	r2q;		/* Rate to quantum ratio */
+	__u8	accel_mode;	/* Dictates which data plane offloads the qdisc */
 };
 
 /* NSSBLACKHOLE section */
@@ -320,7 +358,8 @@ enum {
 #define TCA_NSSBLACKHOLE_MAX	(__TCA_NSSBLACKHOLE_MAX - 1)
 
 struct tc_nssblackhole_qopt {
-	__u8	set_default;/* Sets qdisc to be the default qdisc for enqueue */
+	__u8	set_default;	/* Sets qdisc to be the default qdisc for enqueue */
+	__u8	accel_mode;	/* Dictates which data plane offloads the qdisc */
 };
 
 /* FIFO section */
