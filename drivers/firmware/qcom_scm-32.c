@@ -1466,7 +1466,7 @@ int __qti_scm_pshold(struct device *dev)
 							NULL, 0, NULL, 0);
 }
 
-int __qcom_scm_extwdt(struct device *dev, u32 svc_id, u32 cmd_id,
+int __qti_scm_extwdt(struct device *dev, u32 svc_id, u32 cmd_id,
 				unsigned int regaddr, unsigned int val)
 {
 	long ret;

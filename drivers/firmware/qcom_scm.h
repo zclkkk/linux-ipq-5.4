@@ -265,6 +265,6 @@ extern int  __qti_scm_set_resettype(struct device *dev, u32 reset_type);
 #define QTI_SCM_CMD_PSHOLD	0x16
 extern int __qti_scm_pshold(struct device *);
 #endif
-#define QCOM_SCM_EXTWDT_CMD            0x2
-extern int __qcom_scm_extwdt(struct device *, u32 svc_id, u32 cmd_id,
+#define QTI_SCM_EXTWDT_CMD            0x2
+extern int __qti_scm_extwdt(struct device *, u32 svc_id, u32 cmd_id,
 			     unsigned int regaddr, unsigned int val);

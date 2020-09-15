@@ -197,11 +197,11 @@ static void qcom_clk_disable_unprepare(void *data)
 	clk_disable_unprepare(data);
 }
 
-static int qcom_fiq_extwdt(unsigned int regaddr, unsigned int value)
+static int qti_fiq_extwdt(unsigned int regaddr, unsigned int value)
 {
 	int ret;
 
-	ret = qcom_scm_extwdt(SCM_SVC_EXTWDT, SCM_CMD_EXTWDT, regaddr, value);
+	ret = qti_scm_extwdt(SCM_SVC_EXTWDT, SCM_CMD_EXTWDT, regaddr, value);
 	if (ret)
 		pr_err("Setting value to TCSR_WONCE register failed\n");
 
@@ -321,7 +321,7 @@ static int qcom_wdt_probe(struct platform_device *pdev)
 		extwdt_val = val;
 
 		regaddr = TCSR_WONCE_REG;
-		retn = qcom_fiq_extwdt(regaddr, extwdt_val);
+		retn = qti_fiq_extwdt(regaddr, extwdt_val);
 		if (retn)
 			dev_err(&pdev->dev, "FIQ scm_call failed\n");
 	}
