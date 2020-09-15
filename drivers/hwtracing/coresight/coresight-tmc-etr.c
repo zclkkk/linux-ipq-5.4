@@ -1504,8 +1504,10 @@ out:
 	if (free_buf)
 		tmc_etr_free_sysfs_buf(free_buf);
 
+#ifdef CONFIG_CORESIGHT_BYTE_CNTR
 	if (drvdata->out_mode == TMC_ETR_OUT_MODE_MEM)
 		tmc_etr_byte_cntr_start(drvdata->byte_cntr);
+#endif
 
 	if (!ret)
 		dev_dbg(&csdev->dev, "TMC-ETR enabled\n");
@@ -1994,7 +1996,9 @@ static int _tmc_disable_etr_sink(struct coresight_device *csdev,
 
 	spin_unlock_irqrestore(&drvdata->spinlock, flags);
 
+#ifdef CONFIG_CORESIGHT_BYTE_CNTR
 	tmc_etr_byte_cntr_stop(drvdata->byte_cntr);
+#endif
 	coresight_cti_unmap_trigin(drvdata->cti_reset, 2, 0);
 	coresight_cti_unmap_trigout(drvdata->cti_flush, 3, 0);
 	/* Free memory outside the spinlock if need be */
