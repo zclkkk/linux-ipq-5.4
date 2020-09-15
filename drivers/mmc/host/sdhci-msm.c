@@ -1897,6 +1897,8 @@ static int sdhci_msm_probe(struct platform_device *pdev)
 	 * the data associated with the version info.
 	 */
 	var_info = of_device_get_match_data(&pdev->dev);
+	if (!var_info)
+		goto pltfm_free;
 
 	msm_host->mci_removed = var_info->mci_removed;
 	msm_host->restore_dll_config = var_info->restore_dll_config;
