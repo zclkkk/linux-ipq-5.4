@@ -13,13 +13,13 @@
 #include <linux/memblock.h>
 #include <linux/sched/task.h>
 #include <linux/start_kernel.h>
-#include <linux/pgtable.h>
 #include <asm/cputype.h>
 #include <asm/highmem.h>
 #include <asm/mach/map.h>
 #include <asm/memory.h>
 #include <asm/page.h>
 #include <asm/pgalloc.h>
+#include <asm/pgtable.h>
 #include <asm/procinfo.h>
 #include <asm/proc-fns.h>
 
