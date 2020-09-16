@@ -93,6 +93,7 @@
 #define MAX_HALT_REG		4
 
 #define WCNSS_PAS_ID		6
+#define MAX_SEGMENTS		2
 static int debug_wcss;
 
 enum {
@@ -175,8 +176,9 @@ struct wcss_data {
 static void crashdump_init(struct rproc *rproc, struct rproc_dump_segment *segment, void *dest)
 {
 	void *handle;
-	struct q6v5_wcss *wcss = rproc->priv;
-	struct ramdump_segment seg;
+	struct device_node *node = NULL, *np = NULL;
+	struct ramdump_segment segs[MAX_SEGMENTS];
+	int ret, index = 0;
 
 	handle = create_ramdump_device(rproc->name, &rproc->dev);
 	if (!handle) {
@@ -191,16 +193,37 @@ static void crashdump_init(struct rproc *rproc, struct rproc_dump_segment *segme
 		goto free_device;
 	}
 
-	/*This segment logic works fine when all the firmware segments
-	 * are stored in contigious, if firmware is stored in multiple
-	 * uncontigious memories we may need to update the wcss struct
-	 * and handle it accordingly*/
-	seg.address = wcss->mem_phys;
-	seg.size = wcss->mem_size;
-	seg.v_address = wcss->mem_region;
+	np = of_find_node_by_name(NULL, "q6v5_wcss");
+	while (1) {
+		node = of_parse_phandle(np, "memory-region", index);
+		if (!node)
+			break;
 
-	do_elf_ramdump(handle, &seg, 1);
+		ret = of_property_read_u32_index(node, "reg", 1,
+						 (u32 *)&segs[index].address);
+		if (ret) {
+			pr_err("Could not retrieve reg addr %d\n", ret);
+			of_node_put(node);
+			goto put_node;
+		}
 
+		ret = of_property_read_u32_index(node, "reg", 3,
+						 (u32 *)&segs[index].size);
+		if (ret) {
+			pr_err("Could not retrieve reg size %d\n", ret);
+			of_node_put(node);
+			goto put_node;
+		}
+		segs[index].v_address = ioremap(segs[index].address,
+						segs[index].size);
+		of_node_put(node);
+		index++;
+	}
+
+	do_elf_ramdump(handle, segs, index);
+
+put_node:
+	of_node_put(np);
 free_device:
 	destroy_ramdump_device(handle);
 }
