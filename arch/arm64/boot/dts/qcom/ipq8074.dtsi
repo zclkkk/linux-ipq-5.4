@@ -50,6 +50,11 @@
 		qti,get-smmu-state;
 	};
 
+	gadget_diag: qti,gadget_diag@0 {
+		     compatible = "qti,gadget-diag";
+		     status = "disabled";
+	};
+
 	wcss: smp2p-wcss {
 		compatible = "qcom,smp2p";
 		qcom,smem = <435>, <428>;
