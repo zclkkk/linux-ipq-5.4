@@ -120,6 +120,11 @@
 /* Timeout value to avoid infinite waiting for pwr_irq */
 #define MSM_PWR_IRQ_TIMEOUT_MS 5000
 
+#define SDHCI_ASYNC_INT_SUPPORT		BIT(29)
+#define SDHCI_MAX_BLK_LENGTH		BIT(16)
+#define SDHCI_BASE_SDCLK_FREQ		0xc800
+#define SDHCI_TIMEOUT_CLK_FREQ		0xb2
+
 #define msm_host_readl(msm_host, host, offset) \
 	msm_host->var_ops->msm_readl_relaxed(host, offset)
 
@@ -2029,6 +2034,17 @@ static int sdhci_msm_probe(struct platform_device *pdev)
 		msm_host_writel(msm_host, config, host,
 				msm_offset->core_hc_mode);
 	}
+
+	/* Enable SDCC supported capabilities */
+	host->caps = SDHCI_CAN_VDD_300 | SDHCI_CAN_VDD_180 |
+			SDHCI_ASYNC_INT_SUPPORT |
+			SDHCI_CAN_64BIT | SDHCI_CAN_DO_HISPD |
+			SDHCI_CAN_DO_ADMA2 | SDHCI_CAN_DO_8BIT |
+			SDHCI_MAX_BLK_LENGTH | SDHCI_TIMEOUT_CLK_UNIT |
+			SDHCI_BASE_SDCLK_FREQ | SDHCI_TIMEOUT_CLK_FREQ;
+	host->caps1 = SDHCI_SUPPORT_SDR104 | SDHCI_SUPPORT_SDR50 |
+			SDHCI_SUPPORT_DDR50;
+	host->quirks  |= SDHCI_QUIRK_MISSING_CAPS;
 
 	host_version = readw_relaxed((host->ioaddr + SDHCI_HOST_VERSION));
 	dev_dbg(&pdev->dev, "Host Version: 0x%x Vendor Version 0x%x\n",
