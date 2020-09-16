@@ -1014,6 +1014,9 @@ static int write_reg_dma(struct qcom_nand_controller *nandc, int first,
 			vaddr = &regs->erased_cw_detect_cfg_clr;
 	}
 
+	if (!vaddr)
+		return -EINVAL;
+
 	if (first == NAND_EXEC_CMD)
 		flags |= NAND_BAM_NWD;
 
@@ -2994,6 +2997,9 @@ static int qcom_nandc_remove(struct platform_device *pdev)
 	struct qcom_nand_controller *nandc = platform_get_drvdata(pdev);
 	struct resource *res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	struct qcom_nand_host *host;
+
+	if (!res)
+		return -EINVAL;
 
 	list_for_each_entry(host, &nandc->host_list, node)
 		nand_release(&host->chip);
