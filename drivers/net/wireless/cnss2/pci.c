@@ -209,6 +209,133 @@ static struct cnss_pci_reg qdss_csr[] = {
 	{ NULL },
 };
 
+static struct mhi_channel_config cnss_pci_mhi_channels[] = {
+	{
+		.num = 0,
+		.name = "LOOPBACK",
+		.num_elements = 32,
+		.event_ring = 1,
+		.dir = DMA_TO_DEVICE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = false,
+		.auto_start = false,
+	},
+	{
+		.num = 1,
+		.name = "LOOPBACK",
+		.num_elements = 32,
+		.event_ring = 1,
+		.dir = DMA_FROM_DEVICE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = false,
+		.auto_start = false,
+	},
+	{
+		.num = 4,
+		.name = "DIAG",
+		.num_elements = 32,
+		.event_ring = 1,
+		.dir = DMA_TO_DEVICE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = false,
+		.auto_start = false,
+	},
+	{
+		.num = 5,
+		.name = "DIAG",
+		.num_elements = 32,
+		.event_ring = 1,
+		.dir = DMA_FROM_DEVICE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = false,
+		.auto_start = false,
+	},
+	{
+		.num = 20,
+		.name = "IPCR",
+		.num_elements = 32,
+		.event_ring = 1,
+		.dir = DMA_TO_DEVICE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = false,
+		.auto_start = true,
+	},
+	{
+		.num = 21,
+		.name = "IPCR",
+		.num_elements = 32,
+		.event_ring = 1,
+		.dir = DMA_FROM_DEVICE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = true,
+		.auto_start = true,
+	},
+};
+
+static struct mhi_event_config cnss_pci_mhi_events[] = {
+	{
+		.num_elements = 32,
+		.irq_moderation_ms = 0,
+		.irq = 1,
+		.mode = MHI_DB_BRST_DISABLE,
+		.priority = 1,
+		.data_type = MHI_ER_CTRL,
+		.hardware_event = false,
+		.client_managed = false,
+		.offload_channel = false,
+	},
+	{
+		.num_elements = 256,
+		.irq_moderation_ms = 1,
+		.irq = 2,
+		.mode = MHI_DB_BRST_DISABLE,
+		.priority = 1,
+		.hardware_event = false,
+		.client_managed = false,
+		.offload_channel = false,
+	},
+};
+
+static struct mhi_controller_config cnss_pci_mhi_config = {
+	.max_channels = 30,
+	.timeout_ms = 10000,
+	.use_bounce_buf = false,
+	.buf_len = 0,
+	.num_channels = ARRAY_SIZE(cnss_pci_mhi_channels),
+	.ch_cfg = cnss_pci_mhi_channels,
+	.num_events = ARRAY_SIZE(cnss_pci_mhi_events),
+	.event_cfg = cnss_pci_mhi_events,
+};
 static int cnss_pci_check_link_status(struct cnss_pci_data *pci_priv)
 {
 #ifdef CONFIG_PCI_SUSPENDRESUME
@@ -3494,11 +3621,12 @@ out:
 	return ret;
 }
 
+#define MHI_RAMDUMP_DUMP_COMPLETE 0x5000
 void cnss_pci_global_reset(struct cnss_pci_data *pci_priv)
 {
 	struct cnss_plat_data *plat_priv = pci_priv->plat_priv;
 	int resetcount = 0, tx_count = 0;
-	int current_ee;
+	enum mhi_ee_type current_ee;
 	u32 errdbg1 = 0;
 
 	current_ee = mhi_get_exec_env(pci_priv->mhi_ctrl);
@@ -3775,22 +3903,21 @@ void cnss_pci_clear_dump_info(struct cnss_pci_data *pci_priv)
 	plat_priv->ramdump_info_v2.dump_data_valid = false;
 }
 
-static int cnss_mhi_pm_runtime_get(struct mhi_controller *mhi_ctrl, void *priv)
+static int cnss_mhi_pm_runtime_get(struct mhi_controller *mhi_ctrl)
 {
-	struct cnss_pci_data *pci_priv = priv;
+	struct cnss_pci_data *pci_priv = dev_get_drvdata(mhi_ctrl->cntrl_dev);
 
 	return cnss_pci_pm_runtime_get(pci_priv);
 }
 
-static void cnss_mhi_pm_runtime_put_noidle(struct mhi_controller *mhi_ctrl,
-					   void *priv)
+static void cnss_mhi_pm_runtime_put_noidle(struct mhi_controller *mhi_ctrl)
 {
-	struct cnss_pci_data *pci_priv = priv;
+	struct cnss_pci_data *pci_priv = dev_get_drvdata(mhi_ctrl->cntrl_dev);
 
 	cnss_pci_pm_runtime_put_noidle(pci_priv);
 }
 
-static char *cnss_mhi_notify_status_to_str(enum MHI_CB status)
+static char *cnss_mhi_notify_status_to_str(enum mhi_callback status)
 {
 	switch (status) {
 	case MHI_CB_IDLE:
@@ -3820,9 +3947,10 @@ static void cnss_dev_rddm_timeout_hdlr(struct timer_list *timer)
 	cnss_schedule_recovery(&pci_priv->pci_dev->dev, CNSS_REASON_TIMEOUT);
 }
 
-static int cnss_mhi_link_status(struct mhi_controller *mhi_ctrl, void *priv)
+#ifdef CONFIG_PCI_MSM
+static int cnss_mhi_link_status(struct mhi_controller *mhi_ctrl)
 {
-	struct cnss_pci_data *pci_priv = priv;
+	struct cnss_pci_data *pci_priv = CNSS_PCI_PRIV_FROM_MHI_CTRL(mhi_ctrl);
 
 	if (!pci_priv) {
 		pr_err("%s: pci_priv is NULL\n", __func__);
@@ -3831,11 +3959,12 @@ static int cnss_mhi_link_status(struct mhi_controller *mhi_ctrl, void *priv)
 
 	return cnss_pci_check_link_status(pci_priv);
 }
+#endif
 
-static void cnss_mhi_notify_status(struct mhi_controller *mhi_ctrl, void *priv,
-				   enum MHI_CB reason)
+static void cnss_mhi_notify_status(struct mhi_controller *mhi_ctrl,
+				   enum mhi_callback reason)
 {
-	struct cnss_pci_data *pci_priv = priv;
+	struct cnss_pci_data *pci_priv = dev_get_drvdata(mhi_ctrl->cntrl_dev);
 	struct cnss_plat_data *plat_priv = NULL;
 	enum cnss_recovery_reason cnss_reason;
 
@@ -3916,11 +4045,12 @@ static int cnss_pci_get_mhi_msi(struct cnss_pci_data *pci_priv)
 					  base_vector + i);
 
 	pci_priv->mhi_ctrl->irq = irq;
-	pci_priv->mhi_ctrl->msi_allocated = num_vectors;
+	pci_priv->mhi_ctrl->nr_irqs = num_vectors;
 
 	return 0;
 }
 
+#ifdef CONFIG_PCI_MSM
 static void cnss_pci_update_fw_name(struct cnss_pci_data *pci_priv)
 {
 	struct cnss_plat_data *plat_priv = pci_priv->plat_priv;
@@ -3935,6 +4065,7 @@ static void cnss_pci_update_fw_name(struct cnss_pci_data *pci_priv)
 
 	cnss_pr_dbg("Firmware name is %s\n", mhi_ctrl->fw_image);
 }
+#endif
 
 static int cnss_pci_register_mhi(struct cnss_pci_data *pci_priv)
 {
@@ -3943,22 +4074,16 @@ static int cnss_pci_register_mhi(struct cnss_pci_data *pci_priv)
 	struct pci_dev *pci_dev = pci_priv->pci_dev;
 	struct mhi_controller *mhi_ctrl;
 
-	mhi_ctrl = mhi_alloc_controller(0);
+	mhi_ctrl = kzalloc(sizeof(*mhi_ctrl), GFP_KERNEL);
 	if (!mhi_ctrl) {
-		cnss_pr_err("Invalid MHI controller context\n");
-		return -EINVAL;
+		cnss_pr_err("Unable to allocate mhi_ctrl\n");
+		return -ENOMEM;
 	}
 
 	pci_priv->mhi_ctrl = mhi_ctrl;
 
-	mhi_ctrl->priv_data = pci_priv;
-	mhi_ctrl->dev = &pci_dev->dev;
-	mhi_ctrl->of_node = (&plat_priv->plat_dev->dev)->of_node;
-	mhi_ctrl->dev_id = pci_priv->device_id;
-	mhi_ctrl->domain = pci_domain_nr(pci_dev->bus);
-	mhi_ctrl->bus = pci_dev->bus->number;
-	mhi_ctrl->slot = PCI_SLOT(pci_dev->devfn);
-
+	dev_set_drvdata(&pci_dev->dev, pci_priv);
+	mhi_ctrl->cntrl_dev = &pci_dev->dev;
 	mhi_ctrl->fw_image = plat_priv->firmware_name;
 
 	mhi_ctrl->regs = pci_priv->bar;
@@ -3968,12 +4093,11 @@ static int cnss_pci_register_mhi(struct cnss_pci_data *pci_priv)
 	ret = cnss_pci_get_mhi_msi(pci_priv);
 	if (ret) {
 		cnss_pr_err("Failed to get MSI for MHI\n");
-		return ret;
+		goto out;
 	}
 	mhi_ctrl->iova_start = memblock_start_of_DRAM();
 	mhi_ctrl->iova_stop = memblock_end_of_DRAM();
 
-	mhi_ctrl->link_status = cnss_mhi_link_status;
 	mhi_ctrl->status_cb = cnss_mhi_notify_status;
 	mhi_ctrl->runtime_get = cnss_mhi_pm_runtime_get;
 	mhi_ctrl->runtime_put = cnss_mhi_pm_runtime_put_noidle;
@@ -3983,29 +4107,28 @@ static int cnss_pci_register_mhi(struct cnss_pci_data *pci_priv)
 	mhi_ctrl->seg_len = SZ_512K;
 	mhi_ctrl->fbc_download = true;
 
-	mhi_ctrl->log_buf = ipc_log_context_create(CNSS_IPC_LOG_PAGES,
-						   "cnss-mhi", 0);
-	if (!mhi_ctrl->log_buf)
-		cnss_pr_err("Unable to create CNSS MHI IPC log context\n");
-
-	ret = of_register_mhi_controller(mhi_ctrl);
+	ret = mhi_register_controller(mhi_ctrl, &cnss_pci_mhi_config);
 	if (ret) {
 		cnss_pr_err("Failed to register to MHI bus, err = %d\n", ret);
-		return ret;
+		CNSS_ASSERT(0);
+		goto out;
 	}
 
-	cnss_pci_update_fw_name(pci_priv);
-
 	return 0;
+out:
+	kfree(mhi_ctrl);
+	pci_priv->mhi_ctrl = NULL;
+	return ret;
 }
 
 static void cnss_pci_unregister_mhi(struct cnss_pci_data *pci_priv)
 {
 	struct mhi_controller *mhi_ctrl = pci_priv->mhi_ctrl;
 
-	mhi_unregister_mhi_controller(mhi_ctrl);
-	ipc_log_context_destroy(mhi_ctrl->log_buf);
+	mhi_unregister_controller(mhi_ctrl);
 	kfree(mhi_ctrl->irq);
+	kfree(mhi_ctrl);
+	pci_priv->mhi_ctrl = NULL;
 }
 
 int cnss_pci_probe(struct pci_dev *pci_dev,

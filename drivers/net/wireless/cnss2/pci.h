@@ -25,8 +25,7 @@
 #include <linux/device.h>
 #include <linux/dma-direction.h>
 #include <linux/slab.h>
-//#include <linux/mhi.h>
-#include "mhi.h"
+#include <linux/mhi.h>
 #ifdef CONFIG_PCI_MSM
 #include <linux/msm_pcie.h>
 #endif
