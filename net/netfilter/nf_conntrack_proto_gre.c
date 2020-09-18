@@ -218,7 +218,7 @@ int nf_conntrack_gre_packet(struct nf_conn *ct,
 			    enum ip_conntrack_info ctinfo,
 			    const struct nf_hook_state *state)
 {
-	if (state->pf != NFPROTO_IPV4)
+	if ((state->pf != NFPROTO_IPV4) && (state->pf != NFPROTO_IPV6))
 		return -NF_ACCEPT;
 
 	if (!nf_ct_is_confirmed(ct)) {
