@@ -645,6 +645,7 @@ void cnss_wait_for_fw_ready(struct device *dev)
 	    plat_priv->device_id == QCA8074V2_DEVICE_ID ||
 	    plat_priv->device_id == QCA6018_DEVICE_ID ||
 	    plat_priv->device_id == QCA5018_DEVICE_ID ||
+	    plat_priv->device_id == QCN9100_DEVICE_ID ||
 	    plat_priv->device_id == QCN9000_DEVICE_ID) {
 		cnss_pr_info("Waiting for FW ready. Device: 0x%lx, FW ready timeout: %d seconds\n",
 			     plat_priv->device_id, fw_ready_timeout);
@@ -673,6 +674,7 @@ void cnss_wait_for_cold_boot_cal_done(struct device *dev)
 	if (plat_priv->device_id == QCA8074_DEVICE_ID ||
 	    plat_priv->device_id == QCA8074V2_DEVICE_ID ||
 	    plat_priv->device_id == QCA6018_DEVICE_ID ||
+	    plat_priv->device_id == QCN9100_DEVICE_ID ||
 	    plat_priv->device_id == QCA5018_DEVICE_ID ||
 	    plat_priv->device_id == QCN9000_DEVICE_ID) {
 		/* Cold boot Calibration is done parallely for multiple devices
@@ -1300,6 +1302,7 @@ int cnss_wlan_register_driver(struct cnss_wlan_driver *driver_ops)
 		if ((plat_priv->device_id == QCA8074_DEVICE_ID ||
 		     plat_priv->device_id == QCA8074V2_DEVICE_ID ||
 		     plat_priv->device_id == QCA5018_DEVICE_ID ||
+		     plat_priv->device_id == QCN9100_DEVICE_ID ||
 		     plat_priv->device_id == QCA6018_DEVICE_ID) &&
 			(strcmp(driver_ops->name, "pld_ahb") == 0)) {
 			plat_priv->driver_status = CNSS_LOAD_UNLOAD;
@@ -1430,6 +1433,7 @@ void cnss_wlan_unregister_driver(struct cnss_wlan_driver *driver_ops)
 		if ((plat_priv->device_id == QCA8074_DEVICE_ID ||
 		     plat_priv->device_id == QCA8074V2_DEVICE_ID ||
 		     plat_priv->device_id == QCA5018_DEVICE_ID ||
+		     plat_priv->device_id == QCN9100_DEVICE_ID ||
 		     plat_priv->device_id == QCA6018_DEVICE_ID) && ops &&
 			(strcmp(driver_ops->name, "pld_ahb") == 0)) {
 			subsys_info = &plat_priv->subsys_info;
@@ -2696,6 +2700,7 @@ int cnss_register_subsys(struct cnss_plat_data *plat_priv)
 	case QCA8074_DEVICE_ID:
 	case QCA8074V2_DEVICE_ID:
 	case QCA5018_DEVICE_ID:
+	case QCN9100_DEVICE_ID:
 	case QCA6018_DEVICE_ID:
 		subsys_info->subsys_desc.name = "cd00000.q6v5_wcss";
 		return 0;
@@ -2749,6 +2754,7 @@ void cnss_unregister_subsys(struct cnss_plat_data *plat_priv)
 	if (plat_priv->device_id == QCA8074_DEVICE_ID ||
 	    plat_priv->device_id == QCA8074V2_DEVICE_ID ||
 	    plat_priv->device_id == QCA5018_DEVICE_ID ||
+	    plat_priv->device_id == QCN9100_DEVICE_ID ||
 	    plat_priv->device_id == QCA6018_DEVICE_ID) {
 		return;
 	}
@@ -3201,6 +3207,10 @@ static int cnss_set_device_name(struct cnss_plat_data *plat_priv)
 		snprintf(plat_priv->device_name, sizeof(plat_priv->device_name),
 			 "QCA5018");
 		break;
+	case QCN9100_DEVICE_ID:
+		snprintf(plat_priv->device_name, sizeof(plat_priv->device_name),
+			 "QCN9100");
+		break;
 	default:
 		cnss_pr_err("No such device id 0x%lx\n", plat_priv->device_id);
 		return -ENODEV;
@@ -3278,6 +3288,7 @@ static int cnss_probe(struct platform_device *plat_dev)
 		   (device_id->driver_data == QCA8074_DEVICE_ID ||
 		   device_id->driver_data == QCA8074V2_DEVICE_ID ||
 		   device_id->driver_data == QCA6018_DEVICE_ID ||
+		   device_id->driver_data == QCN9100_DEVICE_ID ||
 		   device_id->driver_data == QCA5018_DEVICE_ID)) {
 		pr_err("Skipping cnss_probe for device 0x%lx\n",
 		       device_id->driver_data);
@@ -3360,6 +3371,7 @@ skip_soc_version_checks:
 	case QCA8074_DEVICE_ID:
 	case QCA8074V2_DEVICE_ID:
 	case QCA5018_DEVICE_ID:
+	case QCN9100_DEVICE_ID:
 	case QCA6018_DEVICE_ID:
 		plat_priv->bus_type = CNSS_BUS_AHB;
 		plat_priv->wlfw_service_instance_id =
