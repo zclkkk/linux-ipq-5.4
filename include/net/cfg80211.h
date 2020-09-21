@@ -863,6 +863,10 @@ struct survey_info {
  * @sae_pwd: password for SAE authentication (for devices supporting SAE
  *	offload)
  * @sae_pwd_len: length of SAE password (for devices supporting SAE offload)
+ * @sae_pwe: value indicates the SAE mechanism used for PWE derivation
+ *     0 = hunting-and-pecking loop only
+ *     1 = hash-to-element only
+ *     2 = both hunting-and-pecking loop and hash-to-element enabled
  */
 struct cfg80211_crypto_settings {
 	u32 wpa_versions;
@@ -880,6 +884,7 @@ struct cfg80211_crypto_settings {
 	const u8 *psk;
 	const u8 *sae_pwd;
 	u8 sae_pwd_len;
+	u16 sae_pwe;
 };
 
 /**
