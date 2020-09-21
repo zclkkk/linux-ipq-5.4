@@ -18,6 +18,22 @@
 #define MHI_RPM_SUSPEND_TMR_MS (250)
 #define MHI_PCI_BAR_NUM (0)
 
+#ifdef CONFIG_MHI_DEBUG
+
+#define MHI_LOG(fmt, ...) do { \
+		pr_info("[D][%s] " fmt, __func__, ##__VA_ARGS__);\
+} while (0)
+
+#else
+
+#define MHI_LOG(fmt, ...)
+
+#endif
+
+#define MHI_ERR(fmt, ...) do { \
+		pr_err("[E][%s] " fmt, __func__, ##__VA_ARGS__);\
+} while (0)
+
 struct mhi_dev {
 	struct pci_dev *pci_dev;
 	u32 smmu_cfg;

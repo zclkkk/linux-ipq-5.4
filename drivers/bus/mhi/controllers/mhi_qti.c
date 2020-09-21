@@ -21,8 +21,9 @@
 #include <linux/io.h>
 #include <linux/gpio/consumer.h>
 #include "mhi_qti.h"
-#include "../core/mhi_internal.h"
+#include "../core/internal.h"
 
+#define MHI_SSR_ENABLE	0
 #define WDOG_TIMEOUT	30
 #define MHI_PANIC_TIMER_STEP	1000
 
@@ -33,9 +34,10 @@ bool mhi_ssr_negotiate;
 
 void __iomem *wdt;
 
-static struct kobject *mhi_kobj;
-
 struct notifier_block *global_mhi_panic_notifier;
+
+#if MHI_SSR_ENABLE
+static struct kobject *mhi_kobj;
 
 static ssize_t sysfs_show(struct kobject *kobj, struct kobj_attribute *attr,
 			  char *buf);
@@ -60,11 +62,311 @@ static ssize_t sysfs_store(struct kobject *kobj, struct kobj_attribute *attr,
 	}
 	return count;
 }
+#endif
 
 struct firmware_info {
 	unsigned int dev_id;
 	const char *fw_image;
 	const char *edl_image;
+};
+
+/* set ptr to control private data */
+static inline void mhi_controller_set_devdata(struct mhi_controller *mhi_cntrl,
+					      void *priv)
+{
+	mhi_cntrl->priv_data = priv;
+}
+
+/* allocate mhi controller to register */
+struct mhi_controller *mhi_alloc_controller(size_t size)
+{
+	struct mhi_controller *mhi_cntrl;
+
+	mhi_cntrl = kzalloc(size + sizeof(*mhi_cntrl), GFP_KERNEL);
+
+	if (mhi_cntrl && size)
+		mhi_controller_set_devdata(mhi_cntrl, mhi_cntrl + 1);
+
+	return mhi_cntrl;
+}
+
+static inline void mhi_free_controller(struct mhi_controller *mhi_cntrl)
+{
+	kfree(mhi_cntrl);
+}
+
+static struct mhi_channel_config mhi_sdx_mhi_channels[] = {
+	{
+		.num = 14,
+		.name = "QMI0",
+		.num_elements = 64,
+		.event_ring = 1,
+		.dir = DMA_TO_DEVICE,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = false,
+		.auto_start = false,
+	},
+	{
+		.num = 15,
+		.name = "QMI0",
+		.num_elements = 64,
+		.event_ring = 2,
+		.dir = DMA_FROM_DEVICE,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = false,
+		.auto_start = false,
+	},
+	{
+		.num = 16,
+		.name = "QMI1",
+		.num_elements = 64,
+		.event_ring = 3,
+		.dir = DMA_TO_DEVICE,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = false,
+		.auto_start = false,
+	},
+	{
+		.num = 17,
+		.name = "QMI1",
+		.num_elements = 64,
+		.event_ring = 3,
+		.dir = DMA_FROM_DEVICE,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = false,
+		.auto_start = false,
+	},
+	{
+		.num = 18,
+		.name = "IP_CTRL",
+		.num_elements = 64,
+		.event_ring = 1,
+		.dir = DMA_TO_DEVICE,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = false,
+		.auto_start = false,
+	},
+	{
+		.num = 19,
+		.name = "IP_CTRL",
+		.num_elements = 64,
+		.event_ring = 1,
+		.dir = DMA_FROM_DEVICE,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = true,
+		.auto_start = false,
+	},
+	{
+		.num = 20,
+		.name = "IPCR",
+		.num_elements = 64,
+		.event_ring = 2,
+		.dir = DMA_TO_DEVICE,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = false,
+		.auto_start = true,
+	},
+	{
+		.num = 21,
+		.name = "IPCR",
+		.num_elements = 64,
+		.event_ring = 2,
+		.dir = DMA_FROM_DEVICE,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = true,
+		.auto_start = true,
+	},
+	{
+		.num = 46,
+		.name = "IP_SW0",
+		.num_elements = 512,
+		.event_ring = 4,
+		.dir = DMA_TO_DEVICE,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = false,
+		.auto_start = false,
+	},
+	{
+		.num = 47,
+		.name = "IP_SW0",
+		.num_elements = 512,
+		.event_ring = 5,
+		.dir = DMA_FROM_DEVICE,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = false,
+		.auto_start = false,
+	},
+	{
+		.num = 100,
+		.name = "IP_HW0",
+		.num_elements = 512,
+		.event_ring = 6,
+		.dir = DMA_TO_DEVICE,
+		.doorbell = MHI_DB_BRST_ENABLE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = true,
+		.auto_queue = false,
+		.auto_start = false,
+	},
+	{
+		.num = 101,
+		.name = "IP_HW0",
+		.num_elements =  512,
+		.event_ring = 7,
+		.dir = DMA_FROM_DEVICE,
+		.doorbell = MHI_DB_BRST_ENABLE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = false,
+		.auto_start = false,
+	},
+};
+
+static struct mhi_event_config mhi_sdx_mhi_events[] = {
+	{
+		.num_elements = 32,
+		.irq_moderation_ms = 1,
+		.irq = 1,
+		.mode = MHI_DB_BRST_DISABLE,
+		.data_type = MHI_ER_CTRL,
+		.hardware_event = false,
+		.client_managed = false,
+		.offload_channel = false,
+	},
+	{
+		.num_elements = 256,
+		.irq_moderation_ms = 1,
+		.irq = 2,
+		.mode = MHI_DB_BRST_DISABLE,
+		.hardware_event = false,
+		.client_managed = false,
+		.offload_channel = false,
+	},
+	{
+		.num_elements = 256,
+		.irq_moderation_ms = 1,
+		.irq = 3,
+		.mode = MHI_DB_BRST_DISABLE,
+		.hardware_event = false,
+		.client_managed = false,
+		.offload_channel = false,
+	},
+	{
+		.num_elements = 256,
+		.irq_moderation_ms = 1,
+		.irq = 4,
+		.mode = MHI_DB_BRST_DISABLE,
+		.hardware_event = false,
+		.client_managed = false,
+		.offload_channel = false,
+	},
+	{
+		.num_elements = 1024,
+		.irq_moderation_ms = 5,
+		.irq = 5,
+		.channel = 46,
+		.mode = MHI_DB_BRST_DISABLE,
+		.hardware_event = false,
+		.client_managed = false,
+		.offload_channel = false,
+	},
+	{
+		.num_elements = 1024,
+		.irq_moderation_ms = 5,
+		.irq = 6,
+		.channel = 47,
+		.mode = MHI_DB_BRST_DISABLE,
+		.hardware_event = false,
+		.client_managed = true,
+		.offload_channel = false,
+	},
+	{
+		.num_elements = 1024,
+		.irq_moderation_ms = 5,
+		.irq = 5,
+		.channel = 100,
+		.mode = MHI_DB_BRST_ENABLE,
+		.hardware_event = true,
+		.client_managed = false,
+		.offload_channel = false,
+	},
+	{
+		.num_elements = 1024,
+		.irq_moderation_ms = 5,
+		.irq = 6,
+		.channel = 101,
+		.mode = MHI_DB_BRST_ENABLE,
+		.hardware_event = true,
+		.client_managed = true,
+		.offload_channel = false,
+	},
+};
+
+static struct mhi_controller_config mhi_sdx_mhi_config = {
+	.max_channels = 128,
+	.timeout_ms = 2000,
+	.use_bounce_buf = false,
+	.buf_len = 0,
+	.num_channels = ARRAY_SIZE(mhi_sdx_mhi_channels),
+	.ch_cfg = mhi_sdx_mhi_channels,
+	.num_events = ARRAY_SIZE(mhi_sdx_mhi_events),
+	.event_cfg = mhi_sdx_mhi_events,
 };
 
 static const struct firmware_info firmware_table[] = {
@@ -162,22 +464,22 @@ static int mhi_init_pci_dev(struct mhi_controller *mhi_cntrl)
 		goto error_ioremap;
 	}
 
-	ret = pci_alloc_irq_vectors(pci_dev, mhi_cntrl->msi_required,
-				    mhi_cntrl->msi_required, PCI_IRQ_NOMSIX);
-	if (IS_ERR_VALUE((ulong)ret) || ret < mhi_cntrl->msi_required) {
+	ret = pci_alloc_irq_vectors(pci_dev, mhi_cntrl->nr_irqs_req,
+				    mhi_cntrl->nr_irqs_req, PCI_IRQ_MSI);
+	if (IS_ERR_VALUE((ulong)ret) || ret < mhi_cntrl->nr_irqs_req) {
 		MHI_ERR("Failed to enable MSI, ret:%d\n", ret);
 		goto error_req_msi;
 	}
 
-	mhi_cntrl->msi_allocated = ret;
-	mhi_cntrl->irq = kmalloc_array(mhi_cntrl->msi_allocated,
+	mhi_cntrl->nr_irqs = ret;
+	mhi_cntrl->irq = kmalloc_array(mhi_cntrl->nr_irqs,
 				       sizeof(*mhi_cntrl->irq), GFP_KERNEL);
 	if (!mhi_cntrl->irq) {
 		ret = -ENOMEM;
 		goto error_alloc_msi_vec;
 	}
 
-	for (i = 0; i < mhi_cntrl->msi_allocated; i++) {
+	for (i = 0; i < mhi_cntrl->nr_irqs; i++) {
 		mhi_cntrl->irq[i] = pci_irq_vector(pci_dev, i);
 		if (mhi_cntrl->irq[i] < 0) {
 			ret = mhi_cntrl->irq[i];
@@ -229,6 +531,7 @@ error_enable_device:
 	return ret;
 }
 
+#if MHI_SSR_ENABLE
 static int mhi_runtime_suspend(struct device *dev)
 {
 	int ret = 0;
@@ -354,9 +657,9 @@ int mhi_system_suspend(struct device *dev)
 }
 
 /* checks if link is down */
-static int mhi_link_status(struct mhi_controller *mhi_cntrl, void *priv)
+static int mhi_link_status(struct mhi_controller *mhi_cntrl)
 {
-	struct mhi_dev *mhi_dev = priv;
+	struct mhi_dev *mhi_dev = mhi_cntrl->priv_data;
 	u16 dev_id;
 	int ret;
 
@@ -367,9 +670,9 @@ static int mhi_link_status(struct mhi_controller *mhi_cntrl, void *priv)
 }
 
 /* disable PCIe L1 */
-static int mhi_lpm_disable(struct mhi_controller *mhi_cntrl, void *priv)
+static int mhi_lpm_disable(struct mhi_controller *mhi_cntrl)
 {
-	struct mhi_dev *mhi_dev = priv;
+	struct mhi_dev *mhi_dev = mhi_cntrl->priv_data;
 	struct pci_dev *pci_dev = mhi_dev->pci_dev;
 	int lnkctl = pci_dev->pcie_cap + PCI_EXP_LNKCTL;
 	u8 val;
@@ -398,9 +701,9 @@ static int mhi_lpm_disable(struct mhi_controller *mhi_cntrl, void *priv)
 }
 
 /* enable PCIe L1 */
-static int mhi_lpm_enable(struct mhi_controller *mhi_cntrl, void *priv)
+static int mhi_lpm_enable(struct mhi_controller *mhi_cntrl)
 {
-	struct mhi_dev *mhi_dev = priv;
+	struct mhi_dev *mhi_dev = mhi_cntrl->priv_data;
 	struct pci_dev *pci_dev = mhi_dev->pci_dev;
 	int lnkctl = pci_dev->pcie_cap + PCI_EXP_LNKCTL;
 	u8 val;
@@ -427,10 +730,11 @@ static int mhi_lpm_enable(struct mhi_controller *mhi_cntrl, void *priv)
 
 	return ret;
 }
+#endif
 
 static int mhi_power_up(struct mhi_controller *mhi_cntrl)
 {
-	enum mhi_dev_state dev_state = mhi_get_mhi_state(mhi_cntrl);
+	enum mhi_state dev_state = mhi_get_mhi_state(mhi_cntrl);
 	const u32 delayus = 10;
 	int itr = DIV_ROUND_UP(mhi_cntrl->timeout_ms * 1000, delayus);
 	int ret;
@@ -456,38 +760,49 @@ static int mhi_power_up(struct mhi_controller *mhi_cntrl)
 
 	ret = mhi_async_power_up(mhi_cntrl);
 
-	/* power up create the dentry */
-	if (mhi_cntrl->dentry) {
-		debugfs_create_file("m0", 0444, mhi_cntrl->dentry, mhi_cntrl,
-				    &debugfs_trigger_m0_fops);
-		debugfs_create_file("m3", 0444, mhi_cntrl->dentry, mhi_cntrl,
-				    &debugfs_trigger_m3_fops);
-	}
-
 	return ret;
 }
 
-static int mhi_runtime_get(struct mhi_controller *mhi_cntrl, void *priv)
+int __must_check mhi_sdx_read_reg(struct mhi_controller *mhi_cntrl,
+                                  void __iomem *addr, u32 *out)
 {
-	struct mhi_dev *mhi_dev = priv;
+        u32 tmp = readl(addr);
+
+        /* If the value is invalid, the link is down */
+        if (tmp == U32_MAX)
+                return -EIO;
+
+        *out = tmp;
+
+        return 0;
+}
+
+void mhi_sdx_write_reg(struct mhi_controller *mhi_cntrl, void __iomem *addr,
+                       u32 val)
+{
+        writel(val, addr);
+}
+
+static int mhi_runtime_get(struct mhi_controller *mhi_cntrl)
+{
+	struct mhi_dev *mhi_dev = mhi_cntrl->priv_data;
 	struct device *dev = &mhi_dev->pci_dev->dev;
 
 	return pm_runtime_get(dev);
 }
 
-static void mhi_runtime_put(struct mhi_controller *mhi_cntrl, void *priv)
+static void mhi_runtime_put(struct mhi_controller *mhi_cntrl)
 {
-	struct mhi_dev *mhi_dev = priv;
+	struct mhi_dev *mhi_dev = mhi_cntrl->priv_data;
 	struct device *dev = &mhi_dev->pci_dev->dev;
 
 	pm_runtime_put_noidle(dev);
 }
 
 static void mhi_status_cb(struct mhi_controller *mhi_cntrl,
-			  void *priv,
-			  enum MHI_CB reason)
+			  enum mhi_callback reason)
 {
-	struct mhi_dev *mhi_dev = priv;
+	struct mhi_dev *mhi_dev = mhi_cntrl->priv_data;
 	struct device *dev = &mhi_dev->pci_dev->dev;
 
 	if (reason == MHI_CB_IDLE) {
@@ -497,11 +812,13 @@ static void mhi_status_cb(struct mhi_controller *mhi_cntrl,
 	}
 }
 
+#if MHI_SSR_ENABLE
 /* capture host SoC XO time in ticks */
-static u64 mhi_time_get(struct mhi_controller *mhi_cntrl, void *priv)
+static u64 mhi_time_get(struct mhi_controller *mhi_cntrl)
 {
-	return arch_counter_get_cntvct();
+	return __arch_counter_get_cntvct();
 }
+#endif
 
 static ssize_t timeout_ms_show(struct device *dev,
 			       struct device_attribute *attr,
@@ -559,7 +876,7 @@ static const struct attribute_group mhi_group = {
 	.attrs = mhi_attrs,
 };
 
-static struct mhi_controller *mhi_register_controller(struct pci_dev *pci_dev)
+static struct mhi_controller *dt_register_mhi_controller(struct pci_dev *pci_dev)
 {
 	struct mhi_controller *mhi_cntrl;
 	struct mhi_dev *mhi_dev;
@@ -577,11 +894,7 @@ static struct mhi_controller *mhi_register_controller(struct pci_dev *pci_dev)
 		return ERR_PTR(-ENOMEM);
 
 	mhi_dev = mhi_controller_get_devdata(mhi_cntrl);
-
-	mhi_cntrl->domain = pci_domain_nr(pci_dev->bus);
-	mhi_cntrl->dev_id = pci_dev->device;
-	mhi_cntrl->bus = pci_dev->bus->number;
-	mhi_cntrl->slot = PCI_SLOT(pci_dev->devfn);
+	mhi_cntrl->cntrl_dev = &pci_dev->dev;
 
 	use_bb = of_property_read_bool(of_node, "mhi,use-bb");
 
@@ -626,24 +939,28 @@ static struct mhi_controller *mhi_register_controller(struct pci_dev *pci_dev)
 	mhi_cntrl->status_cb = mhi_status_cb;
 	mhi_cntrl->runtime_get = mhi_runtime_get;
 	mhi_cntrl->runtime_put = mhi_runtime_put;
+	mhi_cntrl->read_reg = mhi_sdx_read_reg;
+	mhi_cntrl->write_reg = mhi_sdx_write_reg;
+#if MHI_SSR_ENABLE
 	mhi_cntrl->link_status = mhi_link_status;
 
 	mhi_cntrl->lpm_disable = mhi_lpm_disable;
 	mhi_cntrl->lpm_enable = mhi_lpm_enable;
 	mhi_cntrl->time_get = mhi_time_get;
+#endif
 
-	ret = of_register_mhi_controller(mhi_cntrl);
+	ret = mhi_register_controller(mhi_cntrl, &mhi_sdx_mhi_config);
 	if (ret)
 		goto error_register;
 
 	for (i = 0; i < ARRAY_SIZE(firmware_table); i++) {
 		firmware_info = firmware_table + i;
-
+#if MHI_SSR_ENABLE
 		/* debug mode always use default */
 		if (!debug_mode && mhi_cntrl->dev_id == firmware_info->dev_id)
 			break;
+#endif
 	}
-
 	mhi_cntrl->fw_image = firmware_info->fw_image;
 	mhi_cntrl->edl_image = firmware_info->edl_image;
 
@@ -658,6 +975,7 @@ error_register:
 	return ERR_PTR(-EINVAL);
 }
 
+#if MHI_SSR_ENABLE
 static int mhi_panic_handler(struct notifier_block *this,
 			     unsigned long event, void *ptr)
 {
@@ -718,11 +1036,14 @@ static int mhi_panic_handler(struct notifier_block *this,
 
 	return NOTIFY_DONE;
 }
+#endif
 
 void mhi_wdt_panic_handler(void)
 {
+#if MHI_SSR_ENABLE
 	mhi_panic_handler(global_mhi_panic_notifier,
 			0, NULL);
+#endif
 }
 EXPORT_SYMBOL(mhi_wdt_panic_handler);
 
@@ -730,17 +1051,10 @@ int mhi_pci_probe(struct pci_dev *pci_dev,
 		  const struct pci_device_id *device_id)
 {
 	struct mhi_controller *mhi_cntrl;
-	u32 domain = pci_domain_nr(pci_dev->bus);
-	u32 bus = pci_dev->bus->number;
-	u32 dev_id = pci_dev->device;
-	u32 slot = PCI_SLOT(pci_dev->devfn);
 	struct mhi_dev *mhi_dev;
 	int ret;
 
-	/* see if we already registered */
-	mhi_cntrl = mhi_bdf_to_controller(domain, bus, slot, dev_id);
-	if (!mhi_cntrl)
-		mhi_cntrl = mhi_register_controller(pci_dev);
+	mhi_cntrl = dt_register_mhi_controller(pci_dev);
 
 	if (IS_ERR(mhi_cntrl))
 		return PTR_ERR(mhi_cntrl);
@@ -752,7 +1066,7 @@ int mhi_pci_probe(struct pci_dev *pci_dev,
 	if (ret)
 		return ret;
 
-	mhi_cntrl->dev = &pci_dev->dev;
+	mhi_cntrl->cntrl_dev = &pci_dev->dev;
 	ret = mhi_init_pci_dev(mhi_cntrl);
 	if (ret)
 		goto error_init_pci;
@@ -769,6 +1083,7 @@ int mhi_pci_probe(struct pci_dev *pci_dev,
 
 	mhi_ssr_negotiate = of_property_read_bool(mhi_cntrl->of_node, "mhi,ssr-negotiate");
 
+#if MHI_SSR_ENABLE
 	if (mhi_ssr_negotiate) {
 		ret = of_property_read_u32(mhi_cntrl->of_node, "ap2mdm",
 						&ap2mdm_gpio);
@@ -803,7 +1118,7 @@ int mhi_pci_probe(struct pci_dev *pci_dev,
 			MHI_ERR("Unable to create mhi sysfs entry\n");
 		}
 	}
-
+#endif
 	MHI_LOG("Return successful\n");
 
 	return 0;
@@ -819,7 +1134,9 @@ error_init_pci:
 
 void mhi_pci_device_removed(struct pci_dev *pci_dev)
 {
+#if MHI_SSR_ENABLE
 	struct mhi_controller *mhi_cntrl;
+
 	u32 domain = pci_domain_nr(pci_dev->bus);
 	u32 bus = pci_dev->bus->number;
 	u32 dev_id = pci_dev->device;
@@ -873,14 +1190,17 @@ void mhi_pci_device_removed(struct pci_dev *pci_dev)
 
 		mhi_unregister_mhi_controller(mhi_cntrl);
 	}
+#endif
 }
 
+#if MHI_SSR_ENABLE
 static const struct dev_pm_ops pm_ops = {
 	SET_RUNTIME_PM_OPS(mhi_runtime_suspend,
 			   mhi_runtime_resume,
 			   mhi_runtime_idle)
 	SET_SYSTEM_SLEEP_PM_OPS(mhi_system_suspend, mhi_system_resume)
 };
+#endif
 
 static struct pci_device_id mhi_pcie_device_id[] = {
 	{PCI_DEVICE(MHI_PCIE_VENDOR_ID, 0x0300)},
@@ -899,9 +1219,10 @@ static struct pci_driver mhi_pcie_driver = {
 	.probe = mhi_pci_probe,
 	.remove = mhi_pci_device_removed,
 	.driver = {
+#if MHI_SSR_ENABLE
 		.pm = &pm_ops
+#endif
 	}
 };
 
 module_pci_driver(mhi_pcie_driver);
-
