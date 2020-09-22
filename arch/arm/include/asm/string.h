@@ -58,6 +58,9 @@ static inline void *memset64(uint64_t *p, uint64_t v, __kernel_size_t n)
 #define memcpy(dst, src, len) __memcpy(dst, src, len)
 #define memmove(dst, src, len) __memmove(dst, src, len)
 #define memset(s, c, n) __memset(s, c, n)
+#ifndef __NO_FORTIFY
+#define __NO_FORTIFY /* FORTIFY_SOURCE uses __builtin_memcpy, etc. */
+#endif
 #endif
 
 #endif
