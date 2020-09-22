@@ -10,6 +10,7 @@
 #include <linux/interrupt.h>
 #include <linux/list.h>
 #include <linux/mhi.h>
+#include <linux/of.h>
 #include <linux/module.h>
 #include <linux/skbuff.h>
 #include <linux/slab.h>
@@ -285,6 +286,28 @@ void mhi_notify(struct mhi_device *mhi_dev, enum mhi_callback cb_reason)
 }
 EXPORT_SYMBOL_GPL(mhi_notify);
 
+static void mhi_assign_of_node(struct mhi_controller *mhi_cntrl,
+			       struct mhi_device *mhi_dev)
+{
+	struct device_node *controller, *node;
+	const char *dt_name;
+	int ret;
+	controller = of_find_node_by_name(mhi_cntrl->of_node, "mhi_devices");
+	if (!controller)
+		return;
+
+	for_each_available_child_of_node(controller, node) {
+		ret = of_property_read_string(node, "mhi,chan", &dt_name);
+		if (ret)
+			continue;
+
+		if (!strcmp(mhi_dev->chan_name, dt_name)) {
+			mhi_dev->dev.of_node = node;
+			break;
+		}
+	}
+}
+
 /* Bind MHI channels to MHI devices */
 void mhi_create_devices(struct mhi_controller *mhi_cntrl)
 {
@@ -345,6 +368,8 @@ void mhi_create_devices(struct mhi_controller *mhi_cntrl)
 			     dev_name(mhi_cntrl->cntrl_dev),
 			     mhi_dev->chan_name);
 
+		if (mhi_cntrl->of_node)
+			mhi_assign_of_node(mhi_cntrl, mhi_dev);
 		/* Init wakeup source if available */
 		if (mhi_dev->dl_chan && mhi_dev->dl_chan->wake_capable)
 			device_init_wakeup(&mhi_dev->dev, true);

@@ -367,6 +367,7 @@ struct mhi_controller_config {
 struct mhi_controller {
 	struct device *cntrl_dev;
 	struct mhi_device *mhi_dev;
+	struct device_node *of_node;
 	void __iomem *regs;
 	void __iomem *bhi;
 	void __iomem *bhie;
@@ -451,6 +452,7 @@ struct mhi_controller {
  * @ul_chan_id: MHI channel id for UL transfer
  * @dl_chan_id: MHI channel id for DL transfer
  * @dev_wake: Device wakeup counter
+ * @mtu: Maximum # of bytes controller support
  */
 struct mhi_device {
 	const struct mhi_device_id *id;
@@ -463,6 +465,7 @@ struct mhi_device {
 	int ul_chan_id;
 	int dl_chan_id;
 	u32 dev_wake;
+	size_t mtu;
 };
 
 /**
@@ -493,6 +496,7 @@ struct mhi_buf {
 	const char *name;
 	dma_addr_t dma_addr;
 	size_t len;
+	struct page *page;
 };
 
 /**
