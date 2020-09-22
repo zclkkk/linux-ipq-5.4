@@ -1660,9 +1660,8 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 	pp->ops = &qcom_pcie_dw_ops;
 
 	if (IS_ENABLED(CONFIG_PCI_MSI)) {
-		ret = of_property_read_u32(pdev->dev.of_node,
-					   "linux,pci-domain", &domain);
-		if (ret) {
+		domain = of_get_pci_domain_nr(pdev->dev.of_node);
+		if (domain < 0) {
 			dev_err(dev, "cannot find linux,pci-domain in DT\n");
 			goto err_pm_runtime_put;
 		}
