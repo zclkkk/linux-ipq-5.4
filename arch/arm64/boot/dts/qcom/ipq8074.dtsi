@@ -169,7 +169,7 @@
 			reg = <0xb017000 0x1000>;
 			interrupts = <GIC_SPI 3 IRQ_TYPE_EDGE_RISING>;
 			clocks = <&sleep_clk>;
-			timeout-sec = <30>;
+			max-timeout-sec = <32>;
 		};
 
 		timer@b120000 {
