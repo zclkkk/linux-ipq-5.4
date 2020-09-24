@@ -4461,6 +4461,8 @@ static int __init diagchar_init(void)
 	mutex_init(&apps_data_mutex);
 	mutex_init(&driver->msg_mask_lock);
 	mutex_init(&driver->hdlc_recovery_mutex);
+	mutex_init(&driver->diag_id_mutex);
+	INIT_LIST_HEAD(&driver->diag_id_list);
 	for (i = 0; i < NUM_PERIPHERALS; i++) {
 		mutex_init(&driver->diagfwd_channel_mutex[i]);
 		mutex_init(&driver->rpmsginfo_mutex[i]);
@@ -4532,8 +4534,6 @@ static int __init diagchar_init(void)
 	ret = diagchar_setup_cdev(dev);
 	if (ret)
 		goto fail;
-	mutex_init(&driver->diag_id_mutex);
-	INIT_LIST_HEAD(&driver->diag_id_list);
 	diag_add_diag_id_to_list(DIAG_ID_APPS, "APPS", APPS_DATA, APPS_DATA);
 	pr_debug("diagchar initialized now");
 	if (IS_ENABLED(CONFIG_DIAGFWD_BRIDGE_CODE))
