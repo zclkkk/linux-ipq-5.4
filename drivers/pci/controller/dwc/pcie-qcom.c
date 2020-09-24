@@ -27,6 +27,7 @@
 #include <linux/slab.h>
 #include <linux/types.h>
 #include <soc/qcom/socinfo.h>
+#include "../../pci.h"
 
 #include "pcie-designware.h"
 
@@ -76,9 +77,14 @@
 #define MSTR_AXI_CLK_EN				BIT(1)
 #define BYPASS					BIT(4)
 
+#define __mask(a, b)		(((1 << ((a) + 1)) - 1) & ~((1 << (b)) - 1))
+
 #define PARF_BDF_TO_SID_TABLE			0x2000
 #define PCIE20_LNK_CONTROL2_LINK_STATUS2	0xA0
+#define PCIE_CAP_TARGET_LINK_SPEED_MASK		__mask(3, 0)
 #define PCIE_CAP_CURR_DEEMPHASIS		BIT(16)
+#define SPEED_GEN1				0x1
+#define SPEED_GEN2				0x2
 #define SPEED_GEN3				0x3
 #define PCIE_V2_PARF_SIZE			0x2000
 #define AXI_CLK_RATE				200000000
@@ -217,6 +223,7 @@ struct qcom_pcie {
 	struct phy *phy;
 	struct gpio_desc *reset;
 	const struct qcom_pcie_ops *ops;
+	u32 max_speed;
 };
 
 #define MAX_MSI_CTRLS_IPQ8074	4
@@ -963,6 +970,36 @@ err_rst_phy:
 	return ret;
 }
 
+
+static void qcom_pcie_set_link_speed(void __iomem *dbi_base, u32 speed,
+				     u32 max_supported_speed)
+{
+	/*
+	 * Fallback to default speed for this controller if
+	 * max-link-speed is mentioned as 0 or as negative value or
+	 * as higher value than supported link speed for the
+	 * controller.
+	 *
+	 * 2_5_0 -> max-link-speed supported is 2
+	 * 2_9_0 -> max-link-speed supported is 3
+	 */
+	if (speed <= 0 || speed > max_supported_speed)
+		speed = max_supported_speed;
+
+	if (speed == SPEED_GEN3) {
+		writel(PCIE_CAP_CURR_DEEMPHASIS | SPEED_GEN3,
+			dbi_base + PCIE20_LNK_CONTROL2_LINK_STATUS2);
+	} else if (speed == SPEED_GEN2) {
+		writel(PCIE_CAP_CURR_DEEMPHASIS | SPEED_GEN2,
+			dbi_base + PCIE20_LNK_CONTROL2_LINK_STATUS2);
+	} else if (speed == SPEED_GEN1) {
+		writel(((readl(
+			dbi_base + PCIE20_LNK_CONTROL2_LINK_STATUS2)
+			& (~PCIE_CAP_TARGET_LINK_SPEED_MASK)) | SPEED_GEN1),
+			dbi_base + PCIE20_LNK_CONTROL2_LINK_STATUS2);
+	}
+}
+
 static int qcom_pcie_get_resources_2_5_0(struct qcom_pcie *pcie)
 {
 	struct qcom_pcie_resources_2_5_0 *res = &pcie->res.v2_5_0;
@@ -1094,6 +1131,8 @@ static int qcom_pcie_init_2_5_0(struct qcom_pcie *pcie)
 
 	writel(PCIE_CAP_CPL_TIMEOUT_DISABLE, pci->dbi_base +
 		PCIE20_DEVICE_CONTROL2_STATUS2);
+
+	qcom_pcie_set_link_speed(pci->dbi_base, pcie->max_speed, SPEED_GEN2);
 
 	return 0;
 
@@ -1280,8 +1319,7 @@ static int qcom_pcie_init_2_9_0(struct qcom_pcie *pcie)
 	writel(PCIE_CAP_CPL_TIMEOUT_DISABLE, pci->dbi_base +
 		PCIE20_DEVICE_CONTROL2_STATUS2);
 
-	writel(PCIE_CAP_CURR_DEEMPHASIS | SPEED_GEN3,
-		pci->dbi_base + PCIE20_LNK_CONTROL2_LINK_STATUS2);
+	qcom_pcie_set_link_speed(pci->dbi_base, pcie->max_speed, SPEED_GEN3);
 
 	for (i = 0;i < 256;i++)
 		writel(0x0, pcie->parf + PARF_BDF_TO_SID_TABLE + (4 * i));
@@ -1511,6 +1549,8 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 
 	pcie->pci = pci;
 
+	pcie->max_speed = of_pci_get_max_link_speed(pdev->dev.of_node);
+
 	data = (struct qcom_pcie_of_data *)(of_device_get_match_data(dev));
 	if (!data)
 		return -EINVAL;
@@ -1620,9 +1660,8 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 	pp->ops = &qcom_pcie_dw_ops;
 
 	if (IS_ENABLED(CONFIG_PCI_MSI)) {
-		ret = of_property_read_u32(pdev->dev.of_node,
-					   "linux,pci-domain", &domain);
-		if (ret) {
+		domain = of_get_pci_domain_nr(pdev->dev.of_node);
+		if (domain < 0) {
 			dev_err(dev, "cannot find linux,pci-domain in DT\n");
 			goto err_pm_runtime_put;
 		}
