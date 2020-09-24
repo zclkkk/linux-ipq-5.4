@@ -322,7 +322,7 @@ he_obss_pd_policy[NL80211_HE_OBSS_PD_ATTR_MAX + 1] = {
 };
 
 const struct nla_policy nl80211_policy[NUM_NL80211_ATTR] = {
-	[0] = { .strict_start_type = NL80211_ATTR_HE_OBSS_PD },
+	[0] = { .strict_start_type = NL80211_ATTR_SAE_PWE },
 	[NL80211_ATTR_WIPHY] = { .type = NLA_U32 },
 	[NL80211_ATTR_WIPHY_NAME] = { .type = NLA_NUL_STRING,
 				      .len = 20-1 },
@@ -628,6 +628,7 @@ const struct nla_policy nl80211_policy[NUM_NL80211_ATTR] = {
 					.len = SAE_PASSWORD_MAX_LEN },
 	[NL80211_ATTR_TWT_RESPONDER] = { .type = NLA_FLAG },
 	[NL80211_ATTR_HE_OBSS_PD] = NLA_POLICY_NESTED(he_obss_pd_policy),
+	[NL80211_ATTR_SAE_PWE] = NLA_POLICY_RANGE(NLA_U16, 0, 2),
 };
 
 /* policy for the key attributes */
@@ -9207,6 +9208,11 @@ static int nl80211_crypto_settings(struct cfg80211_registered_device *rdev,
 			nla_data(info->attrs[NL80211_ATTR_SAE_PASSWORD]);
 		settings->sae_pwd_len =
 			nla_len(info->attrs[NL80211_ATTR_SAE_PASSWORD]);
+	}
+
+	if (info->attrs[NL80211_ATTR_SAE_PWE]) {
+		settings->sae_pwe = nla_get_u16(
+					info->attrs[NL80211_ATTR_SAE_PWE]);
 	}
 
 	return 0;
