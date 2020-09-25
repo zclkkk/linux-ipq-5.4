@@ -368,6 +368,7 @@ struct mhi_controller {
 	struct device *cntrl_dev;
 	struct mhi_device *mhi_dev;
 	struct device_node *of_node;
+	phys_addr_t base_addr;
 	void __iomem *regs;
 	void __iomem *bhi;
 	void __iomem *bhie;
@@ -437,6 +438,7 @@ struct mhi_controller {
 	bool fbc_download;
 	bool pre_init;
 	bool wake_set;
+	void *priv_data;
 };
 
 /**
@@ -566,6 +568,11 @@ int __mhi_driver_register(struct mhi_driver *mhi_drv, struct module *owner);
  * @mhi_drv: Driver associated with the device
  */
 void mhi_driver_unregister(struct mhi_driver *mhi_drv);
+
+static inline void *mhi_controller_get_devdata(struct mhi_controller *mhi_cntrl)
+{
+	return mhi_cntrl->priv_data;
+}
 
 /**
  * mhi_set_mhi_state - Set MHI device state
