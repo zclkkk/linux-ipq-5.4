@@ -22,6 +22,7 @@ dtb-$(CONFIG_ARCH_QCOM) += ipq8074-ac01.dtb
 dtb-$(CONFIG_ARCH_QCOM) += ipq8074-ac02.dtb
 dtb-$(CONFIG_ARCH_QCOM) += ipq8074-ac03.dtb
 dtb-$(CONFIG_ARCH_QCOM) += ipq8074-ac04.dtb
+dtb-$(CONFIG_ARCH_QCOM) += ipq8074-hk12.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= msm8916-mtp.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= msm8916-longcheer-l8150.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= msm8916-samsung-a3u-eur.dtb
