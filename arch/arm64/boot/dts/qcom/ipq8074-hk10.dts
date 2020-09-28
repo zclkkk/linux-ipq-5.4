@@ -28,6 +28,19 @@
 		stdout-path = "serial0";
 	};
 
+	reserved-memory {
+		/*              Default Profile             */
+		qcn9000_pcie0@51100000 {
+			no-map;
+			reg = <0x0 0x51100000 0x0 0x03700000>;
+		};
+
+		qcn9000_pcie1@54800000 {
+			no-map;
+			reg = <0x0 0x54800000 0x0 0x03700000>;
+		};
+	};
+
 	soc {
 		pinctrl@1000000 {
 			button_pins: button_pins {

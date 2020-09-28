@@ -27,6 +27,14 @@
 		stdout-path = "serial0";
 	};
 
+	reserved-memory {
+	/*                Default Profile            */
+		qcn9000_pcie0@51100000 {
+                        no-map;
+                        reg = <0x0 0x51100000 0x0 0x03700000>;
+                };
+	};
+
 	soc {
 		pinctrl@1000000 {
 			button_pins: button_pins {
@@ -147,6 +155,10 @@
 			status = "ok";
 		};
 
+		qcom,test@0 {
+			status = "ok";
+		};
+
 		phy@84000 {
 			status = "ok";
 		};
@@ -158,6 +170,15 @@
 		pci@20000000 {
 			perst-gpio = <&tlmm 58 1>;
 			status = "ok";
+
+			pcie0_rp {
+				reg = <0 0 0 0 0>;
+
+				qcom,mhi@0 {
+					reg = <0 0 0 0 0>;
+					qrtr_instance_id = <0x20>;
+				};
+			};
 		};
 
 		phy@8e000 {
