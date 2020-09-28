@@ -194,7 +194,7 @@ static void crashdump_init(struct rproc *rproc, struct rproc_dump_segment *segme
 	}
 
 	np = of_find_node_by_name(NULL, "q6v5_wcss");
-	while (1) {
+	while (index < MAX_SEGMENTS) {
 		node = of_parse_phandle(np, "memory-region", index);
 		if (!node)
 			break;
