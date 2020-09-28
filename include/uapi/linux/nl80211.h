@@ -272,6 +272,23 @@
  */
 
 /**
+ * DOC: VLAN offload support for setting group keys and binding STAs to VLANs
+ *
+ * By setting @NL80211_EXT_FEATURE_VLAN_OFFLOAD flag drivers can indicate they
+ * support offloading VLAN functionality in a manner where the driver exposes a
+ * single netdev that uses VLAN tagged frames and separate VLAN-specific netdevs
+ * can then be added using RTM_NEWLINK/IFLA_VLAN_ID similarly to the Ethernet
+ * case. Frames received from stations that are not assigned to any VLAN are
+ * delivered on the main netdev and frames to such stations can be sent through
+ * that main netdev.
+ *
+ * %NL80211_CMD_NEW_KEY (for group keys), %NL80211_CMD_NEW_STATION, and
+ * %NL80211_CMD_SET_STATION will optionally specify vlan_id using
+ * %NL80211_ATTR_VLAN_ID.
+ */
+
+
+/**
  * DOC: SAE mechanism for PWE derivation
  *
  * By setting @NL80211_ATTR_SAE_PWE flag userspace can indicate the SAE
@@ -2418,6 +2435,60 @@ enum nl80211_commands {
  * @NL80211_ATTR_WIPHY_EDMG_BW_CONFIG: Channel BW Configuration subfield encodes
  *	the allowed channel bandwidth configurations. (u8 attribute)
  *	Defined by IEEE P802.11ay/D4.0 section 9.4.2.251, Table 13.
+ * @NL80211_ATTR_VLAN_ID: VLAN ID (1..4094) for the station and VLAN group key
+ *	(u16).
+ * @NL80211_ATTR_HE_BSS_COLOR: nested attribute for BSS Color Settings.
+ *
+ * @NL80211_ATTR_IFTYPE_AKM_SUITES: nested array attribute, with each entry
+ *      using attributes from &enum nl80211_iftype_akm_attributes. This
+ *      attribute is sent in a response to %NL80211_CMD_GET_WIPHY indicating
+ *      supported AKM suites capability per interface. AKMs advertised in
+ *      %NL80211_ATTR_AKM_SUITES are default capabilities if AKM suites not
+ *      advertised for a specific interface type.
+ *
+ * @NL80211_ATTR_TID_CONFIG: TID specific configuration in a
+ *      nested attribute with &enum nl80211_tid_config_attr sub-attributes;
+ *      on output (in wiphy attributes) it contains only the feature sub-
+ *      attributes.
+ *
+ * @NL80211_ATTR_CONTROL_PORT_NO_PREAUTH: disable preauth frame rx on control
+ *      port in order to forward/receive them as ordinary data frames.
+ *
+ * @NL80211_ATTR_PMK_LIFETIME: Maximum lifetime for PMKSA in seconds (u32,
+ *      dot11RSNAConfigPMKReauthThreshold; 0 is not a valid value).
+ *      An optional parameter configured through %NL80211_CMD_SET_PMKSA.
+ *      Drivers that trigger roaming need to know the lifetime of the
+ *      configured PMKSA for triggering the full vs. PMKSA caching based
+ *      authentication. This timeout helps authentication methods like SAE,
+ *      where PMK gets updated only by going through a full (new SAE)
+ *      authentication instead of getting updated during an association for EAP
+ *      authentication. No new full authentication within the PMK expiry shall
+ *      result in a disassociation at the end of the lifetime.
+ *
+ * @NL80211_ATTR_PMK_REAUTH_THRESHOLD: Reauthentication threshold time, in
+ *      terms of percentage of %NL80211_ATTR_PMK_LIFETIME
+ *      (u8, dot11RSNAConfigPMKReauthThreshold, 1..100). This is an optional
+ *      parameter configured through %NL80211_CMD_SET_PMKSA. Requests the
+ *      driver to trigger a full authentication roam (without PMKSA caching)
+ *      after the reauthentication threshold time, but before the PMK lifetime
+ *      has expired.
+ *
+ *      Authentication methods like SAE need to be able to generate a new PMKSA
+ *      entry without having to force a disconnection after the PMK timeout. If
+ *      no roaming occurs between the reauth threshold and PMK expiration,
+ *      disassociation is still forced.
+ * @NL80211_ATTR_RECEIVE_MULTICAST: multicast flag for the
+ *      %NL80211_CMD_REGISTER_FRAME command, see the description there.
+ * @NL80211_ATTR_WIPHY_FREQ_OFFSET: offset of the associated
+ *      %NL80211_ATTR_WIPHY_FREQ in positive KHz. Only valid when supplied with
+ *      an %NL80211_ATTR_WIPHY_FREQ_OFFSET.
+ * @NL80211_ATTR_CENTER_FREQ1_OFFSET: Center frequency offset in KHz for the
+ *      first channel segment specified in %NL80211_ATTR_CENTER_FREQ1.
+ * @NL80211_ATTR_SCAN_FREQ_KHZ: nested attribute with KHz frequencies
+ *
+ * @NL80211_ATTR_HE_6GHZ_CAPABILITY: HE 6 GHz Band Capability element (from
+ *      association request when used with NL80211_CMD_NEW_STATION).
+ *
  *
  * @NL80211_ATTR_SAE_PWE: Indicates the SAE mechanism used for PWE derivation
  *	in  WPA3-Personal networks which are using SAE authentication.
@@ -2883,7 +2954,23 @@ enum nl80211_attrs {
 
 	NL80211_ATTR_WIPHY_EDMG_CHANNELS,
 	NL80211_ATTR_WIPHY_EDMG_BW_CONFIG,
-	NL80211_ATTR_SAE_PWE = 294,
+	NL80211_ATTR_VLAN_ID,
+	NL80211_ATTR_HE_BSS_COLOR,
+	NL80211_ATTR_IFTYPE_AKM_SUITES,
+
+	NL80211_ATTR_TID_CONFIG,
+	NL80211_ATTR_CONTROL_PORT_NO_PREAUTH,
+
+	NL80211_ATTR_PMK_LIFETIME,
+	NL80211_ATTR_PMK_REAUTH_THRESHOLD,
+
+	NL80211_ATTR_RECEIVE_MULTICAST,
+	NL80211_ATTR_WIPHY_FREQ_OFFSET,
+	NL80211_ATTR_CENTER_FREQ1_OFFSET,
+	NL80211_ATTR_SCAN_FREQ_KHZ,
+
+	NL80211_ATTR_HE_6GHZ_CAPABILITY,
+	NL80211_ATTR_SAE_PWE,
 
 	/* add attributes here, update the policy in nl80211.c */
 
@@ -5543,6 +5630,10 @@ enum nl80211_feature_flags {
  * @NL80211_EXT_FEATURE_BEACON_PROTECTION: The driver supports Beacon protection
  *	and can receive key configuration for BIGTK using key indexes 6 and 7.
  *
+ * @NL80211_EXT_FEATURE_VLAN_OFFLOAD: The driver supports a single netdev
+ *	with VLAN tagged frames and separate VLAN-specific netdevs added using
+ *	vconfig similarly to the Ethernet case.
+ *
  * @NUM_NL80211_EXT_FEATURES: number of extended features.
  * @MAX_NL80211_EXT_FEATURES: highest extended feature index.
  */
@@ -5590,6 +5681,7 @@ enum nl80211_ext_feature_index {
 	NL80211_EXT_FEATURE_SAE_OFFLOAD,
 	NL80211_EXT_FEATURE_FILS_CRYPTO_OFFLOAD,
 	NL80211_EXT_FEATURE_BEACON_PROTECTION,
+	NL80211_EXT_FEATURE_VLAN_OFFLOAD,
 
 	/* add new features before the definition below */
 	NUM_NL80211_EXT_FEATURES,
