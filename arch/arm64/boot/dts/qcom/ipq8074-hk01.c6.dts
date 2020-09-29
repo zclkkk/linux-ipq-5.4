@@ -1,0 +1,79 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/dts-v1/;
+/* Copyright (c) 2017, 2020, The Linux Foundation. All rights reserved.
+ */
+#include "ipq8074-hk01.dtsi"
+
+/ {
+	model = "Qualcomm Technologies, Inc. IPQ8074/AP-HK01-C6";
+	compatible = "qcom,ipq8074-ap-hk01-c6", "qcom,ipq8074-hk01", "qcom,ipq8074";
+
+	aliases {
+		serial1 = &blsp1_uart3;
+	};
+
+	reserved-memory {
+	/*                Default Profile            */
+		qcn9000_pcie0@51100000 {
+			no-map;
+			reg = <0x0 0x51100000 0x0 0x03700000>;
+		};
+	};
+
+	soc {
+
+		pinctrl@1000000 {
+			pcie0_pins: pcie_pins {
+				pcie0_rst {
+					pins = "gpio58";
+					function = "pcie0_rst";
+					drive-strength = <8>;
+					bias-pull-down;
+				};
+				pcie0_wake {
+					pins = "gpio59";
+					function = "pcie0_wake";
+					drive-strength = <8>;
+					bias-pull-down;
+				};
+			};
+
+		};
+
+		sdhci@7864900 {
+			pinctrl-0 = <&sd_pins>;
+			pinctrl-names = "default";
+			cd-gpios = <&tlmm 63 GPIO_ACTIVE_LOW>;
+			status = "ok";
+		};
+
+		pwm {
+			pinctrl-0 = <&pwm_pins>;
+			pinctrl-names = "default";
+			used-pwm-indices = <1>, <0>, <0>, <0>;
+			status = "disabled";
+		};
+
+		qcom,test@0 {
+			status = "ok";
+		};
+
+	};
+};
+
+&pcie0 {
+        status = "ok";
+
+        pcie0_rp: pcie0_rp {
+                reg = <0 0 0 0 0>;
+
+		qcom,mhi@0 {
+			reg = <0 0 0 0 0>;
+			qrtr_instance_id = <0x20>;
+		};
+	};
+};
+
+&pcie1 {
+	status = "disabled";
+};
