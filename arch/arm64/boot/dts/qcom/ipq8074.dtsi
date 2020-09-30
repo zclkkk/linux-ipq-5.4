@@ -360,6 +360,11 @@
 			status = "disabled";
 		};
 
+		sd_pwrseq: sd-pwrseq {
+			compatible = "mmc-pwrseq-ipq";
+			reset-gpios = <&tlmm 21 GPIO_ACTIVE_HIGH>;
+		};
+
 		sdhc_2: sdhci@7864900 {
 			compatible = "qcom,sdhci-msm-v4";
 			reg = <0x7864900 0x500>, <0x7864000 0x800>;
@@ -378,6 +383,7 @@
 			mmc-hs200-1_8v;
 			bus-width = <4>;
 			vqmmc-supply = <&ldo11>;
+			mmc-pwrseq = <&sd_pwrseq>;
 			status = "disabled";
 		};
 
