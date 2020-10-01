@@ -15,15 +15,24 @@
 #define CONFIG_CNSS2_QMI 1
 #include "wlan_firmware_service_v01.h"
 
-#define WLFW_SERVICE_INS_ID_V01_QCN9000		1
 #define WLFW_SERVICE_INS_ID_V01_QCA8074		2
+#define WLFW_SERVICE_INS_ID_V01_QCN9100		0x40
 #define BDF_MAX_SIZE (256 * 1024)
 #define BDF_TYPE_GOLDEN 0
 #define BDF_TYPE_CALDATA 2
 #define BDF_TYPE_EEPROM 3
 #define CALDATA_OFFSET(addr) (addr + (128 * 1024))
 #define Q6_QDSS_ETR_SIZE_QCN9000 0x100000
+#define Q6_M3_DUMP_SIZE_QCN9000 0x100000
 #define QMI_HISTORY_SIZE 128
+
+/* userpd_id for QCN9100 in multi pd arch */
+#define QCN9100_0	1
+#define QCN9100_1	2
+
+/* node_id for QCN9000 */
+#define QCN9000_0	0x20
+#define QCN9000_1	0x21
 
 /*NODE_ID_BASE is derived by qrtr_node_id in DTS + FW base node id 7 */
 #define NODE_ID_BASE 0x27
@@ -110,6 +119,7 @@ int cnss_register_ims_service(struct cnss_plat_data *plat_priv);
 void cnss_unregister_ims_service(struct cnss_plat_data *plat_priv);
 int cnss_wlfw_m3_dump_upload_done_send_sync(struct cnss_plat_data *plat_priv,
 					    u32 pdev_id, int status);
+int cnss_wlfw_device_info_send_sync(struct cnss_plat_data *plat_priv);
 #else
 #define QMI_WLFW_TIMEOUT_MS		10000
 
@@ -253,6 +263,12 @@ void cnss_unregister_ims_service(struct cnss_plat_data *plat_priv) {}
 static inline
 int cnss_wlfw_m3_dump_upload_done_send_sync(struct cnss_plat_data *plat_priv,
 					    u32 pdev_id, int status)
+{
+	return 0;
+}
+
+static inline
+int cnss_wlfw_device_info_send_sync(struct cnss_plat_data *plat_priv)
 {
 	return 0;
 }

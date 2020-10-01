@@ -18,7 +18,6 @@
 #include <linux/pm_wakeup.h>
 #include <linux/rwsem.h>
 #include <linux/suspend.h>
-#include <linux/timer.h>
 #include <linux/coresight.h>
 #include <soc/qcom/ramdump.h>
 #include <linux/remoteproc/qcom_rproc.h>
@@ -81,6 +80,10 @@ static int skip_cnss;
 module_param(skip_cnss, int, 0644);
 MODULE_PARM_DESC(skip_cnss, "skip_cnss");
 
+static int skip_radio_bmap;
+module_param(skip_radio_bmap, int, 0644);
+MODULE_PARM_DESC(skip_radio_bmap, "skip_radio_bmap");
+
 bool flashcal_support = true;
 module_param(flashcal_support, bool, S_IRUSR | S_IWUSR);
 MODULE_PARM_DESC(flashcal_support, "flash caldata support");
@@ -101,6 +104,10 @@ enum skip_cnss_options {
 	CNSS_SKIP_PCI
 };
 
+#define SKIP_INTEGRATED		0x1
+#define SKIP_PCI_0		0x2
+#define SKIP_PCI_1		0x4
+
 static struct cnss_fw_files FW_FILES_QCA6174_FW_3_0 = {
 	"qwlan30.bin", "bdwlan30.bin", "otp30.bin", "utf30.bin",
 	"utfbd30.bin", "epping30.bin", "evicted30.bin"
@@ -120,26 +127,11 @@ struct cnss_driver_event {
 	void *data;
 };
 
-#define M3_DUMP_OPEN_TIMEOUT 5000
-#define M3_DUMP_COMPLETE_TIMEOUT 10000
-struct m3_dump {
-	u32 pdev_id;
-	u32 size;
-	u64 timestamp;
-	bool file_open;
-	char *addr;
-	struct task_struct *task;
-};
-
-static struct m3_dump m3_dump_data;
-static struct timer_list m3_dump_timer;
-static struct completion m3_dump_complete;
-
-static struct timer_list m3_dump_open_timer;
-static struct completion m3_dump_open_complete;
-static atomic_t m3_dump_open_timedout;
+/* M3 Dump related global structures/variables */
+static int m3_dump_major;
 static struct class *m3_dump_class;
-static bool m3_dump_file_open;
+static atomic_t m3_dump_class_refcnt = ATOMIC_INIT(0);
+static DEFINE_SPINLOCK(m3_dump_class_lock);
 
 static void cnss_set_plat_priv(struct platform_device *plat_dev,
 			       struct cnss_plat_data *plat_priv)
@@ -571,6 +563,14 @@ static int cnss_fw_mem_ready_hdlr(struct cnss_plat_data *plat_priv)
 	if (ret)
 		goto out;
 
+	if (plat_priv->device_id == QCN9100_DEVICE_ID) {
+		ret = cnss_wlfw_device_info_send_sync(plat_priv);
+		if (ret) {
+			cnss_pr_err("Device info msg failed. ret %d\n", ret);
+			goto out;
+		}
+	}
+
 	ret = cnss_wlfw_bdf_dnld_send_sync(plat_priv, CNSS_BDF_WIN);
 	if (ret) {
 		cnss_pr_err("bdf load failed. ret %d\n", ret);
@@ -653,6 +653,7 @@ void cnss_wait_for_fw_ready(struct device *dev)
 	    plat_priv->device_id == QCA8074V2_DEVICE_ID ||
 	    plat_priv->device_id == QCA6018_DEVICE_ID ||
 	    plat_priv->device_id == QCA5018_DEVICE_ID ||
+	    plat_priv->device_id == QCN9100_DEVICE_ID ||
 	    plat_priv->device_id == QCN9000_DEVICE_ID) {
 		cnss_pr_info("Waiting for FW ready. Device: 0x%lx, FW ready timeout: %d seconds\n",
 			     plat_priv->device_id, fw_ready_timeout);
@@ -681,6 +682,7 @@ void cnss_wait_for_cold_boot_cal_done(struct device *dev)
 	if (plat_priv->device_id == QCA8074_DEVICE_ID ||
 	    plat_priv->device_id == QCA8074V2_DEVICE_ID ||
 	    plat_priv->device_id == QCA6018_DEVICE_ID ||
+	    plat_priv->device_id == QCN9100_DEVICE_ID ||
 	    plat_priv->device_id == QCA5018_DEVICE_ID ||
 	    plat_priv->device_id == QCN9000_DEVICE_ID) {
 		/* Cold boot Calibration is done parallely for multiple devices
@@ -1308,6 +1310,7 @@ int cnss_wlan_register_driver(struct cnss_wlan_driver *driver_ops)
 		if ((plat_priv->device_id == QCA8074_DEVICE_ID ||
 		     plat_priv->device_id == QCA8074V2_DEVICE_ID ||
 		     plat_priv->device_id == QCA5018_DEVICE_ID ||
+		     plat_priv->device_id == QCN9100_DEVICE_ID ||
 		     plat_priv->device_id == QCA6018_DEVICE_ID) &&
 			(strcmp(driver_ops->name, "pld_ahb") == 0)) {
 			plat_priv->driver_status = CNSS_LOAD_UNLOAD;
@@ -1438,6 +1441,7 @@ void cnss_wlan_unregister_driver(struct cnss_wlan_driver *driver_ops)
 		if ((plat_priv->device_id == QCA8074_DEVICE_ID ||
 		     plat_priv->device_id == QCA8074V2_DEVICE_ID ||
 		     plat_priv->device_id == QCA5018_DEVICE_ID ||
+		     plat_priv->device_id == QCN9100_DEVICE_ID ||
 		     plat_priv->device_id == QCA6018_DEVICE_ID) && ops &&
 			(strcmp(driver_ops->name, "pld_ahb") == 0)) {
 			subsys_info = &plat_priv->subsys_info;
@@ -2250,55 +2254,91 @@ static int cnss_qdss_trace_free_hdlr(struct cnss_plat_data *plat_priv)
 	return 0;
 }
 
-static void open_timeout_func(struct timer_list *data)
+static void m3_dump_open_timeout_func(struct timer_list *timer)
 {
-	atomic_set(&m3_dump_open_timedout, 1);
-	complete(&m3_dump_open_complete);
-	pr_err("open time Out: M3 dump collection failed\n");
+	struct m3_dump *m3_dump_data =
+			from_timer(m3_dump_data, timer, open_timer);
+
+	if (!m3_dump_data) {
+		pr_err("%s: Invalid m3_dump_data from timer\n", __func__);
+		return;
+	}
+
+	atomic_set(&m3_dump_data->open_timedout, 1);
+	complete(&m3_dump_data->open_complete);
+	pr_err("M3 dump open failed\n");
 }
 
-static void dump_timeout_func(struct timer_list *data)
+static void m3_dump_read_timeout_func(struct timer_list *timer)
 {
-	pr_err("Time Out: Q6 crash dump collection failed\n");
+	struct m3_dump *m3_dump_data =
+			from_timer(m3_dump_data, timer, read_timer);
 
-	m3_dump_timer.expires = -ETIMEDOUT;
-	if (m3_dump_data.task)
-		send_sig(SIGKILL, m3_dump_data.task, 0);
-	complete(&m3_dump_complete);
+	if (!m3_dump_data) {
+		pr_err("%s: Invalid m3_dump_data from timer\n", __func__);
+		return;
+	}
+
+	if (m3_dump_data->task)
+		send_sig(SIGKILL, m3_dump_data->task, 0);
+
+	atomic_set(&m3_dump_data->read_timedout, 1);
+	complete(&m3_dump_data->read_complete);
+	pr_err("M3 dump collection failed\n");
 }
 
 static int m3_dump_open(struct inode *inode, struct file *file)
 {
-	if (m3_dump_file_open)
+	struct cnss_plat_data *plat_priv;
+	struct m3_dump *m3_dump_data;
+
+	plat_priv = cnss_get_plat_priv_by_instance_id(iminor(inode));
+
+	if (!plat_priv) {
+		cnss_pr_err("%s: Failed to get plat_priv for instance_id 0x%x",
+			    __func__, iminor(inode));
+		return -ENODEV;
+	}
+
+	m3_dump_data = &plat_priv->m3_dump_data;
+	if (m3_dump_data->file_open)
 		return -EBUSY;
 
-	del_timer_sync(&m3_dump_open_timer);
-	if (atomic_read(&m3_dump_open_timedout) == 1)
+	del_timer_sync(&m3_dump_data->open_timer);
+	if (atomic_read(&m3_dump_data->open_timedout) == 1)
 		return -ENODEV;
 
+	m3_dump_data->file_open = true;
+	m3_dump_data->task = current;
+	file->private_data = m3_dump_data;
 	nonseekable_open(inode, file);
-	m3_dump_data.task = current;
-	m3_dump_file_open = true;
 
-	init_completion(&m3_dump_complete);
-	timer_setup(&m3_dump_timer, dump_timeout_func, 0);
-	mod_timer(&m3_dump_timer,
-		  jiffies + msecs_to_jiffies(M3_DUMP_COMPLETE_TIMEOUT));
+	init_completion(&m3_dump_data->read_complete);
+	timer_setup(&m3_dump_data->read_timer, m3_dump_read_timeout_func, 0);
+	mod_timer(&m3_dump_data->read_timer,
+		  jiffies + msecs_to_jiffies(M3_DUMP_READ_TIMER_TIMEOUT));
 
-	complete(&m3_dump_open_complete);
+	complete(&m3_dump_data->open_complete);
 	return 0;
 }
 
 static ssize_t m3_dump_read(struct file *file, char __user *data, size_t len,
 			    loff_t *ppos)
 {
-	char *bufp = m3_dump_data.addr + *ppos;
+	struct m3_dump *m3_dump_data = (struct m3_dump *)file->private_data;
+	char *bufp;
 
-	mod_timer(&m3_dump_timer,
-		  jiffies + msecs_to_jiffies(M3_DUMP_COMPLETE_TIMEOUT));
+	if (!m3_dump_data) {
+		pr_err("%s: m3_dump_data invalid", __func__);
+		return -EFAULT;
+	}
 
-	if (*ppos + len > m3_dump_data.size)
-		len = m3_dump_data.size - *ppos;
+	bufp = (char *)m3_dump_data->dump_addr + *ppos;
+	mod_timer(&m3_dump_data->read_timer,
+		  jiffies + msecs_to_jiffies(M3_DUMP_READ_TIMER_TIMEOUT));
+
+	if (*ppos + len > m3_dump_data->size)
+		len = m3_dump_data->size - *ppos;
 
 	if (copy_to_user(data, bufp, len)) {
 		pr_err("%s: copy_to_user failed\n", __func__);
@@ -2312,13 +2352,31 @@ static ssize_t m3_dump_read(struct file *file, char __user *data, size_t len,
 
 static int m3_dump_release(struct inode *inode, struct file *file)
 {
-	int dump_minor =  iminor(inode);
+	struct m3_dump *m3_dump_data = (struct m3_dump *)file->private_data;
+	int dump_minor = iminor(inode);
 	int dump_major = imajor(inode);
 
+	if (!m3_dump_data) {
+		pr_err("%s: m3_dump_data invalid", __func__);
+		return -EFAULT;
+	}
+
+	file->private_data = NULL;
 	device_destroy(m3_dump_class, MKDEV(dump_major, dump_minor));
-	class_destroy(m3_dump_class);
-	complete(&m3_dump_complete);
-	m3_dump_file_open = false;
+	atomic_dec(&m3_dump_class_refcnt);
+
+	if (atomic_read(&m3_dump_class_refcnt) == 0) {
+		spin_lock(&m3_dump_class_lock);
+		class_destroy(m3_dump_class);
+		m3_dump_class = NULL;
+		unregister_chrdev(dump_major, "dump");
+		m3_dump_major = 0;
+		spin_unlock(&m3_dump_class_lock);
+	}
+
+	complete(&m3_dump_data->read_complete);
+	m3_dump_data->file_open = false;
+	m3_dump_data->task = 0;
 	return 0;
 }
 
@@ -2333,29 +2391,41 @@ static int cnss_do_m3_dump_upload(struct cnss_plat_data *plat_priv,
 				  const char *dump_file_name)
 {
 	int ret = 0;
-	int dump_major = 0;
 	struct device *dump_dev = NULL;
+	struct m3_dump *m3_dump_data = &plat_priv->m3_dump_data;
 
-	init_completion(&m3_dump_open_complete);
-	atomic_set(&m3_dump_open_timedout, 0);
+	init_completion(&m3_dump_data->open_complete);
+	atomic_set(&m3_dump_data->open_timedout, 0);
+	atomic_set(&m3_dump_data->read_timedout, 0);
 
-	dump_major = register_chrdev(UNNAMED_MAJOR, "dump", &m3_dump_fops);
-	if (dump_major < 0) {
-		ret = dump_major;
-		cnss_pr_err("%s: Unable to allocate a major number err = %d",
-			    __func__, ret);
-		goto reg_failed;
+	spin_lock(&m3_dump_class_lock);
+	if (!m3_dump_class) {
+		m3_dump_major = register_chrdev(UNNAMED_MAJOR, "dump",
+						&m3_dump_fops);
+		if (m3_dump_major < 0) {
+			cnss_pr_err("%s: Unable to allocate a major number err = %d",
+				    __func__, m3_dump_major);
+			spin_unlock(&m3_dump_class_lock);
+			return m3_dump_major;
+		}
+
+		m3_dump_class = class_create(THIS_MODULE, "dump");
+		if (IS_ERR(m3_dump_class)) {
+			ret = PTR_ERR(m3_dump_class);
+			cnss_pr_err("%s: Unable to create class = %d",
+				    __func__, ret);
+			unregister_chrdev(m3_dump_major, "dump");
+			m3_dump_major = 0;
+			spin_unlock(&m3_dump_class_lock);
+			return ret;
+		}
 	}
+	atomic_inc(&m3_dump_class_refcnt);
+	spin_unlock(&m3_dump_class_lock);
 
-	m3_dump_class = class_create(THIS_MODULE, "dump");
-	if (IS_ERR(m3_dump_class)) {
-		ret = PTR_ERR(m3_dump_class);
-		cnss_pr_err("%s: Unable to create class = %d",
-			    __func__, ret);
-		goto class_failed;
-	}
-
-	dump_dev = device_create(m3_dump_class, NULL, MKDEV(dump_major, 0),
+	dump_dev = device_create(m3_dump_class, NULL,
+				 MKDEV(m3_dump_major,
+				       plat_priv->wlfw_service_instance_id),
 				 NULL, dump_file_name);
 	if (IS_ERR(dump_dev)) {
 		ret = PTR_ERR(dump_dev);
@@ -2367,37 +2437,50 @@ static int cnss_do_m3_dump_upload(struct cnss_plat_data *plat_priv,
 	/* This avoids race condition between the scheduled timer and the opened
 	 * file discriptor during delay in user space app execution.
 	 */
-	timer_setup(&m3_dump_open_timer, open_timeout_func, 0);
+	timer_setup(&m3_dump_data->open_timer, m3_dump_open_timeout_func,0);
 
-	mod_timer(&m3_dump_open_timer,
+	mod_timer(&m3_dump_data->open_timer,
 		  jiffies + msecs_to_jiffies(M3_DUMP_OPEN_TIMEOUT));
 
-	wait_for_completion(&m3_dump_open_complete);
-
-	if (atomic_read(&m3_dump_open_timedout) == 1) {
+	ret = wait_for_completion_timeout(&m3_dump_data->open_complete,
+					  msecs_to_jiffies(
+					  M3_DUMP_OPEN_COMPLETION_TIMEOUT));
+	if (!ret || (atomic_read(&m3_dump_data->open_timedout) == 1)) {
 		ret = -ETIMEDOUT;
 		cnss_pr_err("%s: Failed to open M3 dump", __func__);
 		goto dump_dev_failed;
 	}
 
-	wait_for_completion(&m3_dump_complete);
-
-	if (m3_dump_timer.expires == -ETIMEDOUT) {
-		ret = m3_dump_timer.expires;
+	ret = wait_for_completion_timeout(&m3_dump_data->read_complete,
+					  msecs_to_jiffies(
+					  M3_DUMP_COMPLETION_TIMEOUT));
+	if (!ret || (atomic_read(&m3_dump_data->read_timedout) == 1)) {
+		ret = -ETIMEDOUT;
 		cnss_pr_err("%s: Failed to collect M3 dump", __func__);
-		m3_dump_timer.expires = 0;
+	} else {
+		/* completed before timeout */
+		ret = 0;
 	}
 
-	del_timer_sync(&m3_dump_timer);
+	del_timer_sync(&m3_dump_data->read_timer);
 	return ret;
 
 dump_dev_failed:
-	device_destroy(m3_dump_class, MKDEV(dump_major, 0));
+	device_destroy(m3_dump_class,
+		       MKDEV(m3_dump_major,
+			     plat_priv->wlfw_service_instance_id));
+
 device_failed:
-	class_destroy(m3_dump_class);
-class_failed:
-	unregister_chrdev(dump_major, "dump");
-reg_failed:
+	atomic_dec(&m3_dump_class_refcnt);
+	if (atomic_read(&m3_dump_class_refcnt) == 0) {
+		spin_lock(&m3_dump_class_lock);
+		class_destroy(m3_dump_class);
+		m3_dump_class = NULL;
+		unregister_chrdev(m3_dump_major, "dump");
+		m3_dump_major = 0;
+		spin_unlock(&m3_dump_class_lock);
+	}
+
 	return ret;
 }
 
@@ -2405,8 +2488,9 @@ static int cnss_m3_dump_upload_req_hdlr(struct cnss_plat_data *plat_priv,
 					void *data)
 {
 	struct cnss_qmi_event_m3_dump_upload_req_data *event_data = data;
-	struct cnss_fw_mem *fw_mem = plat_priv->fw_mem;
-	char dump_file_name[20];
+	struct cnss_fw_mem *m3_mem = NULL;
+	char dump_file_name[30];
+	struct m3_dump *m3_dump_data = &plat_priv->m3_dump_data;
 	int i, ret = 0;
 
 	cnss_pr_dbg("%s: %d pdev_id %d addr 0x%llx size %llu",
@@ -2414,43 +2498,56 @@ static int cnss_m3_dump_upload_req_hdlr(struct cnss_plat_data *plat_priv,
 		    event_data->pdev_id, event_data->addr, event_data->size);
 
 	for (i = 0; i < plat_priv->fw_mem_seg_len; i++) {
-		if (fw_mem[i].pa == event_data->addr &&
-		    event_data->size <= fw_mem[i].size)
+		if (plat_priv->fw_mem[i].type == M3_DUMP_REGION_TYPE) {
+			m3_mem = &plat_priv->fw_mem[i];
 			break;
+		}
 	}
 
-	if (i == plat_priv->fw_mem_seg_len) {
-		cnss_pr_err("Invalid pa 0x%llx from FW for M3 Dump",
-			    event_data->addr);
-		ret = -EINVAL;
-		goto send_resp;
-	}
-
-	memset(&m3_dump_data, 0, sizeof(m3_dump_data));
-
-	m3_dump_data.addr = ioremap(fw_mem[i].pa, fw_mem[i].size);
-	if (!m3_dump_data.addr) {
-		cnss_pr_err("Failed to ioremap M3 Dump region");
+	if (!m3_mem) {
+		cnss_pr_err("M3 dump memory not allocated\n");
 		ret = -ENOMEM;
 		goto send_resp;
 	}
 
-	m3_dump_data.size = event_data->size;
-	m3_dump_data.pdev_id = event_data->pdev_id;
-	m3_dump_data.timestamp = ktime_to_ms(ktime_get());
+	if ((event_data->addr != m3_mem->pa) ||
+	    (event_data->size > m3_mem->size)) {
+		cnss_pr_err("Invalid M3 dump info from FW: addr: %llx, size: %lld; in plat_priv: addr:%pa size: %zd\n",
+			    event_data->addr, event_data->size,
+			    &m3_mem->pa, m3_mem->size);
+		ret = -EINVAL;
+		goto send_resp;
+	}
+
+	if (!m3_mem->va) {
+		cnss_pr_err("M3 mem not remapped!\n");
+		ret = -ENOMEM;
+		goto send_resp;
+	}
+
+	memset(m3_dump_data, 0, sizeof(struct m3_dump));
+
+	m3_dump_data->dump_addr = m3_mem->va;
+	m3_dump_data->size = event_data->size;
+	m3_dump_data->pdev_id = event_data->pdev_id;
+	m3_dump_data->timestamp = ktime_to_ms(ktime_get());
 	cnss_pr_dbg("%s: %d: pdev_id: %d va 0x%p size %d\n",
 		    __func__, __LINE__,
-		    m3_dump_data.pdev_id, m3_dump_data.addr,
-		    m3_dump_data.size);
+		    m3_dump_data->pdev_id, m3_dump_data->dump_addr,
+		    m3_dump_data->size);
 
-	snprintf(dump_file_name, sizeof(dump_file_name),
-		 "m3_dump_wifi%d.bin", m3_dump_data.pdev_id);
+	if (plat_priv->device_id == QCN9000_DEVICE_ID)
+		snprintf(dump_file_name, sizeof(dump_file_name),
+			 "m3_dump_qcn9000_pci%d.bin",
+			 (plat_priv->wlfw_service_instance_id - NODE_ID_BASE));
+	else
+		snprintf(dump_file_name, sizeof(dump_file_name),
+			 "m3_dump_wifi%d.bin", m3_dump_data->pdev_id);
 
 	ret = cnss_do_m3_dump_upload(plat_priv, (const char *)dump_file_name);
 	if (ret)
 		cnss_pr_err("M3 Dump upload failed with ret %d", ret);
 
-	iounmap(m3_dump_data.addr);
 send_resp:
 	cnss_wlfw_m3_dump_upload_done_send_sync(plat_priv,
 						event_data->pdev_id,
@@ -2595,7 +2692,9 @@ const struct rproc_ops cnss_rproc_ops = {
 int cnss_register_subsys(struct cnss_plat_data *plat_priv)
 {
 	int  index;
+	bool multi_pd_arch = false;
 	struct cnss_subsys_info *subsys_info;
+	struct device *dev = &plat_priv->plat_dev->dev;
 
 	subsys_info = &plat_priv->subsys_info;
 
@@ -2610,9 +2709,19 @@ int cnss_register_subsys(struct cnss_plat_data *plat_priv)
 		break;
 	case QCA8074_DEVICE_ID:
 	case QCA8074V2_DEVICE_ID:
-	case QCA5018_DEVICE_ID:
 	case QCA6018_DEVICE_ID:
 		subsys_info->subsys_desc.name = "cd00000.q6v5_wcss";
+		return 0;
+	case QCA5018_DEVICE_ID:
+	case QCN9100_DEVICE_ID:
+		multi_pd_arch = of_property_read_bool(dev->of_node,
+						      "qcom,multipd_arch");
+		if (multi_pd_arch)
+			of_property_read_string(dev->of_node,
+						"qcom,userpd-subsys-name",
+						&subsys_info->subsys_desc.name);
+		else
+			subsys_info->subsys_desc.name = "cd00000.q6v5_wcss";
 		return 0;
 	default:
 		cnss_pr_err("Unknown device ID: 0x%lx\n", plat_priv->device_id);
@@ -2664,6 +2773,7 @@ void cnss_unregister_subsys(struct cnss_plat_data *plat_priv)
 	if (plat_priv->device_id == QCA8074_DEVICE_ID ||
 	    plat_priv->device_id == QCA8074V2_DEVICE_ID ||
 	    plat_priv->device_id == QCA5018_DEVICE_ID ||
+	    plat_priv->device_id == QCN9100_DEVICE_ID ||
 	    plat_priv->device_id == QCA6018_DEVICE_ID) {
 		return;
 	}
@@ -3013,8 +3123,7 @@ static int cnss_misc_init(struct cnss_plat_data *plat_priv)
 	int ret;
 
 	timer_setup(&plat_priv->fw_boot_timer,
-		    cnss_bus_fw_boot_timeout_hdlr,
-		    (unsigned long)plat_priv);
+		    cnss_bus_fw_boot_timeout_hdlr, 0);
 #ifdef CONFIG_CNSS2_PM
 	register_pm_notifier(&cnss_pm_notifier);
 #endif
@@ -3062,6 +3171,7 @@ static const struct platform_device_id cnss_platform_id_table[] = {
 	{ .name = "qca8074v2", .driver_data = QCA8074V2_DEVICE_ID, },
 	{ .name = "qca6018", .driver_data = QCA6018_DEVICE_ID, },
 	{ .name = "qca5018", .driver_data = QCA5018_DEVICE_ID, },
+	{ .name = "qcn9100", .driver_data = QCN9100_DEVICE_ID, },
 };
 
 static const struct of_device_id cnss_of_match_table[] = {
@@ -3083,6 +3193,9 @@ static const struct of_device_id cnss_of_match_table[] = {
 	{
 		.compatible = "qcom,cnss-qca5018",
 		.data = (void *)&cnss_platform_id_table[5]},
+	{
+		.compatible = "qcom,cnss-qcn9100",
+		.data = (void *)&cnss_platform_id_table[6]},
 	{ },
 };
 MODULE_DEVICE_TABLE(of, cnss_of_match_table);
@@ -3112,6 +3225,12 @@ static int cnss_set_device_name(struct cnss_plat_data *plat_priv)
 	case QCA5018_DEVICE_ID:
 		snprintf(plat_priv->device_name, sizeof(plat_priv->device_name),
 			 "QCA5018");
+		break;
+	case QCN9100_DEVICE_ID:
+		index = plat_priv->wlfw_service_instance_id -
+						WLFW_SERVICE_INS_ID_V01_QCN9100;
+		snprintf(plat_priv->device_name, sizeof(plat_priv->device_name),
+			 "QCN9100_%d", index);
 		break;
 	default:
 		cnss_pr_err("No such device id 0x%lx\n", plat_priv->device_id);
@@ -3154,13 +3273,98 @@ void cnss_update_platform_feature_support(u8 type, u32 instance_id, u32 value)
 	}
 }
 
+static int platform_get_qcn9100_userpd_id(struct platform_device *plat_dev,
+					  uint32_t *userpd_id)
+{
+	int ret = 0;
+	const char *subsys_name;
+
+	ret = of_property_read_string(plat_dev->dev.of_node,
+				      "qcom,userpd-subsys-name",
+				      &subsys_name);
+	if (ret) {
+		pr_err("subsys name get failed");
+		return -EINVAL;
+	}
+
+	if (strcmp(subsys_name, "q6v5_wcss_userpd2") == 0) {
+		*userpd_id = QCN9100_0;
+		return 0;
+	} else if (strcmp(subsys_name, "q6v5_wcss_userpd3") == 0) {
+		*userpd_id = QCN9100_1;
+		return 0;
+	}
+
+	pr_err("subsys name %s not found", subsys_name);
+	return -EINVAL;
+}
+
+static bool
+cnss_check_skip_target_probe(const struct platform_device_id *device_id,
+			     u32 userpd_id, u32 node_id)
+{
+	/* skip_cnss based skip target checks */
+	if (skip_cnss == CNSS_SKIP_ALL) {
+		pr_err("Skipping cnss_probe for device 0x%lx\n",
+		       device_id->driver_data);
+		return true;
+	} else if (skip_cnss == CNSS_SKIP_PCI &&
+		   device_id->driver_data == QCN9000_DEVICE_ID) {
+		pr_err("Skipping cnss_probe for device 0x%lx\n",
+		       device_id->driver_data);
+		return true;
+	} else if (skip_cnss == CNSS_SKIP_AHB &&
+		   (device_id->driver_data == QCA8074_DEVICE_ID ||
+		   device_id->driver_data == QCA8074V2_DEVICE_ID ||
+		   device_id->driver_data == QCA6018_DEVICE_ID ||
+		   device_id->driver_data == QCN9100_DEVICE_ID ||
+		   device_id->driver_data == QCA5018_DEVICE_ID)) {
+		pr_err("Skipping cnss_probe for device 0x%lx\n",
+		       device_id->driver_data);
+		return true;
+	}
+
+	/* skip_radio_bmap based skip target checks
+	 * SKIP_INTEGRATED - skip integrated radios ie. 5018,8074,8074v2,6018
+	 * SKIP_PCI_0 - skip PCI_0 radios ie. first qcn9000/qcn9100 radios
+	 * SKIP_PCI_1 - skip PCI_1 radios ie. second qcn9000/qcn9100 radios
+	 */
+	if ((skip_radio_bmap & SKIP_INTEGRATED) &&
+	    ((device_id->driver_data == QCA5018_DEVICE_ID) ||
+	    (device_id->driver_data == QCA8074_DEVICE_ID) ||
+	    (device_id->driver_data == QCA8074V2_DEVICE_ID) ||
+	    (device_id->driver_data == QCA6018_DEVICE_ID))) {
+		pr_err("Skipping cnss_probe for device 0x%lx\n",
+		       device_id->driver_data);
+		return true;
+	} else if ((skip_radio_bmap & SKIP_PCI_0) &&
+		   (((userpd_id == QCN9100_0) &&
+		   (device_id->driver_data == QCN9100_DEVICE_ID)) ||
+		   ((node_id == QCN9000_0) &&
+		   (device_id->driver_data == QCN9000_DEVICE_ID)))) {
+		pr_err("Skipping cnss_probe for PCI_0 device 0x%lx\n",
+		       device_id->driver_data);
+		return true;
+	} else if ((skip_radio_bmap & SKIP_PCI_1) &&
+		   (((userpd_id == QCN9100_1) &&
+		   (device_id->driver_data == QCN9100_DEVICE_ID)) ||
+		   ((node_id == QCN9000_1) &&
+		   (device_id->driver_data == QCN9000_DEVICE_ID)))) {
+		pr_err("Skipping cnss_probe for PCI_1 device 0x%lx\n",
+		       device_id->driver_data);
+		return true;
+	}
+
+	return false;
+}
+
 static int cnss_probe(struct platform_device *plat_dev)
 {
 	int ret = 0;
-	struct cnss_plat_data *plat_priv;
+	struct cnss_plat_data *plat_priv = NULL;
 	const struct of_device_id *of_id;
 	const struct platform_device_id *device_id;
-	u32 node_id;
+	u32 node_id = 0, userpd_id = 0;
 	const int *soc_version_major;
 
 	if (cnss_get_plat_priv(plat_dev)) {
@@ -3177,24 +3381,25 @@ static int cnss_probe(struct platform_device *plat_dev)
 
 	device_id = (const struct platform_device_id *)of_id->data;
 
-	if (skip_cnss == CNSS_SKIP_ALL) {
-		pr_err("Skipping cnss_probe for device 0x%lx\n",
-		       device_id->driver_data);
-		goto out;
-	} else if (skip_cnss == CNSS_SKIP_PCI &&
-		   device_id->driver_data == QCN9000_DEVICE_ID) {
-		pr_err("Skipping cnss_probe for device 0x%lx\n",
-		       device_id->driver_data);
-		goto out;
-	} else if (skip_cnss == CNSS_SKIP_AHB &&
-		   (device_id->driver_data == QCA8074_DEVICE_ID ||
-		   device_id->driver_data == QCA8074V2_DEVICE_ID ||
-		   device_id->driver_data == QCA6018_DEVICE_ID ||
-		   device_id->driver_data == QCA5018_DEVICE_ID)) {
-		pr_err("Skipping cnss_probe for device 0x%lx\n",
-		       device_id->driver_data);
+	if ((device_id->driver_data == QCN9100_DEVICE_ID) &&
+	    (platform_get_qcn9100_userpd_id(plat_dev, &userpd_id))) {
+		pr_err("Error: No userpd_id in device_tree\n");
+		CNSS_ASSERT(0);
+		ret = -ENODEV;
 		goto out;
 	}
+
+	if ((device_id->driver_data == QCN9000_DEVICE_ID) &&
+	    (of_property_read_u32(plat_dev->dev.of_node,
+				  "qrtr_node_id", &node_id))) {
+		pr_err("Error: No qrtr_node_id in device_tree\n");
+		CNSS_ASSERT(0);
+		ret = -ENODEV;
+		goto out;
+	}
+
+	if (cnss_check_skip_target_probe(device_id, userpd_id, node_id))
+		goto out;
 
 #ifdef CONFIG_CNSS_QCN9000
 	if (device_id->driver_data == QCA6174_DEVICE_ID) {
@@ -3211,6 +3416,7 @@ static int cnss_probe(struct platform_device *plat_dev)
 #endif
 
 	if (device_id->driver_data == QCA6018_DEVICE_ID ||
+	    device_id->driver_data == QCN9100_DEVICE_ID ||
 	    device_id->driver_data == QCA5018_DEVICE_ID)
 		goto skip_soc_version_checks;
 
@@ -3253,12 +3459,6 @@ skip_soc_version_checks:
 	case QCN9000_DEVICE_ID:
 		plat_priv->bus_type = CNSS_BUS_PCI;
 		plat_priv->service_id = WLFW_SERVICE_ID_V01_NPR;
-		if (of_property_read_u32(plat_dev->dev.of_node, "qrtr_node_id",
-					 &node_id)) {
-			pr_err("Error: No qrtr_node_id in device_tree\n");
-			CNSS_ASSERT(0);
-			return -ENOMEM;
-		}
 		plat_priv->qrtr_node_id = node_id;
 		plat_priv->wlfw_service_instance_id = node_id + FW_ID_BASE;
 
@@ -3277,6 +3477,12 @@ skip_soc_version_checks:
 		plat_priv->wlfw_service_instance_id =
 			WLFW_SERVICE_INS_ID_V01_QCA8074;
 		plat_priv->service_id =  WLFW_SERVICE_ID_V01_HK;
+		break;
+	case QCN9100_DEVICE_ID:
+		plat_priv->bus_type = CNSS_BUS_AHB;
+		plat_priv->service_id = WLFW_SERVICE_ID_V01_HK;
+		plat_priv->wlfw_service_instance_id =
+			WLFW_SERVICE_INS_ID_V01_QCN9100 + userpd_id;
 		break;
 	default:
 		cnss_pr_err("No such device id %p\n", device_id);

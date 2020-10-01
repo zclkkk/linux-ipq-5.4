@@ -2550,7 +2550,8 @@ EXPORT_SYMBOL(cnss_pci_force_wake_release);
 int cnss_pci_alloc_fw_mem(struct cnss_plat_data *plat_priv)
 {
 	struct cnss_fw_mem *fw_mem = plat_priv->fw_mem;
-	unsigned int bdf_location[3], caldb_location[3];
+	unsigned int bdf_location[MAX_TGT_MEM_MODES];
+	unsigned int caldb_location[MAX_TGT_MEM_MODES];
 	u32 addr = 0;
 	u32 caldb_size = 0;
 	u32 hremote_size = 0;
@@ -2567,6 +2568,7 @@ int cnss_pci_alloc_fw_mem(struct cnss_plat_data *plat_priv)
 	if ((plat_priv->device_id == QCA8074_DEVICE_ID ||
 	     plat_priv->device_id == QCA8074V2_DEVICE_ID ||
 	     plat_priv->device_id == QCA5018_DEVICE_ID ||
+	     plat_priv->device_id == QCN9100_DEVICE_ID ||
 	     plat_priv->device_id == QCA6018_DEVICE_ID) &&
 	    of_property_read_u32_array(dev->of_node, "qcom,caldb-addr",
 				       caldb_location,
@@ -2635,6 +2637,26 @@ int cnss_pci_alloc_fw_mem(struct cnss_plat_data *plat_priv)
 				if (!fw_mem[i].va)
 					pr_err("WARNING: Host DDR remap failed\n");
 				break;
+			case M3_DUMP_REGION_TYPE:
+				if (fw_mem[i].size > Q6_M3_DUMP_SIZE_QCN9000) {
+					pr_err("Error: Need more memory %x\n",
+					       (unsigned int)fw_mem[i].size);
+					CNSS_ASSERT(0);
+				}
+				if (of_property_read_u32(dev->of_node,
+							 "m3-dump-addr",
+							 &addr)) {
+					pr_err("Error: No m3-dump-addr in dts\n");
+					CNSS_ASSERT(0);
+					return -ENOMEM;
+				}
+				fw_mem[i].pa = (phys_addr_t)addr;
+				fw_mem[i].va = ioremap(fw_mem[i].pa,
+						       fw_mem[i].size);
+				if (!fw_mem[i].va)
+					pr_err("WARNING: M3 Dump addr remap failed\n");
+				break;
+
 			default:
 				pr_err("Ignore mem req type %d\n",
 				       fw_mem[i].type);
@@ -2648,6 +2670,7 @@ int cnss_pci_alloc_fw_mem(struct cnss_plat_data *plat_priv)
 	if (plat_priv->device_id == QCA8074_DEVICE_ID ||
 	    plat_priv->device_id == QCA8074V2_DEVICE_ID ||
 	    plat_priv->device_id == QCA5018_DEVICE_ID ||
+	    plat_priv->device_id == QCN9100_DEVICE_ID ||
 	    plat_priv->device_id == QCA6018_DEVICE_ID) {
 		if (of_property_read_u32_array(dev->of_node, "qcom,bdf-addr",
 					       bdf_location,
@@ -2658,7 +2681,7 @@ int cnss_pci_alloc_fw_mem(struct cnss_plat_data *plat_priv)
 		}
 		idx = 0;
 		mode = plat_priv->tgt_mem_cfg_mode;
-		if (mode >= 3)
+		if (mode >= MAX_TGT_MEM_MODES)
 			CNSS_ASSERT(0);
 
 		for (i = 0; i < plat_priv->fw_mem_seg_len; i++) {
@@ -2725,8 +2748,11 @@ int cnss_pci_alloc_fw_mem(struct cnss_plat_data *plat_priv)
 				fw_mem[idx].size = fw_mem[i].size;
 				fw_mem[idx].type = fw_mem[i].type;
 				fw_mem[idx].pa = m3_dump.start;
-				fw_mem[idx].va = (void *)(unsigned long)
-						 fw_mem[idx].pa;
+				fw_mem[idx].va = ioremap(fw_mem[idx].pa,
+							 fw_mem[idx].size);
+				if (!fw_mem[idx].va)
+					pr_err("WARNING: M3 Dump addr remap failed\n");
+
 				idx++;
 				break;
 			default:
@@ -3187,18 +3213,23 @@ EXPORT_SYMBOL(cnss_smmu_map);
 
 int cnss_get_soc_info(struct device *dev, struct cnss_soc_info *info)
 {
-	struct cnss_pci_data *pci_priv = cnss_get_pci_priv(to_pci_dev(dev));
-	struct cnss_plat_data *plat_priv;
-
-	if (!pci_priv)
-		return -ENODEV;
-
-	plat_priv = pci_priv->plat_priv;
+	struct cnss_plat_data *plat_priv = cnss_bus_dev_to_plat_priv(dev);
 	if (!plat_priv)
 		return -ENODEV;
 
-	info->va = pci_priv->bar;
-	info->pa = pci_resource_start(pci_priv->pci_dev, PCI_BAR_NUM);
+	if (plat_priv->device_id == QCN9100_DEVICE_ID) {
+		info->va = plat_priv->qcn9100.bar_addr_va;
+		info->pa = (phys_addr_t)plat_priv->qcn9100.bar_addr_pa;
+	} else {
+		struct cnss_pci_data *pci_priv =
+				cnss_get_pci_priv(to_pci_dev(dev));
+
+		if (!pci_priv)
+			return -ENODEV;
+
+		info->va = pci_priv->bar;
+		info->pa = pci_resource_start(pci_priv->pci_dev, PCI_BAR_NUM);
+	}
 
 	memcpy(&info->device_version, &plat_priv->device_version,
 	       sizeof(info->device_version));
@@ -3680,7 +3711,10 @@ void cnss_pci_collect_dump_info(struct cnss_pci_data *pci_priv, bool in_panic)
 
 	cnss_pr_dbg("Collect remote heap dump segment\n");
 	for (i = 0; i < plat_priv->fw_mem_seg_len; i++) {
-		if (fw_mem[i].type == CNSS_MEM_TYPE_DDR) {
+		if (fw_mem[i].type == CNSS_MEM_TYPE_DDR ||
+		    fw_mem[i].type == CNSS_MEM_M3) {
+			if (!fw_mem[i].pa)
+				continue;
 			dump_seg->address = fw_mem[i].pa;
 			dump_seg->v_address = fw_mem[i].va;
 			dump_seg->size = fw_mem[i].size;
@@ -3696,6 +3730,8 @@ void cnss_pci_collect_dump_info(struct cnss_pci_data *pci_priv, bool in_panic)
 	cnss_pr_dbg("Collect QDSS dump segment\n");
 	for (i = 0; i < plat_priv->qdss_mem_seg_len; i++) {
 		if (qdss_mem[i].type == CNSS_MEM_ETR) {
+			if (!qdss_mem[i].pa)
+				continue;
 			dump_seg->address = qdss_mem[i].pa;
 			dump_seg->v_address = qdss_mem[i].va;
 			dump_seg->size = qdss_mem[i].size;
@@ -3711,6 +3747,8 @@ void cnss_pci_collect_dump_info(struct cnss_pci_data *pci_priv, bool in_panic)
 	cnss_pr_dbg("Collect Caldb dump segment\n");
 	for (i = 0; i < plat_priv->fw_mem_seg_len; i++) {
 		if (fw_mem[i].type == CNSS_MEM_CAL_V01) {
+			if (!fw_mem[i].pa)
+				continue;
 			dump_seg->address = fw_mem[i].pa;
 			dump_seg->v_address = fw_mem[i].va;
 			dump_seg->size = fw_mem[i].size;
@@ -3769,11 +3807,11 @@ static char *cnss_mhi_notify_status_to_str(enum MHI_CB status)
 	}
 };
 
-static void cnss_dev_rddm_timeout_hdlr(struct timer_list *data)
+static void cnss_dev_rddm_timeout_hdlr(struct timer_list *timer)
 {
-	struct cnss_pci_data *pci_priv = (struct cnss_pci_data *)data;
 	struct cnss_plat_data *plat_priv = NULL;
-
+	struct cnss_pci_data *pci_priv =
+			from_timer(pci_priv, timer, dev_rddm_timer);
 	if (!pci_priv)
 		return;
 
@@ -3943,7 +3981,7 @@ static int cnss_pci_register_mhi(struct cnss_pci_data *pci_priv)
 
 	mhi_ctrl->rddm_size = pci_priv->plat_priv->ramdump_info_v2.ramdump_size;
 	mhi_ctrl->sbl_size = SZ_512K;
-	mhi_ctrl->seg_len = SZ_256K;
+	mhi_ctrl->seg_len = SZ_512K;
 	mhi_ctrl->fbc_download = true;
 
 	mhi_ctrl->log_buf = ipc_log_context_create(CNSS_IPC_LOG_PAGES,
@@ -4052,8 +4090,7 @@ int cnss_pci_probe(struct pci_dev *pci_dev,
 	case QCA6390_DEVICE_ID:
 	case QCA6490_DEVICE_ID:
 		timer_setup(&pci_priv->dev_rddm_timer,
-			    cnss_dev_rddm_timeout_hdlr,
-			    (unsigned long)pci_priv);
+			    cnss_dev_rddm_timeout_hdlr, 0);
 		INIT_DELAYED_WORK(&pci_priv->time_sync_work,
 				  cnss_pci_time_sync_work_hdlr);
 
@@ -4176,8 +4213,6 @@ int cnss_pci_get_bar_info(struct cnss_pci_data *pci_priv, void __iomem **va,
 	return 0;
 }
 
-static int use_radio;
-module_param(use_radio, int, 0644);
 int cnss_pci_probe_basic(struct pci_dev *pci_dev,
 			 const struct pci_device_id *id)
 {
@@ -4197,10 +4232,7 @@ int cnss_pci_probe_basic(struct pci_dev *pci_dev,
 		pr_err("cnss_pci_probe_basic plat_priv is NULL!\n");
 		return -EINVAL;
 	}
-	if (use_radio && use_radio != qrtr_instance) {
-		pr_info("Skipping pci_dev registration [%x]\n", use_radio);
-		return 0;
-	}
+
 	plat_priv->pci_dev = (struct platform_device *)pci_dev;
 	plat_priv->pci_dev_id = (struct platform_device_id *)id;
 

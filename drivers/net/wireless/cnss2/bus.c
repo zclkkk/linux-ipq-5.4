@@ -44,6 +44,7 @@ enum cnss_dev_bus_type cnss_get_bus_type(unsigned long device_id)
 	case QCA8074V2_DEVICE_ID:
 	case QCA6018_DEVICE_ID:
 	case QCA5018_DEVICE_ID:
+	case QCN9100_DEVICE_ID:
 		return CNSS_BUS_AHB;
 	default:
 		pr_err("Unknown device_id: 0x%lx\n", device_id);
@@ -275,9 +276,10 @@ int cnss_bus_force_fw_assert_hdlr(struct cnss_plat_data *plat_priv)
 	}
 }
 
-void cnss_bus_fw_boot_timeout_hdlr(struct timer_list *data)
+void cnss_bus_fw_boot_timeout_hdlr(struct timer_list *timer)
 {
-	struct cnss_plat_data *plat_priv = (struct cnss_plat_data *)data;
+	struct cnss_plat_data *plat_priv =
+			from_timer(plat_priv, timer, fw_boot_timer);
 	if (!plat_priv)
 		return;
 
