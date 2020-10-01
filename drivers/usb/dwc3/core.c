@@ -320,6 +320,22 @@ static void dwc3_frame_length_adjustment(struct dwc3 *dwc)
 }
 
 /**
+ * dwc3_30m_sb_sel_adjustment - 30MHZ side band sel adjustment
+ *
+ * @dwc: Pointer to our controller context structure
+ * @ref_clk_per: 30MHz side band sel value
+ */
+static void dwc3_30m_sb_sel_adjustment(struct dwc3 *dwc, int sb_30m_sel)
+{
+	u32 reg;
+
+	reg = dwc3_readl(dwc->regs, DWC3_GFLADJ);
+	reg &= ~DWC3_GFLADJ_30MHZ_SDBND_SEL_MASK;
+	reg |=  (sb_30m_sel << 7);
+	dwc3_writel(dwc->regs, DWC3_GFLADJ, reg);
+}
+
+/**
  * dwc3_ref_clk_adjustment - Reference clock settings for SOF and ITP
  *		Default reference clock configurations are calculated assuming
  *		19.2 MHz clock source. For other clock source, this will set
@@ -997,6 +1013,15 @@ static int dwc3_core_init(struct dwc3 *dwc)
 
 	/* Adjust Reference Clock Period */
 	dwc3_ref_clk_period(dwc);
+
+	/* adjust 30m side band sel */
+	if (device_property_present(dwc->dev, "snps,quirk-30m-sb-sel")) {
+		u32 sb_30m_sel;
+
+		device_property_read_u32(dwc->dev, "snps,quirk-30m-sb-sel",
+				&sb_30m_sel);
+		dwc3_30m_sb_sel_adjustment(dwc, sb_30m_sel);
+	}
 
 	dwc3_set_incr_burst_type(dwc);
 
