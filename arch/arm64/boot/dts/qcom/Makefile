@@ -7,6 +7,7 @@ dtb-$(CONFIG_ARCH_QCOM)	+= ipq8074-hk01.c2.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= ipq8074-hk01.c3.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= ipq8074-hk01.c4.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= ipq8074-hk01.c5.dtb
+dtb-$(CONFIG_ARCH_QCOM) += ipq8074-hk01.c6.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= ipq8074-hk02.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= ipq8074-hk06.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= ipq8074-hk07.dtb
