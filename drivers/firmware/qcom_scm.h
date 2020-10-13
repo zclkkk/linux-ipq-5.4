@@ -253,11 +253,17 @@ extern int __qti_scm_qseecom_unload(struct device *dev,
 				    size_t req_size,
 				    struct qseecom_command_scm_resp *resp,
 				    size_t resp_size);
-extern int __qti_scm_tz_register_log_buf(struct device *dev,
+extern int __qti_scm_register_log_buf(struct device *dev,
 					 struct qsee_reg_log_buf_req *request,
 					 size_t req_size,
 					 struct qseecom_command_scm_resp
 					 *response, size_t resp_size);
+extern int __qti_scm_tls_hardening(struct device *dev, uint32_t req_addr,
+				   uint32_t req_size, uint32_t resp_addr,
+				   uint32_t resp_size, u32 cmd_id);
+extern int __qti_scm_aes(struct device *dev, uint32_t req_addr,
+			 uint32_t req_size, uint32_t resp_addr,
+			 uint32_t resp_size, u32 cmd_id);
 
 #define QTI_SCM_SVC_RESETTYPE_CMD	0x18
 extern int  __qti_scm_set_resettype(struct device *dev, u32 reset_type);

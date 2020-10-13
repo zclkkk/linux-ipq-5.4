@@ -97,7 +97,7 @@ struct tzdbg_log_pos_t {
 	uint16_t offset;
 };
 
-struct tzdbg_log_t {
+struct qtidbg_log_t {
 	struct tzdbg_log_pos_t log_pos;
 	uint8_t	log_buf[];
 };
@@ -120,6 +120,7 @@ struct qcom_scm_vmperm {
 
 #define QTI_OWNER_QSEE_OS		50
 #define QTI_OWNER_TZ_APPS		48
+#define QTI_SVC_CRYPTO			10
 #define QTI_SVC_APP_MGR			1 /* Application Management */
 #define QTI_SVC_APP_ID_PLACEHOLDER	0 /* SVC bits will contain App ID */
 
@@ -212,11 +213,16 @@ extern int qti_scm_qseecom_unload(uint32_t smc_id, uint32_t cmd_id,
 				  size_t req_size,
 				  struct qseecom_command_scm_resp *resp,
 				  size_t resp_size);
-extern int qti_scm_tz_register_log_buf(struct device *dev,
+extern int qti_scm_register_log_buf(struct device *dev,
 				       struct qsee_reg_log_buf_req *request,
 				       size_t req_size,
 				       struct qseecom_command_scm_resp
 				       *response, size_t resp_size);
+extern int qti_scm_tls_hardening(uint32_t req_addr, uint32_t req_size,
+				 uint32_t resp_addr, uint32_t resp_size,
+				 u32 cmd_id);
+extern int qti_scm_aes(uint32_t req_addr, uint32_t req_size,
+		       uint32_t resp_addr, uint32_t resp_size, u32 cmd_id);
 extern int qti_scm_dload(u32 svc_id, u32 cmd_id, void *cmd_buf);
 extern int qti_scm_sdi(u32 svc_id, u32 cmd_id);
 extern int qti_scm_tz_log(void *ker_buf, u32 buf_len);

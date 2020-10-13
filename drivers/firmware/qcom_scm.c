@@ -144,7 +144,7 @@ int qti_scm_qseecom_unload(uint32_t smc_id, uint32_t cmd_id,
 }
 EXPORT_SYMBOL(qti_scm_qseecom_unload);
 
-int qti_scm_tz_register_log_buf(struct device *dev,
+int qti_scm_register_log_buf(struct device *dev,
 				struct qsee_reg_log_buf_req *request,
 				size_t req_size,
 				struct qseecom_command_scm_resp *response,
@@ -152,12 +152,37 @@ int qti_scm_tz_register_log_buf(struct device *dev,
 {
 	int ret = 0;
 
-	ret = __qti_scm_tz_register_log_buf(__scm->dev, request, req_size,
+	ret = __qti_scm_register_log_buf(__scm->dev, request, req_size,
 					    response, resp_size);
 
 	return ret;
 }
-EXPORT_SYMBOL(qti_scm_tz_register_log_buf);
+EXPORT_SYMBOL(qti_scm_register_log_buf);
+
+int qti_scm_aes(uint32_t req_addr, uint32_t req_size,
+		uint32_t resp_addr, uint32_t resp_size,
+		u32 cmd_id)
+{
+	int ret = 0;
+
+	ret = __qti_scm_aes(__scm->dev, req_addr, req_size,
+			    resp_addr, resp_size, cmd_id);
+
+	return ret;
+}
+EXPORT_SYMBOL(qti_scm_aes);
+
+int qti_scm_tls_hardening(uint32_t req_addr, uint32_t req_size,
+			  uint32_t resp_addr, uint32_t resp_size, u32 cmd_id)
+{
+	int ret = 0;
+
+	ret = __qti_scm_tls_hardening(__scm->dev, req_addr, req_size,
+				      resp_addr, resp_size, cmd_id);
+
+	return ret;
+}
+EXPORT_SYMBOL(qti_scm_tls_hardening);
 
 /**
  * qcom_scm_set_cold_boot_addr() - Set the cold boot address for cpus

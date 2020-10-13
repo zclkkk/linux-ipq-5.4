@@ -155,6 +155,11 @@
 		hwlocks = <&tcsr_mutex 0>;
 	};
 
+	qseecom: qseecom {
+		compatible = "ipq6018-qseecom";
+		status = "disabled";
+	};
+
 	soc: soc {
 		#address-cells = <1>;
 		#size-cells = <1>;

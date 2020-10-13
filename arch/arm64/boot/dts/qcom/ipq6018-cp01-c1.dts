@@ -21,6 +21,46 @@
 		stdout-path = "serial0:115200n8";
 		bootargs-append = " swiotlb=1";
 	};
+
+	/*
+	* +=========+==============+========================+
+	* |        |              |                         |
+	* | Region | Start Offset |          Size           |
+	* |        |              |                         |
+	* +--------+--------------+-------------------------+
+	* |        |              |                         |
+	* |        |              |                         |
+	* |        |              |                         |
+	* |        |              |                         |
+	* | Linux  |  0x41000000  |         139MB           |
+	* |        |              |                         |
+	* |        |              |                         |
+	* |        |              |                         |
+	* +--------+--------------+-------------------------+
+	* | TZ App |  0x49B00000  |           6MB           |
+	* +--------+--------------+-------------------------+
+	*
+	* From the available 145 MB for Linux in the first 256 MB,
+	* we are reserving 6 MB for TZAPP.
+	*
+	* Refer arch/arm64/boot/dts/qcom/ipq6018-memory.dtsi
+	* for memory layout.
+	*/
+
+	/* TZApp is enabled in default memory profile only. */
+	/* This below reservation must be updated when LM support is added. */
+	reserved-memory {
+		tzapp:tzapp@49B00000 {  /* TZAPPS */
+			no-map;
+			reg = <0x0 0x49B00000 0x0 0x00600000>;
+		};
+	};
+};
+
+&qseecom {
+		mem-start = <0x49B00000>;
+		mem-size = <0x600000>;
+		status = "ok";
 };
 
 &blsp1_uart3 {
