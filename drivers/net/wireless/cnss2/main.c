@@ -3441,19 +3441,6 @@ static int cnss_probe(struct platform_device *plat_dev)
 	if (cnss_check_skip_target_probe(device_id, userpd_id, node_id))
 		goto out;
 
-#ifdef CONFIG_CNSS_QCN9000
-	if (device_id->driver_data == QCA6174_DEVICE_ID) {
-		pr_err("No probe for QCA6174\n");
-		ret = -EINVAL;
-		goto out;
-	}
-#else
-	if (device_id->driver_data == QCN9000_DEVICE_ID) {
-		pr_err("No probe for QCN9000\n");
-		ret = -EINVAL;
-		goto out;
-	}
-#endif
 
 	if (device_id->driver_data == QCA6018_DEVICE_ID ||
 	    device_id->driver_data == QCN9100_DEVICE_ID ||

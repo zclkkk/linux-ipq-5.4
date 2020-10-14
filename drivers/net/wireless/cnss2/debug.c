@@ -774,10 +774,17 @@ static int cnss_create_debug_only_node(struct cnss_plat_data *plat_priv)
 	return 0;
 }
 
+static bool debugfs_created;
 int cnss_debugfs_create(struct cnss_plat_data *plat_priv)
 {
 	int ret = 0;
 	struct dentry *root_dentry;
+
+	/* Temporary WAR till debugfs is properly created and mapped for each
+	 * plat_priv
+	 */
+	if (debugfs_created)
+		return 0;
 
 	root_dentry = debugfs_create_dir("cnss", 0);
 	if (IS_ERR(root_dentry)) {
@@ -793,7 +800,7 @@ int cnss_debugfs_create(struct cnss_plat_data *plat_priv)
 			    &cnss_stats_fops);
 
 	cnss_create_debug_only_node(plat_priv);
-
+	debugfs_created = true;
 out:
 	return ret;
 }
