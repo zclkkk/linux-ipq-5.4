@@ -3421,12 +3421,6 @@ static int cnss_pci_enable_msi(struct cnss_pci_data *pci_priv)
 		goto free_msi_vector;
 	}
 
-	pci_priv->msi_ep_base_data = msi_desc->msg.data;
-	if (!pci_priv->msi_ep_base_data) {
-		cnss_pr_err("Got 0 MSI base data!\n");
-		CNSS_ASSERT(0);
-	}
-
 	cnss_pr_dbg("MSI base data is %d\n", pci_priv->msi_ep_base_data);
 
 	return 0;
@@ -3455,7 +3449,7 @@ int cnss_get_user_msi_assignment(struct device *dev, char *user_name,
 	int idx;
 
 	if (pci_dev->device != QCN9000_DEVICE_ID) {
-		cnss_pr_err("MSI not supported on device 0x%x",
+		cnss_pr_dbg("MSI not supported on device 0x%x",
 			    pci_dev->device);
 		return -EINVAL;
 	}
@@ -3928,6 +3922,8 @@ static char *cnss_mhi_notify_status_to_str(enum mhi_callback status)
 		return "SYS_ERROR";
 	case MHI_CB_FATAL_ERROR:
 		return "FATAL_ERROR";
+	case MHI_CB_EE_MISSION_MODE:
+		return "MISSION MODE";
 	default:
 		return "UNKNOWN";
 	}
@@ -4012,12 +4008,35 @@ static void cnss_mhi_notify_status(struct mhi_controller *mhi_ctrl,
 		cnss_pci_update_status(pci_priv, CNSS_FW_DOWN);
 		cnss_reason = CNSS_REASON_RDDM;
 		break;
+	case MHI_CB_EE_MISSION_MODE:
+		return;
 	default:
 		cnss_pr_err("Unsupported MHI status cb reason: %d\n", reason);
 		return;
 	}
 
 	cnss_schedule_recovery(&pci_priv->pci_dev->dev, cnss_reason);
+}
+
+#define CNSS_PCI_INVALID_READ(val) (val == U32_MAX)
+static int __must_check cnss_mhi_read_reg(struct mhi_controller *mhi_cntrl,
+					  void __iomem *addr, u32 *out)
+{
+	u32 tmp = readl(addr);
+
+	/* If the value is invalid, the link is down */
+	if (CNSS_PCI_INVALID_READ(tmp))
+		return -EIO;
+
+	*out = tmp;
+
+	return 0;
+}
+
+static void cnss_mhi_write_reg(struct mhi_controller *mhi_cntrl,
+			       void __iomem *addr, u32 val)
+{
+	writel(val, addr);
 }
 
 static int cnss_pci_get_mhi_msi(struct cnss_pci_data *pci_priv)
@@ -4101,6 +4120,8 @@ static int cnss_pci_register_mhi(struct cnss_pci_data *pci_priv)
 	mhi_ctrl->status_cb = cnss_mhi_notify_status;
 	mhi_ctrl->runtime_get = cnss_mhi_pm_runtime_get;
 	mhi_ctrl->runtime_put = cnss_mhi_pm_runtime_put_noidle;
+	mhi_ctrl->read_reg = cnss_mhi_read_reg;
+	mhi_ctrl->write_reg = cnss_mhi_write_reg;
 
 	mhi_ctrl->rddm_size = pci_priv->plat_priv->ramdump_info_v2.ramdump_size;
 	mhi_ctrl->sbl_size = SZ_512K;
@@ -4127,6 +4148,12 @@ static void cnss_pci_unregister_mhi(struct cnss_pci_data *pci_priv)
 
 	mhi_unregister_controller(mhi_ctrl);
 	kfree(mhi_ctrl->irq);
+}
+
+static void cnss_pci_free_mhi_controller(struct cnss_pci_data *pci_priv)
+{
+	struct mhi_controller *mhi_ctrl = pci_priv->mhi_ctrl;
+
 	kfree(mhi_ctrl);
 	pci_priv->mhi_ctrl = NULL;
 }
@@ -4301,6 +4328,7 @@ void cnss_pci_remove(struct pci_dev *pci_dev)
 		cnss_pci_deinit_smmu(pci_priv);
 #endif
 	cnss_unregister_ramdump(plat_priv);
+	cnss_pci_free_mhi_controller(pci_priv);
 	plat_priv->bus_priv = NULL;
 }
 EXPORT_SYMBOL(cnss_pci_remove);

@@ -80,3 +80,11 @@
 		nand-bus-width = <8>;
 	};
 };
+
+&pcie_phy {
+	status = "ok";
+};
+
+&pcie0 {
+	status = "ok";
+};

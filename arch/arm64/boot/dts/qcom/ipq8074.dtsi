@@ -360,6 +360,11 @@
 			status = "disabled";
 		};
 
+		sd_pwrseq: sd-pwrseq {
+			compatible = "mmc-pwrseq-ipq";
+			reset-gpios = <&tlmm 21 GPIO_ACTIVE_HIGH>;
+		};
+
 		sdhc_2: sdhci@7864900 {
 			compatible = "qcom,sdhci-msm-v4";
 			reg = <0x7864900 0x500>, <0x7864000 0x800>;
@@ -378,6 +383,7 @@
 			mmc-hs200-1_8v;
 			bus-width = <4>;
 			vqmmc-supply = <&ldo11>;
+			mmc-pwrseq = <&sd_pwrseq>;
 			status = "disabled";
 		};
 
@@ -1443,37 +1449,6 @@
 			};
 		};
 
-		qti,usbbam@8B04000 {
-			compatible = "qti,usb-bam-msm";
-			reg = <0x8B04000 0x17000>;
-			interrupt-parent = <&intc>;
-			interrupts = <GIC_SPI 135 IRQ_TYPE_LEVEL_HIGH>;
-
-			qti,bam-type = <0>;
-			qti,usb-bam-fifo-baseaddr = <0x4A600000>;
-			qti,usb-bam-num-pipes = <4>;
-			qti,ignore-core-reset-ack;
-			qti,disable-clk-gating;
-			qti,usb-bam-override-threshold = <0x4001>;
-			qti,usb-bam-max-mbps-highspeed = <400>;
-			qti,usb-bam-max-mbps-superspeed = <3600>;
-			qti,reset-bam-on-connect;
-
-			qti,pipe0 {
-				label = "ssusb-qdss-in-0";
-				qti,usb-bam-mem-type = <2>;
-				qti,dir = <1>;
-				qti,pipe-num = <0>;
-				qti,peer-bam = <0>;
-				qti,peer-bam-physical-address = <0x6044000>;
-				qti,src-bam-pipe-index = <0>;
-				qti,dst-bam-pipe-index = <0>;
-				qti,data-fifo-offset = <0x0>;
-				qti,data-fifo-size = <0xe00>;
-				qti,descriptor-fifo-offset = <0xe00>;
-				qti,descriptor-fifo-size = <0x200>;
-			};
-		};
 		wifi0: wifi@c0000000 {
 			compatible = "qcom,cnss-qca8074";
 			reg = <0xc000000 0x2000000>;
@@ -1494,7 +1469,6 @@
 			interrupts = <0 320 1>, /* o_wcss_apps_intr[0] =  */
 				<0 319 1>,
 				<0 318 1>,
-				<0 317 1>,
 				<0 316 1>,
 				<0 315 1>,
 				<0 314 1>,
@@ -1551,7 +1525,6 @@
 			interrupt-names = "misc-pulse1",
 				"misc-latch",
 				"sw-exception",
-				"watchdog",
 				"ce0",
 				"ce1",
 				"ce2",
@@ -1623,7 +1596,6 @@
 			interrupts = <0 320 1>, /* o_wcss_apps_intr[0] =  */
 				<0 319 1>,
 				<0 318 1>,
-				<0 317 1>,
 				<0 316 1>,
 				<0 315 1>,
 				<0 314 1>,
@@ -1680,7 +1652,6 @@
 			interrupt-names = "misc-pulse1",
 				"misc-latch",
 				"sw-exception",
-				"watchdog",
 				"ce0",
 				"ce1",
 				"ce2",
@@ -1846,11 +1817,6 @@
 
 	qti,scm_restart_reason {
 		compatible = "qti,scm_restart_reason";
-	};
-
-	qti,sps {
-		compatible = "qti,msm-sps-4k";
-		qti,pipe-attr-ee;
 	};
 };
 
