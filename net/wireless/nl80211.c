@@ -629,7 +629,8 @@ const struct nla_policy nl80211_policy[NUM_NL80211_ATTR] = {
 	[NL80211_ATTR_TWT_RESPONDER] = { .type = NLA_FLAG },
 	[NL80211_ATTR_HE_OBSS_PD] = NLA_POLICY_NESTED(he_obss_pd_policy),
 	[NL80211_ATTR_VLAN_ID] = NLA_POLICY_RANGE(NLA_U16, 1, VLAN_N_VID - 2),
-	[NL80211_ATTR_SAE_PWE] = NLA_POLICY_RANGE(NLA_U16, 0, 2),
+	[NL80211_ATTR_SAE_PWE] = NLA_POLICY_RANGE(NLA_U8, NL80211_SAE_PWE_HUNT_AND_PECK,
+						  NL80211_SAE_PWE_BOTH),
 	[NL80211_ATTR_EHT_CAPABILITY] = { .type = NLA_BINARY,
 					 .len = NL80211_EHT_MAX_CAPABILITY_LEN },
 	[NL80211_ATTR_EHT_PUNCTURE_BITMAP] = { .type = NLA_U32 },
@@ -9332,6 +9333,12 @@ static int nl80211_crypto_settings(struct cfg80211_registered_device *rdev,
 		settings->sae_pwe = nla_get_u16(
 					info->attrs[NL80211_ATTR_SAE_PWE]);
 	}
+
+	if (info->attrs[NL80211_ATTR_SAE_PWE])
+		settings->sae_pwe =
+			nla_get_u8(info->attrs[NL80211_ATTR_SAE_PWE]);
+	else
+		settings->sae_pwe = NL80211_SAE_PWE_UNSPECIFIED;
 
 	return 0;
 }
