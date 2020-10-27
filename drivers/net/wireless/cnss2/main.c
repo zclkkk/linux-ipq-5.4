@@ -1498,7 +1498,7 @@ void  *cnss_subsystem_get(struct device *dev, int device_id)
 	struct pci_dev *pcidev;
 
 	if (cnss_get_bus_type(device_id) == CNSS_BUS_AHB) {
-		plat_priv = cnss_get_plat_priv_by_device_id(device_id);
+		plat_priv = cnss_bus_dev_to_plat_priv(dev);
 	} else {
 		pcidev = container_of(dev, struct pci_dev, dev);
 		plat_priv = cnss_get_plat_priv_dev_by_pci_dev(pcidev);

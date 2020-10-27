@@ -772,7 +772,7 @@
 	 */
 	wlan-hw-mode =  <7>;
 	qcom,board_id = <0x216>;
-	status = "disabled";
+	status = "ok";
 };
 
 &wifi2 {

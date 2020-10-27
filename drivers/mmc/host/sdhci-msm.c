@@ -2044,6 +2044,11 @@ static int sdhci_msm_probe(struct platform_device *pdev)
 			SDHCI_BASE_SDCLK_FREQ | SDHCI_TIMEOUT_CLK_FREQ;
 	host->caps1 = SDHCI_SUPPORT_SDR104 | SDHCI_SUPPORT_SDR50 |
 			SDHCI_SUPPORT_DDR50;
+
+	if (device_property_read_bool(&pdev->dev, "qcom,emulation") &&
+			device_property_read_bool(&pdev->dev, "cap-mmc-highspeed"))
+		host->caps1 &= ~SDHCI_SUPPORT_SDR104;
+
 	host->quirks  |= SDHCI_QUIRK_MISSING_CAPS;
 
 	host_version = readw_relaxed((host->ioaddr + SDHCI_HOST_VERSION));
