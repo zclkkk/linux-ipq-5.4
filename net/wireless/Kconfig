@@ -217,6 +217,7 @@ config LIB80211_CRYPT_WEP
 
 config LIB80211_CRYPT_CCMP
 	tristate "LIB80211_CRYPT_CCMP"
+	select CRYPTO
 	select CRYPTO_AES
 	select CRYPTO_CCM
 
