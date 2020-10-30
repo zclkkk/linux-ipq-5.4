@@ -1093,12 +1093,6 @@ mt7530_port_vlan_add(struct dsa_switch *ds, int port,
 	struct mt7530_priv *priv = ds->priv;
 	u16 vid;
 
-	/* The port is kept as VLAN-unaware if bridge with vlan_filtering not
-	 * being set.
-	 */
-	if (!dsa_port_is_vlan_filtering(&ds->ports[port]))
-		return;
-
 	mutex_lock(&priv->reg_mutex);
 
 	for (vid = vlan->vid_begin; vid <= vlan->vid_end; ++vid) {
@@ -1123,12 +1117,6 @@ mt7530_port_vlan_del(struct dsa_switch *ds, int port,
 	struct mt7530_hw_vlan_entry target_entry;
 	struct mt7530_priv *priv = ds->priv;
 	u16 vid, pvid;
-
-	/* The port is kept as VLAN-unaware if bridge with vlan_filtering not
-	 * being set.
-	 */
-	if (!dsa_port_is_vlan_filtering(&ds->ports[port]))
-		return 0;
 
 	mutex_lock(&priv->reg_mutex);
 
@@ -1242,6 +1230,7 @@ mt7530_setup(struct dsa_switch *ds)
 	 * as two netdev instances.
 	 */
 	dn = ds->ports[MT7530_CPU_PORT].master->dev.of_node->parent;
+	ds->configure_vlan_while_not_filtering = true;
 
 	if (priv->id == ID_MT7530) {
 		regulator_set_voltage(priv->core_pwr, 1000000, 1000000);
