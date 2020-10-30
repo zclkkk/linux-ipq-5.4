@@ -760,6 +760,7 @@ static const struct of_device_id dwc3_qcom_of_match[] = {
 	{ .compatible = "qcom,msm8996-dwc3" },
 	{ .compatible = "qcom,msm8998-dwc3" },
 	{ .compatible = "qcom,sdm845-dwc3" },
+	{ .compatible = "qcom,ipq6018-dwc3" },
 	{ .compatible = "qcom,ipq807x-dwc3" },
 	{ }
 };
