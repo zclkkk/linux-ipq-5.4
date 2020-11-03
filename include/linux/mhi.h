@@ -766,4 +766,11 @@ int mhi_queue_skb(struct mhi_device *mhi_dev, enum dma_data_direction dir,
 void mhi_debug_reg_dump(struct mhi_controller *mhi_cntrl);
 
 enum mhi_ee_type mhi_get_exec_env(struct mhi_controller *mhi_cntrl);
+/**
+ * mhi_queue_is_full - Determine whether queueing new elements is possible
+ * @mhi_dev: Device associated with the channels
+ * @dir: DMA direction for the channel
+ */
+bool mhi_queue_is_full(struct mhi_device *mhi_dev, enum dma_data_direction dir);
+
 #endif /* _MHI_H_ */
