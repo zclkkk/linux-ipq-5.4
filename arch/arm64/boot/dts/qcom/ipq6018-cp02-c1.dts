@@ -27,6 +27,7 @@
 
 	aliases {
 		serial0 = &blsp1_uart3;
+		sdhc1 = &sdhc_1;
 	};
 
 	chosen {
@@ -90,5 +91,21 @@
 };
 
 &pcie0 {
+	status = "ok";
+};
+
+&sdhc_1 {
+	status = "ok";
+};
+
+&qusb_phy_0 {
+	status = "ok";
+};
+
+&ssphy_0 {
+	status = "ok";
+};
+
+&usb3 {
 	status = "ok";
 };
