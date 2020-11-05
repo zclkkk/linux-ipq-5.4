@@ -98,6 +98,10 @@
 
 		};
 
+		sd-pwrseq {
+			status = "ok";
+		};
+
 		sdhci@7864900 {
 			pinctrl-0 = <&sd_pins>;
 			pinctrl-names = "default";
