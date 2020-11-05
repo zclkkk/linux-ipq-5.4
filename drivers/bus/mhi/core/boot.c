@@ -6,6 +6,7 @@
 
 #include <linux/delay.h>
 #include <linux/device.h>
+#include <linux/pci.h>
 #include <linux/dma-direction.h>
 #include <linux/dma-mapping.h>
 #include <linux/firmware.h>
@@ -21,6 +22,85 @@
 
 #define QRTR_INSTANCE_MASK	0x0000FFFF
 #define QRTR_INSTANCE_SHIFT	0
+
+#define MAX_RAMDUMP_TABLE_SIZE 6
+#define COREDUMP_DESC          "Q6-COREDUMP"
+
+typedef struct
+{
+	uint64_t base_address;
+	uint64_t actual_phys_address;
+	uint64_t size;
+	char description[20];
+	char file_name[20];
+}ramdump_entry;
+
+typedef struct
+{
+	uint32_t version;
+	uint32_t header_size;
+	ramdump_entry ramdump_table[MAX_RAMDUMP_TABLE_SIZE];
+}ramdump_header_t;
+
+void get_crash_reason(struct mhi_controller *mhi_cntrl)
+{
+	int i;
+	uint64_t coredump_offset = 0;
+	struct image_info *rddm_image;
+	ramdump_header_t *ramdump_header;
+	ramdump_entry *ramdump_table;
+	struct mhi_buf *mhi_buf;
+	char *msg = ERR_PTR(-EPROBE_DEFER);
+	struct device *dev;
+	struct pci_dev *pdev;
+
+	rddm_image = mhi_cntrl->rddm_image;
+	mhi_buf = rddm_image->mhi_buf;
+
+	dev = &mhi_cntrl->mhi_dev->dev;
+	pdev = to_pci_dev(mhi_cntrl->cntrl_dev);
+	dev_err(dev, "CRASHED - [DID:DOMAIN:BUS:SLOT] - %x:%04u:%02u:%02u\n",
+		pdev->device, pdev->bus->domain_nr, pdev->bus->number,
+		PCI_SLOT(pdev->devfn));
+
+	/* Get RDDM header size */
+	ramdump_header = (ramdump_header_t *)mhi_buf[0].buf;
+	ramdump_table = ramdump_header->ramdump_table;
+	coredump_offset += ramdump_header->header_size;
+
+	/* Traverse ramdump table to get coredump offset */
+	i = 0;
+	while(i < MAX_RAMDUMP_TABLE_SIZE) {
+		if (!strncmp(ramdump_table->description, COREDUMP_DESC,
+			     sizeof(COREDUMP_DESC))) {
+			break;
+		}
+		coredump_offset += ramdump_table->size;
+		ramdump_table++;
+		i++;
+	}
+
+	if( i == MAX_RAMDUMP_TABLE_SIZE) {
+		dev_err(dev, "Cannot find '%s' entry in ramdump\n",
+			COREDUMP_DESC);
+		return;
+	}
+
+	/* Locate coredump data from the ramdump segments */
+	for (i = 0; i < rddm_image->entries; i++)
+	{
+		if (coredump_offset < mhi_buf[i].len) {
+			msg = mhi_buf[i].buf + coredump_offset;
+			break;
+		} else {
+			coredump_offset -= mhi_buf[i].len;
+		}
+	}
+
+	if (!IS_ERR(msg) && msg && msg[0])
+		dev_err(dev, "Fatal error received from wcss software!\n%s\n",
+			msg);
+}
 
 /* Setup RDDM vector table for RDDM transfer and program RXVEC */
 void mhi_rddm_prepare(struct mhi_controller *mhi_cntrl,
@@ -134,8 +214,10 @@ static int __mhi_download_rddm_in_panic(struct mhi_controller *mhi_cntrl)
 		if (ret)
 			return -EIO;
 
-		if (rx_status == BHIE_RXVECSTATUS_STATUS_XFER_COMPL)
+		if (rx_status == BHIE_RXVECSTATUS_STATUS_XFER_COMPL) {
+			get_crash_reason(mhi_cntrl);
 			return 0;
+		}
 
 		udelay(delayus);
 	}
@@ -171,7 +253,12 @@ int mhi_download_rddm_img(struct mhi_controller *mhi_cntrl, bool in_panic)
 					      &rx_status) || rx_status,
 			   msecs_to_jiffies(mhi_cntrl->timeout_ms));
 
-	return (rx_status == BHIE_RXVECSTATUS_STATUS_XFER_COMPL) ? 0 : -EIO;
+	if (rx_status == BHIE_RXVECSTATUS_STATUS_XFER_COMPL) {
+		get_crash_reason(mhi_cntrl);
+		return 0;
+	}
+
+	return -EIO;
 }
 EXPORT_SYMBOL_GPL(mhi_download_rddm_img);
 
