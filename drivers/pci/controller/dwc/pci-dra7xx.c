@@ -475,6 +475,9 @@ static int __init dra7xx_add_pcie_port(struct dra7xx_pcie *dra7xx,
 		return ret;
 	}
 
+	/* MSI IRQ is muxed */
+	pp->msi_irq = -ENODEV;
+
 	ret = dra7xx_pcie_init_irq_domain(pp);
 	if (ret < 0)
 		return ret;

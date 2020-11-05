@@ -866,14 +866,6 @@ static int imx6_add_pcie_port(struct imx6_pcie *imx6_pcie,
 	struct device *dev = &pdev->dev;
 	int ret;
 
-	if (IS_ENABLED(CONFIG_PCI_MSI)) {
-		pp->msi_irq = platform_get_irq_byname(pdev, "msi");
-		if (pp->msi_irq <= 0) {
-			dev_err(dev, "failed to get MSI irq\n");
-			return -ENODEV;
-		}
-	}
-
 	pp->ops = &imx6_pcie_host_ops;
 
 	ret = dw_pcie_host_init(pp);
