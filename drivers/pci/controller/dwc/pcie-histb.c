@@ -196,9 +196,6 @@ static int histb_pcie_host_init(struct pcie_port *pp)
 {
 	histb_pcie_establish_link(pp);
 
-	if (IS_ENABLED(CONFIG_PCI_MSI))
-		dw_pcie_msi_init(pp);
-
 	return 0;
 }
 

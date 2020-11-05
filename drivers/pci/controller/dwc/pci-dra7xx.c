@@ -209,7 +209,6 @@ static int dra7xx_pcie_host_init(struct pcie_port *pp)
 
 	dra7xx_pcie_establish_link(pci);
 	dw_pcie_wait_for_link(pci);
-	dw_pcie_msi_init(pp);
 	dra7xx_pcie_enable_interrupts(dra7xx);
 
 	return 0;

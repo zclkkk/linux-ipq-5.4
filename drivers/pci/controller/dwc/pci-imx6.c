@@ -848,9 +848,6 @@ static int imx6_pcie_host_init(struct pcie_port *pp)
 	dw_pcie_setup_rc(pp);
 	imx6_pcie_establish_link(imx6_pcie);
 
-	if (IS_ENABLED(CONFIG_PCI_MSI))
-		dw_pcie_msi_init(pp);
-
 	return 0;
 }
 

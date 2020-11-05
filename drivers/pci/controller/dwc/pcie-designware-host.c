@@ -277,7 +277,7 @@ int dw_pcie_allocate_domains(struct pcie_port *pp)
 	return 0;
 }
 
-void dw_pcie_free_msi(struct pcie_port *pp)
+static void dw_pcie_free_msi(struct pcie_port *pp)
 {
 	if (pp->msi_irq) {
 		irq_set_chained_handler(pp->msi_irq, NULL);
@@ -291,11 +291,14 @@ void dw_pcie_free_msi(struct pcie_port *pp)
 		__free_page(pp->msi_page);
 }
 
-void dw_pcie_msi_init(struct pcie_port *pp)
+static void dw_pcie_msi_init(struct pcie_port *pp)
 {
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
 	struct device *dev = pci->dev;
 	u64 msi_target;
+
+	if (!pci_msi_enabled() || !pp->has_msi_ctrl)
+		return;
 
 	pp->msi_page = alloc_page(GFP_KERNEL);
 	pp->msi_data = dma_map_page(dev, pp->msi_page, 0, PAGE_SIZE,
@@ -304,7 +307,6 @@ void dw_pcie_msi_init(struct pcie_port *pp)
 		dev_err(dev, "Failed to map MSI data\n");
 		__free_page(pp->msi_page);
 		pp->msi_page = NULL;
-		return;
 	}
 	msi_target = (u64)pp->msi_data;
 
@@ -314,7 +316,6 @@ void dw_pcie_msi_init(struct pcie_port *pp)
 	dw_pcie_wr_own_conf(pp, PCIE_MSI_ADDR_HI, 4,
 			    upper_32_bits(msi_target));
 }
-EXPORT_SYMBOL_GPL(dw_pcie_msi_init);
 
 int dw_pcie_host_init(struct pcie_port *pp)
 {
@@ -479,6 +480,8 @@ int dw_pcie_host_init(struct pcie_port *pp)
 		if (ret)
 			goto err_free_msi;
 	}
+
+	dw_pcie_msi_init(pp);
 
 	ret = dw_pcie_rd_own_conf(pp, PCI_HEADER_TYPE, 1, &hdr_type);
 	if (ret != PCIBIOS_SUCCESSFUL) {
