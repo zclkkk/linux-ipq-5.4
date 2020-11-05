@@ -893,4 +893,8 @@
 	qti,scm_restart_reason {
 		compatible = "qti,scm_restart_reason";
 	};
+
+	ctx_save: ctx-save {
+		compatible = "qti,ctxt-save-ipq6018";
+	};
 };
