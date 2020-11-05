@@ -889,4 +889,8 @@
 		qti,hvc-enabled;
 		qti,get-smmu-state;
 	};
+
+	qti,scm_restart_reason {
+		compatible = "qti,scm_restart_reason";
+	};
 };
