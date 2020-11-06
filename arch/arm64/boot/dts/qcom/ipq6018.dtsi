@@ -897,6 +897,11 @@
 	ctx_save: ctx-save {
 		compatible = "qti,ctxt-save-ipq6018";
 	};
+
+	qti,sps {
+		compatible = "qti,msm-sps-4k";
+		qti,pipe-attr-ee;
+	};
 };
 
 #include "ipq6018-coresight.dtsi"
