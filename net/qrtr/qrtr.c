@@ -804,6 +804,13 @@ int qrtr_endpoint_post(struct qrtr_endpoint *ep, const void *data, size_t len)
 	if (cb->type != QRTR_TYPE_DATA)
 		qrtr_fwd_ctrl_pkt(skb);
 
+	if (cb->type == QRTR_TYPE_NEW_SERVER) {
+		/* Remote node endpoint can bridge other distant nodes */
+		const struct qrtr_ctrl_pkt *pkt = data + hdrlen;
+
+		qrtr_node_assign(node, le32_to_cpu(pkt->server.node));
+	}
+
 	if (cb->type == QRTR_TYPE_RESUME_TX) {
 		if (cb->dst_node != qrtr_local_nid) {
 			qrtr_fwd_pkt(skb, cb);
