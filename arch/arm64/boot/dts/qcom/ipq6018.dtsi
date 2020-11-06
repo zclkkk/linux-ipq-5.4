@@ -898,3 +898,5 @@
 		compatible = "qti,ctxt-save-ipq6018";
 	};
 };
+
+#include "ipq6018-coresight.dtsi"

@@ -17,12 +17,12 @@
 &soc {
 	tmc_etr: tmc@6048000 {
 		compatible = "arm,primecell";
-		arm,primecell-periphid = <0x0003b961>;
+		arm,primecell-periphid = <0x000bb961>;
 
 		reg = <0x6048000 0x1000>,
 			<0x6064000  0x15000>;
 		reg-names = "tmc-base", "bam-base";
-		interrupts = <GIC_SPI 166 IRQ_TYPE_NONE>;
+		interrupts = <GIC_SPI 166 IRQ_TYPE_EDGE_RISING>;
 		interrupt-names = "byte-cntr-irq";
 
 		memory_region = <&q6_etr_region>;
@@ -46,7 +46,7 @@
 
 	replicator: replicator@6046000 {
 		compatible = "arm,primecell";
-		arm,primecell-periphid = <0x0003b909>;
+		arm,primecell-periphid = <0x000bb909>;
 
 		reg = <0x6046000 0x1000>;
 		reg-names = "replicator-base";
@@ -81,7 +81,7 @@
 
 	tmc_etf: tmc@6047000 {
 		compatible = "arm,primecell";
-		arm,primecell-periphid = <0x0003b961>;
+		arm,primecell-periphid = <0x000bb961>;
 
 		reg = <0x6047000 0x1000>;
 		reg-names = "tmc-base";
@@ -118,7 +118,7 @@
 
 	funnel_in0: funnel@6041000 {
 		compatible = "arm,primecell";
-		arm,primecell-periphid = <0x0003b908>;
+		arm,primecell-periphid = <0x000bb908>;
 
 		reg = <0x6041000 0x1000>;
 		reg-names = "funnel-base";
@@ -193,7 +193,7 @@
 
 	funnel_center: funnel@6100000 {
 		compatible = "arm,primecell";
-		arm,primecell-periphid = <0x0003b908>;
+		arm,primecell-periphid = <0x000bb908>;
 
 		reg = <0x6100000 0x1000>;
 		reg-names = "funnel-base";
@@ -228,7 +228,7 @@
 
 	funnel_mm: funnel@6130000 {
 		compatible = "arm,primecell";
-		arm,primecell-periphid = <0x0003b908>;
+		arm,primecell-periphid = <0x000bb908>;
 
 		reg = <0x6130000 0x1000>;
 		reg-names = "funnel-base";
@@ -255,7 +255,7 @@
 
 	funnel_right: funnel@6120000 {
 		compatible = "arm,primecell";
-		arm,primecell-periphid = <0x0003b908>;
+		arm,primecell-periphid = <0x000bb908>;
 
 		reg = <0x6120000 0x1000>;
 		reg-names = "funnel-base";
@@ -291,7 +291,7 @@
 
 	funnel_apss0: funnel@61a1000 {
 		compatible = "arm,primecell";
-		arm,primecell-periphid = <0x0003b908>;
+		arm,primecell-periphid = <0x000bb908>;
 
 		reg = <0x61a1000 0x1000>;
 		reg-names = "funnel-base";
@@ -350,7 +350,7 @@
 
 	etm0: etm@619c000 {
 		compatible = "arm,primecell";
-		arm,primecell-periphid = <0x0003b95d>;
+		arm,primecell-periphid = <0x000bb95d>;
 
 		reg = <0x619c000 0x1000>;
 
@@ -370,7 +370,7 @@
 
 	etm1: etm@619d000 {
 		compatible = "arm,primecell";
-		arm,primecell-periphid = <0x0003b95d>;
+		arm,primecell-periphid = <0x000bb95d>;
 
 		reg = <0x619d000 0x1000>;
 
@@ -390,7 +390,7 @@
 
 	etm2: etm@619e000 {
 		compatible = "arm,primecell";
-		arm,primecell-periphid = <0x0003b95d>;
+		arm,primecell-periphid = <0x000bb95d>;
 
 		reg = <0x619e000 0x1000>;
 
@@ -410,7 +410,7 @@
 
 	etm3: etm@619f000 {
 		compatible = "arm,primecell";
-		arm,primecell-periphid = <0x0003b95d>;
+		arm,primecell-periphid = <0x000bb95d>;
 
 		reg = <0x619f000 0x1000>;
 
@@ -443,11 +443,11 @@
 
 	stm: stm@6002000 {
 		compatible = "arm,primecell";
-		arm,primecell-periphid = <0x0003b962>;
+		arm,primecell-periphid = <0x000bb962>;
 
 		reg = <0x6002000 0x1000>,
 			<0x9280000 0x180000>;
-		reg-names = "stm-base", "stm-data-base";
+		reg-names = "stm-base", "stm-stimulus-base";
 
 		coresight-name = "coresight-stm";
 
@@ -463,7 +463,8 @@
 	};
 
 	cti0: cti@6010000 {
-		compatible = "arm,coresight-cti";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b966>;
 		reg = <0x6010000 0x1000>;
 		reg-names = "cti-base";
 
@@ -471,11 +472,12 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 	};
 
 	cti1: cti@6011000 {
-		compatible = "arm,coresight-cti";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b966>;
 		reg = <0x6011000 0x1000>;
 		reg-names = "cti-base";
 
@@ -483,11 +485,12 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 	};
 
 	cti2: cti@6012000 {
-		compatible = "arm,coresight-cti";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b966>;
 		reg = <0x6012000 0x1000>;
 		reg-names = "cti-base";
 
@@ -495,11 +498,12 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 	};
 
 	cti3: cti@6013000 {
-		compatible = "arm,coresight-cti";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b966>;
 		reg = <0x6013000 0x1000>;
 		reg-names = "cti-base";
 
@@ -507,11 +511,12 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 	};
 
 	cti4: cti@6014000 {
-		compatible = "arm,coresight-cti";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b966>;
 		reg = <0x6014000 0x1000>;
 		reg-names = "cti-base";
 
@@ -519,11 +524,12 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 	};
 
 	cti5: cti@6015000 {
-		compatible = "arm,coresight-cti";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b966>;
 		reg = <0x6015000 0x1000>;
 		reg-names = "cti-base";
 
@@ -531,11 +537,12 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 	};
 
 	cti6: cti@6016000 {
-		compatible = "arm,coresight-cti";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b966>;
 		reg = <0x6016000 0x1000>;
 		reg-names = "cti-base";
 
@@ -543,11 +550,12 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 	};
 
 	cti7: cti@6017000 {
-		compatible = "arm,coresight-cti";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b966>;
 		reg = <0x6017000 0x1000>;
 		reg-names = "cti-base";
 
@@ -555,11 +563,12 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 	};
 
 	cti8: cti@6018000 {
-		compatible = "arm,coresight-cti";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b966>;
 		reg = <0x6018000 0x1000>;
 		reg-names = "cti-base";
 
@@ -567,11 +576,12 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 	};
 
 	cti9: cti@6019000 {
-		compatible = "arm,coresight-cti";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b966>;
 		reg = <0x6019000 0x1000>;
 		reg-names = "cti-base";
 
@@ -579,11 +589,12 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 	};
 
 	cti10: cti@601a000 {
-		compatible = "arm,coresight-cti";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b966>;
 		reg = <0x601a000 0x1000>;
 		reg-names = "cti-base";
 
@@ -591,11 +602,12 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 	};
 
 	cti11: cti@601b000 {
-		compatible = "arm,coresight-cti";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b966>;
 		reg = <0x601b000 0x1000>;
 		reg-names = "cti-base";
 
@@ -603,11 +615,12 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 	};
 
 	cti12: cti@601c000 {
-		compatible = "arm,coresight-cti";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b966>;
 		reg = <0x601c000 0x1000>;
 		reg-names = "cti-base";
 
@@ -615,11 +628,12 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 	};
 
 	cti13: cti@601d000 {
-		compatible = "arm,coresight-cti";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b966>;
 		reg = <0x601d000 0x1000>;
 		reg-names = "cti-base";
 
@@ -627,11 +641,12 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 	};
 
 	cti14: cti@601e000 {
-		compatible = "arm,coresight-cti";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b966>;
 		reg = <0x601e000 0x1000>;
 		reg-names = "cti-base";
 
@@ -639,11 +654,12 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 	};
 
 	cti15: cti@601f000 {
-		compatible = "arm,coresight-cti";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b966>;
 		reg = <0x601f000 0x1000>;
 		reg-names = "cti-base";
 
@@ -651,11 +667,12 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 	};
 
 	cti_cpu0: cti@6198000{
-		compatible = "arm,coresight-cti";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b966>;
 		reg = <0x6198000 0x1000>;
 		reg-names = "cti-base";
 
@@ -664,11 +681,12 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 	};
 
 	cti_cpu1: cti@6199000{
-		compatible = "arm,coresight-cti";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b966>;
 		reg = <0x6199000 0x1000>;
 		reg-names = "cti-base";
 
@@ -677,11 +695,12 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 	};
 
 	cti_cpu2: cti@619a000{
-		compatible = "arm,coresight-cti";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b966>;
 		reg = <0x619a000 0x1000>;
 		reg-names = "cti-base";
 
@@ -690,11 +709,12 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 	};
 
 	cti_cpu3: cti@619b000{
-		compatible = "arm,coresight-cti";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b966>;
 		reg = <0x619b000 0x1000>;
 		reg-names = "cti-base";
 
@@ -703,11 +723,12 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 	};
 
 	cti_rpm_cpu0: cti@610c000 {
-		compatible = "arm,coresight-cti";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b966>;
 		reg = <0x610c000 0x1000>;
 		reg-names = "cti-base";
 
@@ -715,7 +736,7 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 	};
 
 	csr: csr@6001000 {
@@ -754,7 +775,8 @@
 	};
 
 	tpda: tpda@6004000 {
-		compatible = "qcom,coresight-tpda";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b969>;
 		reg = <0x6004000 0x1000>;
 		reg-names = "tpda-base";
 
@@ -765,7 +787,7 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 
 		ports {
 			#address-cells = <1>;
@@ -788,7 +810,8 @@
 	};
 
 	tpdm_dcc: tpdm@6110000 {
-		compatible = "qcom,coresight-tpdm";
+		compatible = "arm,primecell";
+		arm,primecell-periphid = <0x0003b968>;
 		reg = <0x6110000 0x1000>;
 		reg-names = "tpdm-base";
 
@@ -796,7 +819,7 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 
 		port{
 			tpdm_dcc_out_tpda:endpoint {
@@ -827,6 +850,6 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clock-names = "apb_pclk", "core_a_clk";
 	};
 };
