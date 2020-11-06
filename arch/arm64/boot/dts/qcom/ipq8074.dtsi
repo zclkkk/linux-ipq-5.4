@@ -1819,6 +1819,11 @@
 	qti,scm_restart_reason {
 		compatible = "qti,scm_restart_reason";
 	};
+
+	qti,sps {
+		compatible = "qti,msm-sps-4k";
+		qti,pipe-attr-ee;
+	};
 };
 
 #include "ipq8074-spmi-regulator.dtsi"
