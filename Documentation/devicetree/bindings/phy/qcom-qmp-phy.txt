@@ -6,6 +6,7 @@ controllers on Qualcomm chipsets, such as, PCIe, UFS, and USB.
 
 Required properties:
  - compatible: compatible list, contains:
+	       "qcom,ipq6018-qmp-usb3-phy" for USB3 QMP phy on IPQ6018
 	       "qcom,ipq8074-qmp-pcie-phy" for PCIe phy on IPQ8074
 	       "qcom,ipq8074-qmp-pcie-gen3-phy" for PCIe gen3 phy on IPQ8074
 	       "qcom,msm8996-qmp-pcie-phy" for 14nm PCIe phy on msm8996,
