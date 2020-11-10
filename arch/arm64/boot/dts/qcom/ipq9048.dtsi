@@ -6,6 +6,8 @@
  */
 
 #include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/clock/qcom,gcc-ipq9048.h>
+#include <dt-bindings/reset/qcom,gcc-ipq9048.h>
 
 / {
 	#address-cells = <2>;
@@ -22,6 +24,18 @@
 		xo: xo {
 			compatible = "fixed-clock";
 			clock-frequency = <24000000>;
+			#clock-cells = <0>;
+		};
+
+		bias_pll_ubi_nc_clk {
+			compatible = "fixed-clock";
+			clock-frequency = <353000000>;
+			#clock-cells = <0>;
+		};
+
+		usb3phy_0_cc_pipe_clk {
+			compatible = "fixed-clock";
+			clock-frequency = <125000000>;
 			#clock-cells = <0>;
 		};
 	};
@@ -101,15 +115,16 @@
 			clock-names = "xo", "sleep_clk";
 			#clock-cells = <0x1>;
 			#reset-cells = <0x1>;
+			gcc-use-dummy;
 		};
 
 		blsp1_uart3: serial@78b1000 {
 			compatible = "qcom,msm-uartdm-v1.4", "qcom,msm-uartdm";
 			reg = <0x078b1000 0x200>;
 			interrupts = <GIC_SPI 306 IRQ_TYPE_LEVEL_HIGH>;
-			/* clocks = <&gcc GCC_BLSP1_UART3_APPS_CLK>,
+			clocks = <&gcc GCC_BLSP1_UART3_APPS_CLK>,
 					<&gcc GCC_BLSP1_AHB_CLK>;
-			clock-names = "core", "iface"; */
+			clock-names = "core", "iface";
 			status = "disabled";
 		};
 	};

@@ -152,6 +152,14 @@ config IPQ_APSS_6018
 	  Say Y if you want to support CPU frequency scaling on
 	  ipq based devices.
 
+config IPQ_GCC_9048
+	tristate "IPQ9048 Global Clock Controller"
+	help
+	  Support for global clock controller on ipq9048 devices.
+	  Say Y if you want to use peripheral devices such as UART, SPI,
+	  i2c, USB, SD/eMMC, etc. Select this for the root clock
+	  of ipq9048.
+
 config IPQ_GCC_5018
 	tristate "IPQ5018 Global Clock Controller"
 	help

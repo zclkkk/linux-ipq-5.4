@@ -10,6 +10,7 @@ Required properties :
 			"qcom,gcc-ipq4019"
 			"qcom,gcc-ipq6018"
 			"qcom,gcc-ipq8074"
+			"qcom,gcc-ipq9048"
 			"qcom,gcc-msm8660"
 			"qcom,gcc-msm8916"
 			"qcom,gcc-msm8960"
