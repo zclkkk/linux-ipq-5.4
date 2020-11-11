@@ -2466,7 +2466,7 @@ static int m3_dump_release(struct inode *inode, struct file *file)
 		spin_lock(&m3_dump_class_lock);
 		class_destroy(m3_dump_class);
 		m3_dump_class = NULL;
-		unregister_chrdev(dump_major, "dump");
+		unregister_chrdev(dump_major, "dump_q6v5");
 		m3_dump_major = 0;
 		spin_unlock(&m3_dump_class_lock);
 	}
@@ -2497,7 +2497,7 @@ static int cnss_do_m3_dump_upload(struct cnss_plat_data *plat_priv,
 
 	spin_lock(&m3_dump_class_lock);
 	if (!m3_dump_class) {
-		m3_dump_major = register_chrdev(UNNAMED_MAJOR, "dump",
+		m3_dump_major = register_chrdev(UNNAMED_MAJOR, "dump_q6v5",
 						&m3_dump_fops);
 		if (m3_dump_major < 0) {
 			cnss_pr_err("%s: Unable to allocate a major number err = %d",
@@ -2506,12 +2506,12 @@ static int cnss_do_m3_dump_upload(struct cnss_plat_data *plat_priv,
 			return m3_dump_major;
 		}
 
-		m3_dump_class = class_create(THIS_MODULE, "dump");
+		m3_dump_class = class_create(THIS_MODULE, "dump_q6v5");
 		if (IS_ERR(m3_dump_class)) {
 			ret = PTR_ERR(m3_dump_class);
 			cnss_pr_err("%s: Unable to create class = %d",
 				    __func__, ret);
-			unregister_chrdev(m3_dump_major, "dump");
+			unregister_chrdev(m3_dump_major, "dump_q6v5");
 			m3_dump_major = 0;
 			spin_unlock(&m3_dump_class_lock);
 			return ret;
@@ -2573,7 +2573,7 @@ device_failed:
 		spin_lock(&m3_dump_class_lock);
 		class_destroy(m3_dump_class);
 		m3_dump_class = NULL;
-		unregister_chrdev(m3_dump_major, "dump");
+		unregister_chrdev(m3_dump_major, "dump_q6v5");
 		m3_dump_major = 0;
 		spin_unlock(&m3_dump_class_lock);
 	}
