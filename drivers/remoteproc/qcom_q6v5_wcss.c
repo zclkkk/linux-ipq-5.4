@@ -28,8 +28,11 @@
 
 #define WCSS_CRASH_REASON		421
 
+#define Q6_BOOT_TRIG_SVC_ID		0x5
+#define Q6_BOOT_TRIG_CMD_ID		0x2
+
 /* Q6SS Register Offsets */
-#define Q6SS_RESET_REG		0x014
+#define Q6SS_RESET_REG			0x014
 #define Q6SS_DBG_CFG                    0x018
 #define Q6SS_GFMUX_CTL_REG		0x020
 #define Q6SS_PWR_CTL_REG		0x030
@@ -37,6 +40,10 @@
 #define Q6SS_STRAP_ACC			0x110
 #define Q6SS_CGC_OVERRIDE		0x034
 #define Q6SS_BCR_REG			0x6000
+#define Q6SS_BOOT_CORE_START		0x400
+#define Q6SS_BOOT_STATUS		0x408
+#define Q6SS_AHB_UPPER			0x104
+#define Q6SS_AHB_LOWER			0x108
 
 /* AXI Halt Register Offsets */
 #define AXI_HALTREQ_REG			0x0
@@ -72,6 +79,7 @@
 #define HALT_CHECK_MAX_LOOPS		200
 #define Q6SS_XO_CBCR		GENMASK(5, 3)
 #define Q6SS_SLEEP_CBCR		GENMASK(5, 2)
+#define Q6SS_TIMEOUT_US         1000
 
 /* Q6SS config/status registers */
 #define TCSR_GLOBAL_CFG0	0x0
@@ -82,9 +90,11 @@
 #define Q6SS_RST_EVB		0x10
 
 #define BHS_EN_REST_ACK		BIT(0)
+#define WCSS_HM_RET		BIT(1)
 #define SSCAON_ENABLE		BIT(13)
 #define SSCAON_BUS_EN		BIT(15)
 #define SSCAON_BUS_MUX_MASK	GENMASK(18, 16)
+#define SSCAON_MASK             GENMASK(17, 15)
 
 #define MEM_BANKS		19
 #define TCSR_WCSS_CLK_MASK	0x1F
@@ -115,18 +125,24 @@ struct q6v5_wcss {
 
 	struct clk *xo;
 	struct clk *ahbfabric_cbcr_clk;
-	struct clk *gcc_abhs_cbcr;
-	struct clk *gcc_axim_cbcr;
+	struct clk *gcc_abhs_cbcr;			//"gcc_wcss_ahb_s_clk"
+	struct clk *gcc_axim_cbcr;			//"gcc_q6_axim_clk"
 	struct clk *lcc_csr_cbcr;
-	struct clk *ahbs_cbcr;
+	struct clk *ahbs_cbcr;				//"gcc_q6_ahb_s_clk"
 	struct clk *tcm_slave_cbcr;
-	struct clk *qdsp6ss_abhm_cbcr;
+	struct clk *qdsp6ss_abhm_cbcr;			//"gcc_q6_ahb_clk"
 	struct clk *qdsp6ss_sleep_cbcr;
-	struct clk *qdsp6ss_axim_cbcr;
+	struct clk *qdsp6ss_axim_cbcr;			//"gcc_wcss_axi_m_clk"
 	struct clk *qdsp6ss_xo_cbcr;
 	struct clk *qdsp6ss_core_gfmux;
 	struct clk *lcc_bcr_sleep;
 	struct clk *prng_clk;
+	struct clk *eachb_clk;				//"gcc_wcss_ecahb_clk"
+	struct clk *acmt_clk;				//"gcc_wcss_acmt_clk"
+	struct clk *gcc_axim2_clk;			//"gcc_q6_axim2_clk"
+	struct clk *axmis_clk;				//"gcc_q6_axis_clk"
+	struct clk *axi_s_clk;				//"gcc_wcss_axi_s_clk"
+
 	struct regulator *cx_supply;
 
 	struct qcom_rproc_glink glink_subdev;
@@ -137,6 +153,7 @@ struct q6v5_wcss {
 	struct reset_control *wcss_reset;
 	struct reset_control *wcss_q6_reset;
 	struct reset_control *wcss_q6_bcr_reset;
+	struct reset_control *ce_reset;
 
 	struct qcom_q6v5 q6v5;
 
@@ -150,6 +167,7 @@ struct q6v5_wcss {
 	bool requires_force_stop;
 	bool need_mem_protection;
 	const char *m3_firmware_name;
+	bool is_q6v6;
 };
 
 struct wcss_data {
@@ -163,6 +181,7 @@ struct wcss_data {
 	bool aon_reset_required;
 	bool wcss_q6_reset_required;
 	bool bcr_reset_required;
+	bool ce_reset_required;
 	const char *ssr_name;
 	const char *sysmon_name;
 	int ssctl_id;
@@ -170,6 +189,7 @@ struct wcss_data {
 	bool requires_force_stop;
 	bool need_mem_protection;
 	bool need_auto_boot;
+	bool is_q6v6;
 };
 
 #ifdef CONFIG_IPQ_SUBSYSTEM_RAMDUMP
@@ -232,6 +252,182 @@ static void crashdump_init(struct rproc *rproc, struct rproc_dump_segment *segme
 {
 }
 #endif
+
+static int ipq5018_clks_prepare_enable(struct q6v5_wcss *wcss)
+{
+	int ret;
+
+	ret = clk_prepare_enable(wcss->gcc_abhs_cbcr);
+	if (ret)
+		return ret;
+
+	ret = clk_prepare_enable(wcss->eachb_clk);
+	if (ret)
+		return ret;
+
+	ret = clk_prepare_enable(wcss->acmt_clk);
+	if (ret)
+		return ret;
+
+	ret = clk_prepare_enable(wcss->gcc_axim_cbcr);
+	if (ret)
+		return ret;
+
+	ret = clk_prepare_enable(wcss->qdsp6ss_axim_cbcr);
+	if (ret)
+		return ret;
+
+	ret = clk_prepare_enable(wcss->gcc_axim2_clk);
+	if (ret)
+		return ret;
+
+	ret = clk_prepare_enable(wcss->qdsp6ss_abhm_cbcr);
+	if (ret)
+		return ret;
+
+	ret = clk_prepare_enable(wcss->ahbs_cbcr);
+	if (ret)
+		return ret;
+
+	ret = clk_prepare_enable(wcss->axi_s_clk);
+	if (ret)
+		return ret;
+
+	return 0;
+}
+
+static void ipq5018_clks_prepare_disable(struct q6v5_wcss *wcss)
+{
+	clk_disable_unprepare(wcss->gcc_abhs_cbcr);
+	clk_disable_unprepare(wcss->eachb_clk);
+	clk_disable_unprepare(wcss->acmt_clk);
+	clk_disable_unprepare(wcss->gcc_axim_cbcr);
+	clk_disable_unprepare(wcss->qdsp6ss_axim_cbcr);
+	clk_disable_unprepare(wcss->gcc_axim2_clk);
+	clk_disable_unprepare(wcss->qdsp6ss_abhm_cbcr);
+	clk_disable_unprepare(wcss->ahbs_cbcr);
+	clk_disable_unprepare(wcss->axi_s_clk);
+}
+
+static void q6v6_wcss_reset(struct q6v5_wcss *wcss)
+{
+	u32 val;
+	int ret;
+	int temp = 0;
+	unsigned int cookie;
+
+	/*Assert Q6 BLK Reset*/
+	ret = reset_control_assert(wcss->wcss_q6_reset);
+	if (ret) {
+		dev_err(wcss->dev, "wcss_q6_reset failed\n");
+		return;
+	}
+
+	/* AON Reset */
+	ret = reset_control_deassert(wcss->wcss_aon_reset);
+	if (ret) {
+		dev_err(wcss->dev, "wcss_aon_reset failed\n");
+		return;
+	}
+
+	/*Enable Q6 AXIS CLOCK RESET*/
+	ret = clk_prepare_enable(wcss->axmis_clk);
+	if (ret) {
+		dev_err(wcss->dev, "wcss clk(s) enable failed");
+		return;
+	}
+
+	/*Disable Q6 AXIS CLOCK RESET*/
+	clk_disable_unprepare(wcss->axmis_clk);
+
+	/*De assert Q6 BLK reset*/
+	ret = reset_control_deassert(wcss->wcss_q6_reset);
+	if (ret) {
+		dev_err(wcss->dev, "wcss_q6_reset failed\n");
+		return;
+	}
+
+	/*Prepare Q6 clocks*/
+	ret = ipq5018_clks_prepare_enable(wcss);
+	if (ret) {
+		dev_err(wcss->dev, "wcss clk(s) enable failed");
+		return;
+	}
+
+	/*Secure access to WIFI phy register*/
+	regmap_update_bits(wcss->halt_map,
+			wcss->halt_nc + TCSR_GLOBAL_CFG1,
+			TCSR_WCSS_CLK_MASK,
+			0x18);
+
+	/*Disable Q6 AXI2 select*/
+	regmap_update_bits(wcss->halt_map,
+			wcss->halt_nc + TCSR_GLOBAL_CFG0, 0x40, 0xF0);
+
+	/*wcss axib ib status*/
+	regmap_update_bits(wcss->halt_map,
+			wcss->halt_nc + TCSR_GLOBAL_CFG0, 0x100, 0x100);
+
+
+	/*Q6 AHB upper & lower address*/
+	writel(0x00cdc000, wcss->reg_base + Q6SS_AHB_UPPER);
+	writel(0x00ca0000, wcss->reg_base + Q6SS_AHB_LOWER);
+
+	/*set CFG[18:15]=1*/
+	val = readl(wcss->rmb_base + SSCAON_CONFIG);
+	val &= ~SSCAON_MASK;
+	val |= SSCAON_BUS_EN;
+	writel(val, wcss->rmb_base + SSCAON_CONFIG);
+
+	val = readl(wcss->rmb_base + SSCAON_CONFIG);
+	val &= ~(1<<1);
+	writel(val, wcss->rmb_base + SSCAON_CONFIG);
+
+	/* Wait for SSCAON_STATUS */
+	val = readl(wcss->rmb_base + SSCAON_STATUS);
+	ret = readl_poll_timeout(wcss->rmb_base + SSCAON_STATUS,
+				 val, (val & 0xffff) == 0x10, 1000,
+				 Q6SS_TIMEOUT_US * 1000);
+	if (ret) {
+		dev_err(wcss->dev, " Boot Error, SSCAON=0x%08X\n", val);
+		return;
+	}
+
+	/*Deassert ce reset*/
+	ret = reset_control_deassert(wcss->ce_reset);
+	if (ret) {
+		dev_err(wcss->dev, "ce_reset failed\n");
+		return;
+	}
+
+	if (debug_wcss)
+		writel(0x20000001, wcss->reg_base + Q6SS_DBG_CFG);
+	else
+		writel(0x0, wcss->reg_base + Q6SS_DBG_CFG);
+
+	cookie = 1;
+	ret = qcom_scm_wcss_boot(Q6_BOOT_TRIG_SVC_ID,
+				 Q6_BOOT_TRIG_CMD_ID, &cookie);
+	if (ret) {
+		dev_err(wcss->dev, "q6-boot trigger scm failed\n");
+		return;
+	}
+
+	/* Boot core start */
+	writel(0x1, wcss->reg_base + Q6SS_BOOT_CORE_START);
+
+	while (temp < 20) {
+		val = readl(wcss->reg_base + Q6SS_BOOT_STATUS);
+		if (val & 0x01)
+			break;
+		mdelay(1);
+		temp += 1;
+	}
+
+	pr_err("%s: start %s\n", wcss->q6v5.rproc->name,
+					val == 1 ? "successful" : "failed");
+	wcss->q6v5.running = val == 1 ? true : false;
+}
 
 static int q6v5_wcss_reset(struct q6v5_wcss *wcss)
 {
@@ -373,7 +569,11 @@ static int q6v5_wcss_start(struct rproc *rproc)
 	/* Write bootaddr to EVB so that Q6WCSS will jump there after reset */
 	writel(rproc->bootaddr >> 4, wcss->reg_base + Q6SS_RST_EVB);
 
-	ret = q6v5_wcss_reset(wcss);
+	if (wcss->is_q6v6)
+		q6v6_wcss_reset(wcss);
+	else
+		ret = q6v5_wcss_reset(wcss);
+
 	if (ret)
 		goto wcss_q6_reset;
 
@@ -604,6 +804,37 @@ disable_xo_clk:
 	return ret;
 }
 
+static void q6v6_wcss_halt_axi_port(struct q6v5_wcss *wcss,
+				    struct regmap *halt_map,
+				    u32 offset)
+{
+	unsigned long timeout;
+	unsigned int val;
+	int ret;
+
+	/* Assert halt request */
+	regmap_write(halt_map, offset + AXI_HALTREQ_REG, 1);
+
+	/* Wait for halt */
+	timeout = jiffies + msecs_to_jiffies(HALT_ACK_TIMEOUT_MS);
+	for (;;) {
+		ret = regmap_read(halt_map, offset + AXI_HALTACK_REG, &val);
+		if (ret || val || time_after(jiffies, timeout))
+			break;
+
+		msleep(1);
+	}
+
+	if (offset == wcss->halt_q6) {
+		ret = regmap_read(halt_map, offset + AXI_IDLE_REG, &val);
+		if (ret || !val)
+			dev_err(wcss->dev, "port failed halt\n");
+	}
+
+	/* Clear halt request (port will remain halted until reset) */
+	regmap_write(halt_map, offset + AXI_HALTREQ_REG, 0);
+}
+
 static void q6v5_wcss_halt_axi_port(struct q6v5_wcss *wcss,
 				    struct regmap *halt_map,
 				    u32 offset)
@@ -707,18 +938,29 @@ static int q6v5_wcss_powerdown(struct q6v5_wcss *wcss)
 	int ret;
 	u32 val;
 
-	/* 1 - Assert WCSS/Q6 HALTREQ */
-	q6v5_wcss_halt_axi_port(wcss, wcss->halt_map, wcss->halt_wcss);
+	/* 
+	1 - Assert WCSS/Q6 HALTREQ */
+	if (wcss->is_q6v6)
+		q6v6_wcss_halt_axi_port(wcss, wcss->halt_map, wcss->halt_wcss);
+	else
+		q6v5_wcss_halt_axi_port(wcss, wcss->halt_map, wcss->halt_wcss);
 
-	/* 2 - Enable WCSSAON_CONFIG */
-	val = readl(wcss->rmb_base + SSCAON_CONFIG);
-	val |= SSCAON_ENABLE;
-	writel(val, wcss->rmb_base + SSCAON_CONFIG);
+	if (wcss->is_q6v6) {
+		val = readl(wcss->rmb_base + SSCAON_CONFIG);
+		val &= ~SSCAON_MASK;
+		val |= SSCAON_BUS_EN;
+		writel(val, wcss->rmb_base + SSCAON_CONFIG);
+	} else {
+		/* 2 - Enable WCSSAON_CONFIG */
+		val = readl(wcss->rmb_base + SSCAON_CONFIG);
+		val |= SSCAON_ENABLE;
+		writel(val, wcss->rmb_base + SSCAON_CONFIG);
 
-	/* 3 - Set SSCAON_CONFIG */
-	val |= SSCAON_BUS_EN;
-	val &= ~SSCAON_BUS_MUX_MASK;
-	writel(val, wcss->rmb_base + SSCAON_CONFIG);
+		/* 3 - Set SSCAON_CONFIG */
+		val |= SSCAON_BUS_EN;
+		val &= ~SSCAON_BUS_MUX_MASK;
+		writel(val, wcss->rmb_base + SSCAON_CONFIG);
+	}
 
 	/* 4 - SSCAON_CONFIG 1 */
 	val |= BIT(1);
@@ -734,18 +976,47 @@ static int q6v5_wcss_powerdown(struct q6v5_wcss *wcss)
 		return ret;
 	}
 
+	mdelay(2);
+
 	/* 6 - De-assert WCSS_AON reset */
 	reset_control_assert(wcss->wcss_aon_reset);
 
-	/* 7 - Disable WCSSAON_CONFIG 13 */
-	val = readl(wcss->rmb_base + SSCAON_CONFIG);
-	val &= ~SSCAON_ENABLE;
-	writel(val, wcss->rmb_base + SSCAON_CONFIG);
+	if (wcss->is_q6v6) {
+		val = readl(wcss->rmb_base + SSCAON_CONFIG);
+		val &= ~(1<<1);
+		writel(val, wcss->rmb_base + SSCAON_CONFIG);
+	} else {
+		/* 7 - Disable WCSSAON_CONFIG 13 */
+		val = readl(wcss->rmb_base + SSCAON_CONFIG);
+		val &= ~SSCAON_ENABLE;
+		writel(val, wcss->rmb_base + SSCAON_CONFIG);
+	}
 
 	/* 8 - De-assert WCSS/Q6 HALTREQ */
 	reset_control_assert(wcss->wcss_reset);
 
 	return 0;
+}
+
+static void q6v6_q6_powerdown(struct q6v5_wcss *wcss)
+{
+	int ret;
+	unsigned int cookie;
+
+	/*Assert ce reset*/
+	reset_control_assert(wcss->ce_reset);
+	mdelay(2);
+
+	/*Disable clocks*/
+	ipq5018_clks_prepare_disable(wcss);
+
+	cookie = 0;
+	ret = qcom_scm_wcss_boot(Q6_BOOT_TRIG_SVC_ID,
+				 Q6_BOOT_TRIG_CMD_ID, &cookie);
+	if (ret) {
+		dev_err(wcss->dev, "q6-stop trigger scm failed\n");
+		return;
+	}
 }
 
 static int q6v5_q6_powerdown(struct q6v5_wcss *wcss)
@@ -755,12 +1026,20 @@ static int q6v5_q6_powerdown(struct q6v5_wcss *wcss)
 	int i;
 
 	/* 1 - Halt Q6 bus interface */
-	q6v5_wcss_halt_axi_port(wcss, wcss->halt_map, wcss->halt_q6);
+	if (wcss->is_q6v6)
+		q6v6_wcss_halt_axi_port(wcss, wcss->halt_map, wcss->halt_q6);
+	else
+		q6v5_wcss_halt_axi_port(wcss, wcss->halt_map, wcss->halt_q6);
 
 	/* 2 - Disable Q6 Core clock */
 	val = readl(wcss->reg_base + Q6SS_GFMUX_CTL_REG);
 	val &= ~Q6SS_CLK_ENABLE;
 	writel(val, wcss->reg_base + Q6SS_GFMUX_CTL_REG);
+
+	if (wcss->is_q6v6) {
+		q6v6_q6_powerdown(wcss);
+		goto reset;
+	}
 
 	/* 3 - Clamp I/O */
 	val = readl(wcss->reg_base + Q6SS_PWR_CTL_REG);
@@ -806,6 +1085,7 @@ static int q6v5_q6_powerdown(struct q6v5_wcss *wcss)
 		return ret;
 	}
 
+reset:
 	/* 11 -  Assert WCSS reset */
 	reset_control_assert(wcss->wcss_reset);
 
@@ -974,6 +1254,15 @@ static int q6v5_wcss_init_reset(struct q6v5_wcss *wcss,
 		}
 	}
 
+	if (desc->ce_reset_required) {
+		wcss->ce_reset = devm_reset_control_get(dev, "ce_reset");
+		if (IS_ERR(wcss->ce_reset)) {
+			dev_err(wcss->dev, "unable to acquire ce_reset\n");
+			return PTR_ERR(wcss->ce_reset);
+		}
+	}
+
+
 	return 0;
 }
 
@@ -1039,6 +1328,7 @@ static int q6v5_alloc_memory_region(struct q6v5_wcss *wcss)
 	node = of_parse_phandle(dev->of_node, "memory-region", 0);
 	if (node)
 		rmem = of_reserved_mem_lookup(node);
+
 	of_node_put(node);
 
 	if (!rmem) {
@@ -1054,6 +1344,93 @@ static int q6v5_alloc_memory_region(struct q6v5_wcss *wcss)
 		dev_err(dev, "unable to map memory region: %pa+%pa\n",
 			&rmem->base, &rmem->size);
 		return -EBUSY;
+	}
+
+	return 0;
+}
+
+static int ipq5018_init_clock(struct q6v5_wcss *wcss)
+{
+	int ret;
+
+	wcss->gcc_abhs_cbcr = devm_clk_get(wcss->dev, "gcc_wcss_ahb_s_clk");
+	if (IS_ERR(wcss->gcc_abhs_cbcr)) {
+		ret = PTR_ERR(wcss->gcc_abhs_cbcr);
+		if (ret != -EPROBE_DEFER)
+			dev_err(wcss->dev, "failed to get gcc ahbs clock");
+		return PTR_ERR(wcss->gcc_abhs_cbcr);
+	}
+
+	wcss->gcc_axim_cbcr = devm_clk_get(wcss->dev, "gcc_wcss_axi_m_clk");
+	if (IS_ERR(wcss->gcc_axim_cbcr)) {
+		ret = PTR_ERR(wcss->gcc_axim_cbcr);
+		if (ret != -EPROBE_DEFER)
+			dev_err(wcss->dev, "failed to get gcc axim clock\n");
+		return PTR_ERR(wcss->gcc_axim_cbcr);
+	}
+
+	wcss->ahbs_cbcr = devm_clk_get(wcss->dev, "gcc_q6_ahb_s_clk");
+	if (IS_ERR(wcss->ahbs_cbcr)) {
+		ret = PTR_ERR(wcss->ahbs_cbcr);
+		if (ret != -EPROBE_DEFER)
+			dev_err(wcss->dev, "failed to get ahbs clock\n");
+		return PTR_ERR(wcss->ahbs_cbcr);
+	}
+
+	wcss->qdsp6ss_abhm_cbcr = devm_clk_get(wcss->dev, "gcc_q6_ahb_clk");
+	if (IS_ERR(wcss->qdsp6ss_abhm_cbcr)) {
+		ret = PTR_ERR(wcss->qdsp6ss_abhm_cbcr);
+		if (ret != -EPROBE_DEFER)
+			dev_err(wcss->dev, "failed to get csr cbcr clk\n");
+		return PTR_ERR(wcss->qdsp6ss_abhm_cbcr);
+	}
+
+	wcss->eachb_clk = devm_clk_get(wcss->dev, "gcc_wcss_ecahb_clk");
+	if (IS_ERR(wcss->eachb_clk)) {
+		ret = PTR_ERR(wcss->eachb_clk);
+		if (ret != -EPROBE_DEFER)
+			dev_err(wcss->dev, "failed to get ahbs_cbcr clk\n");
+		return PTR_ERR(wcss->eachb_clk);
+	}
+
+	wcss->acmt_clk = devm_clk_get(wcss->dev, "gcc_wcss_acmt_clk");
+	if (IS_ERR(wcss->acmt_clk)) {
+		ret = PTR_ERR(wcss->acmt_clk);
+		if (ret != -EPROBE_DEFER)
+			dev_err(wcss->dev, "failed to get acmt clk\n");
+		return PTR_ERR(wcss->acmt_clk);
+	}
+
+	wcss->gcc_axim2_clk = devm_clk_get(wcss->dev, "gcc_q6_axim2_clk");
+	if (IS_ERR(wcss->gcc_axim2_clk)) {
+		ret = PTR_ERR(wcss->gcc_axim2_clk);
+		if (ret != -EPROBE_DEFER)
+			dev_err(wcss->dev, "failed to get gcc_axim2_clk\n");
+		return PTR_ERR(wcss->gcc_axim2_clk);
+	}
+
+	wcss->axmis_clk = devm_clk_get(wcss->dev, "gcc_q6_axis_clk");
+	if (IS_ERR(wcss->axmis_clk)) {
+		ret = PTR_ERR(wcss->axmis_clk);
+		if (ret != -EPROBE_DEFER)
+			dev_err(wcss->dev, "failed to get axmis  clk\n");
+		return PTR_ERR(wcss->axmis_clk);
+	}
+
+	wcss->axi_s_clk = devm_clk_get(wcss->dev, "gcc_wcss_axi_s_clk");
+	if (IS_ERR(wcss->axi_s_clk)) {
+		ret = PTR_ERR(wcss->axi_s_clk);
+		if (ret != -EPROBE_DEFER)
+			dev_err(wcss->dev, "failed to get axi_s_clk clk\n");
+		return PTR_ERR(wcss->axi_s_clk);
+	}
+
+	wcss->qdsp6ss_axim_cbcr = devm_clk_get(wcss->dev, "gcc_q6_axim_clk");
+	if (IS_ERR(wcss->qdsp6ss_axim_cbcr)) {
+		ret = PTR_ERR(wcss->qdsp6ss_axim_cbcr);
+		if (ret != -EPROBE_DEFER)
+			dev_err(wcss->dev, "failed to axim clk\n");
+		return PTR_ERR(wcss->qdsp6ss_axim_cbcr);
 	}
 
 	return 0;
@@ -1204,6 +1581,7 @@ static int q6v5_wcss_probe(struct platform_device *pdev)
 	wcss->need_mem_protection = desc->need_mem_protection;
 	wcss->m3_firmware_name = desc->m3_firmware_name;
 	wcss->reset_cmd_id = desc->reset_cmd_id;
+	wcss->is_q6v6 = desc->is_q6v6;
 
 	ret = q6v5_wcss_init_mmio(wcss, pdev);
 	if (ret)
@@ -1290,12 +1668,32 @@ static const struct wcss_data wcss_ipq6018_res_init = {
 	.aon_reset_required = true,
 	.wcss_q6_reset_required = true,
 	.bcr_reset_required = false,
+	.ce_reset_required = false,
 	.ssr_name = "q6wcss",
 	.reset_cmd_id = 0x14,
 	.ops = &q6v5_wcss_ipq8074_ops,
 	.requires_force_stop = true,
 	.need_mem_protection = true,
 	.need_auto_boot = false,
+	.is_q6v6 = false,
+};
+
+static const struct wcss_data wcss_ipq5018_res_init = {
+	.init_clock = ipq5018_init_clock,
+	.q6_firmware_name = "IPQ5018/q6_fw.mdt",
+	.m3_firmware_name = "IPQ5018/m3_fw.mdt",
+	.crash_reason_smem = WCSS_CRASH_REASON,
+	.aon_reset_required = true,
+	.wcss_q6_reset_required = true,
+	.bcr_reset_required = false,
+	.ce_reset_required = true,
+	.ssr_name = "q6wcss",
+	.reset_cmd_id = 0x14,
+	.ops = &q6v5_wcss_ipq8074_ops,
+	.requires_force_stop = true,
+	.need_mem_protection = true,
+	.need_auto_boot = false,
+	.is_q6v6 = true,
 };
 
 static const struct wcss_data wcss_qcs404_res_init = {
@@ -1307,6 +1705,7 @@ static const struct wcss_data wcss_qcs404_res_init = {
 	.aon_reset_required = false,
 	.wcss_q6_reset_required = false,
 	.bcr_reset_required = true,
+	.ce_reset_required = false,
 	.ssr_name = "mpss",
 	.sysmon_name = "wcnss",
 	.ssctl_id = 0x12,
@@ -1314,12 +1713,14 @@ static const struct wcss_data wcss_qcs404_res_init = {
 	.requires_force_stop = false,
 	.reset_cmd_id = 0x14,
 	.need_auto_boot = true,
+	.is_q6v6 = false,
 };
 
 static const struct of_device_id q6v5_wcss_of_match[] = {
 	{ .compatible = "qcom,ipq8074-wcss-pil", .data = &wcss_ipq8074_res_init },
 	{ .compatible = "qcom,ipq6018-wcss-pil", .data = &wcss_ipq6018_res_init },
 	{ .compatible = "qcom,qcs404-wcss-pil", .data = &wcss_qcs404_res_init },
+	{ .compatible = "qcom,qcs5018-wcss-pil", .data = &wcss_ipq5018_res_init },
 
 	{ },
 };

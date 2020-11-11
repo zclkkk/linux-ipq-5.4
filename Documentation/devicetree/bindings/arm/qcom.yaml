@@ -34,6 +34,7 @@ description: |
   	msm8994
   	msm8996
   	mdm9615
+	ipq5018
 	ipq6018
   	ipq8074
   	sdm845
@@ -47,6 +48,7 @@ description: |
   	sbc
   	hk01
   	qrd
+	mp03
 
   The 'soc_version' and 'board_version' elements take the form of v<Major>.<Minor>
   where the minor number may be omitted when it's zero, i.e.  v1.0 is the same
@@ -134,6 +136,11 @@ properties:
               - qcom,ipq4019-ap-dk07.1-c2
               - qcom,ipq4019-dk04.1-c1
           - const: qcom,ipq4019
+
+      - items:
+          - enum:
+              - qcom,ipq5018-mp03
+          - const: qcom,ipq5018
 
       - items:
           - enum:

@@ -210,6 +210,11 @@ extern int __qti_fuseipq_scm_call(struct device *dev, u32 svc_id, u32 cmd_id,
 #define DLOAD_MODE_ENABLE			0x10ull
 #define SET_MAGIC_WARMRESET			0x2
 #define DLOAD_MODE_ENABLE_WARMRESET		0x20ull
+#define TCSR_Q6SS_BOOT_TRIG_REG			0x193d204ull
+
+extern int __qcom_scm_wcss_boot(struct device *, u32 svc_id, u32 cmd_id,
+				void *cmd_buf);
+extern int qcom_scm_wcss_boot(u32 svc_id, u32 cmd_id, void *cmd_buf);
 extern int __qti_scm_dload(struct device *dev, u32 svc_id, u32 cmd_id,
 				void *cmd_buf);
 extern int __qti_scm_sdi(struct device *dev, u32 svc_id, u32 cmd_id);

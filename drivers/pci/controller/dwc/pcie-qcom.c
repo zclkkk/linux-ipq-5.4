@@ -1800,6 +1800,7 @@ static const struct of_device_id qcom_pcie_match[] = {
 	{ .compatible = "qcom,pcie-ipq6018", .data = &qcom_pcie_2_9_0},
 	{ .compatible = "qcom,pcie-ipq4019", .data = &qcom_pcie_2_4_0 },
 	{ .compatible = "qcom,pcie-qcs404", .data = &qcom_pcie_2_4_0 },
+	{ .compatible = "qcom,pcie-ipq5018", .data = &qcom_pcie_2_9_0 },
 	{ }
 };
 

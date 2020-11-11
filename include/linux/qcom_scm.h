@@ -8,11 +8,15 @@
 #include <linux/err.h>
 #include <linux/types.h>
 #include <linux/cpumask.h>
+#include <linux/device.h>
 
 #define QCOM_SCM_VERSION(major, minor)	(((major) << 16) | ((minor) & 0xFF))
 #define QCOM_SCM_CPU_PWR_DOWN_L2_ON	0x0
 #define QCOM_SCM_CPU_PWR_DOWN_L2_OFF	0x1
 #define QCOM_SCM_HDCP_MAX_REQ_CNT	5
+#define SCM_IO_READ     1
+#define SCM_IO_WRITE    2
+#define SCM_SVC_IO_ACCESS       0x5
 
 enum qseecom_qceos_cmd_id {
 	QSEOS_APP_START_COMMAND	= 0x01,
@@ -321,4 +325,5 @@ extern int qti_scm_extwdt(u32 svc_id, u32 cmd_id, unsigned int regaddr,
 	return -ENODEV;
 }
 #endif
+extern int qcom_scm_wcss_boot(u32 svc_id, u32 cmd_id, void *cmd_buf);
 #endif
