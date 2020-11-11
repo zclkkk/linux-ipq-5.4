@@ -2983,6 +2983,7 @@ static int cnss_register_ramdump_v2(struct cnss_plat_data *plat_priv)
 	struct cnss_dump_data *dump_data;
 	struct msm_dump_entry dump_entry;
 	struct device *dev = &plat_priv->plat_dev->dev;
+	char ramdump_dev_name[CNSS_RAMDUMP_FILE_NAME_MAX_LEN] = {0};
 	u32 ramdump_size = 0;
 
 	subsys_info = &plat_priv->subsys_info;
@@ -3026,8 +3027,10 @@ static int cnss_register_ramdump_v2(struct cnss_plat_data *plat_priv)
 		goto free_ramdump;
 	}
 
+	snprintf(ramdump_dev_name, sizeof(ramdump_dev_name), "ramdump_%s",
+		 plat_priv->device_name);
 	info_v2->ramdump_dev =
-		create_ramdump_device(subsys_info->subsys_desc.name,
+		create_ramdump_device((const char *)ramdump_dev_name,
 				      subsys_info->subsys_desc.dev);
 	if (!info_v2->ramdump_dev) {
 		cnss_pr_err("Failed to create ramdump device!\n");
