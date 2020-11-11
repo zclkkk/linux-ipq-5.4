@@ -1432,6 +1432,56 @@ static int ctx_save_probe(struct platform_device *pdev)
 	return ret;
 }
 
+const struct ctx_save_props ctx_save_props_ipq6018 = {
+	.tlv_msg_offset = (244 * SZ_1K),
+	/* As XBL overwrites the NSS UTCM, TZ has to copy it to some memory
+	 * on crash before it restarts the system. Hence, reserving of 192K
+	 * is required to copy the NSS UTCM before restart is done.
+	 * So that TZ can dump NSS dump data after the first 8K.
+	 *
+	 * 3K for DCC Memory
+	 *
+	 * get_order function returns the next higher order as output,
+	 * so when we pass 203K as argument 256K will be allocated.
+	 * 41K is unused currently and can be used based on future needs.
+	 *
+	 * 12K is used for crashdump TLV buffer for Minidump feature.
+	 * For minidump feature, last 16K of crashdump page size is used for
+	 * TLV buffer in the case of ipq807x. Same offset (last 16 K from end
+	 * of crashdump page) is used for ipq60xx as well, to keep design
+	 * consistent.
+	 *
+	 *
+	 * The memory is allocated using alloc_pages, hence it will be in
+	 * power of 2. The unused memory is the result of using alloc_pages.
+	 * As we need contigous memory for > 256K we have to use alloc_pages.
+	 *
+	 *		 ---------------
+	 *		|      8K	|
+	 *		|    regsave	|
+	 *		 ---------------
+	 *		|		|
+	 *		|     192K	|
+	 *		|    NSS UTCM	|
+	 *		|		|
+	 *		|		|
+	 *		 ---------------
+	 *		|    3K - DCC	|
+	 *		 ---------------
+	 *		|		|
+	 *		|     41K	|
+	 *		|    Unused	|
+	 *		|		|
+	 *		 ---------------
+	 *		|     12 K     |
+	 *		|   TLV Buffer |
+	 *		---------------
+	 *
+	 */
+	.crashdump_page_size = (SZ_8K + (192 * SZ_1K) + (3 * SZ_1K) +
+				(41 * SZ_1K) + (12 * SZ_1K)),
+};
+
 const struct ctx_save_props ctx_save_props_ipq807x = {
 	.tlv_msg_offset = (500 * SZ_1K),
 	/* As SBL overwrites the NSS IMEM, TZ has to copy it to some memory
@@ -1485,6 +1535,10 @@ const struct ctx_save_props ctx_save_props_ipq807x = {
 };
 
 static const struct of_device_id ctx_save_of_table[] = {
+	{
+		.compatible = "qti,ctxt-save-ipq6018",
+		.data = (void *)&ctx_save_props_ipq6018,
+	},
 	{
 		.compatible = "qti,ctxt-save-ipq8074",
 		.data = (void *)&ctx_save_props_ipq807x,
