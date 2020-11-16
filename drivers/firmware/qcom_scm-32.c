@@ -603,6 +603,9 @@ int __qti_scm_qseecom_notify(struct device *dev,
 	uint32_t smc_id = 0;
 	struct scm_desc desc = {0};
 
+	if (!is_scm_armv8())
+		return -ENOTSUPP;
+
 	smc_id = QTI_SYSCALL_CREATE_SMC_ID(QTI_OWNER_QSEE_OS,
 					 QTI_SVC_APP_MGR,
 					 QTI_CMD_NOTIFY_REGION_ID);
@@ -629,6 +632,9 @@ int __qti_scm_qseecom_load(struct device *dev, uint32_t smc_id,
 	int ret = 0;
 	struct scm_desc desc = {0};
 
+	if (!is_scm_armv8())
+		return -ENOTSUPP;
+
 	desc.arginfo = SCM_ARGS(3, QCOM_SCM_VAL, QCOM_SCM_VAL,
 					QCOM_SCM_VAL);
 	desc.args[0] = request->load_lib_req.mdt_len;
@@ -653,6 +659,9 @@ int __qti_scm_qseecom_send_data(struct device *dev,
 	int ret = 0;
 	uint32_t smc_id = 0;
 	struct scm_desc desc = {0};
+
+	if (!is_scm_armv8())
+		return -ENOTSUPP;
 
 	smc_id = QTI_SYSCALL_CREATE_SMC_ID(QTI_OWNER_TZ_APPS,
 					 QTI_SVC_APP_ID_PLACEHOLDER,
@@ -685,6 +694,9 @@ int __qti_scm_qseecom_unload(struct device *dev,
 	int ret = 0;
 	struct scm_desc desc = {0};
 
+	if (!is_scm_armv8())
+		return -ENOTSUPP;
+
 	if (cmd_id == QSEOS_APP_SHUTDOWN_COMMAND) {
 		desc.arginfo = SCM_ARGS(1);
 		desc.args[0] = request->app_id;
@@ -699,7 +711,7 @@ int __qti_scm_qseecom_unload(struct device *dev,
 	return ret;
 }
 
-int __qti_scm_tz_register_log_buf(struct device *dev,
+int __qti_scm_register_log_buf(struct device *dev,
 				  struct qsee_reg_log_buf_req *request,
 				  size_t req_size,
 				  struct qseecom_command_scm_resp *response,
@@ -708,6 +720,9 @@ int __qti_scm_tz_register_log_buf(struct device *dev,
 	int ret = 0;
 	uint32_t smc_id = 0;
 	struct scm_desc desc = {0};
+
+	if (!is_scm_armv8())
+		return -ENOTSUPP;
 
 	smc_id = QTI_SYSCALL_CREATE_SMC_ID(QTI_OWNER_QSEE_OS,
 					 QTI_SVC_APP_MGR,
@@ -722,6 +737,55 @@ int __qti_scm_tz_register_log_buf(struct device *dev,
 	response->result = desc.ret[0];
 	response->resp_type = desc.ret[1];
 	response->data = desc.ret[2];
+
+	return ret;
+}
+
+int __qti_scm_tls_hardening(struct device *dev, uint32_t req_addr,
+			    uint32_t req_size, uint32_t resp_addr,
+			    uint32_t resp_size, u32 cmd_id)
+{
+	int ret = 0;
+	__le32 scm_ret;
+	struct scm_desc desc = {0};
+
+	if (!is_scm_armv8())
+		return -ENOTSUPP;
+
+	desc.arginfo = SCM_ARGS(4, QCOM_SCM_RW, QCOM_SCM_VAL,
+				QCOM_SCM_RW, QCOM_SCM_VAL);
+	desc.args[0] = (u64)req_addr;
+	desc.args[1] = req_size;
+	desc.args[2] = (u64)resp_addr;
+	desc.args[3] = resp_size;
+
+	ret = qti_scm_call2(dev, SCM_SIP_FNID(QTI_SVC_CRYPTO, cmd_id), &desc);
+	scm_ret = desc.ret[0];
+	if (!ret)
+		return le32_to_cpu(scm_ret);
+
+	return ret;
+}
+
+int __qti_scm_aes(struct device *dev, uint32_t req_addr, uint32_t req_size,
+		  uint32_t resp_addr, uint32_t resp_size, u32 cmd_id)
+{
+	int ret = 0;
+	__le32 scm_ret;
+	struct scm_desc desc = {0};
+
+	if (!is_scm_armv8())
+		return -ENOTSUPP;
+
+	desc.arginfo = SCM_ARGS(2, QCOM_SCM_RW, QCOM_SCM_VAL);
+
+	desc.args[0] = (u64)req_addr;
+	desc.args[1] = req_size;
+
+	ret = qti_scm_call2(dev, SCM_SIP_FNID(QTI_SVC_CRYPTO, cmd_id), &desc);
+	scm_ret = desc.ret[0];
+	if (!ret)
+		return le32_to_cpu(scm_ret);
 
 	return ret;
 }
@@ -1173,6 +1237,42 @@ static int __qti_scm_dload_v8(struct device *dev, void *cmd_buf)
 		return ret;
 
 	return le32_to_cpu(desc.ret[0]);
+}
+
+static int __qcom_scm_wcss_boot_v8(struct device *dev, void *cmd_buf)
+{
+	struct scm_desc desc = {0};
+	int ret;
+	unsigned int enable;
+
+	enable = cmd_buf ? *((unsigned int *)cmd_buf) : 0;
+	desc.args[0] = TCSR_Q6SS_BOOT_TRIG_REG;
+	desc.args[1] = enable;
+
+	desc.arginfo = SCM_ARGS(2, QCOM_SCM_VAL, QCOM_SCM_VAL);
+	ret = qti_scm_call2(dev, SCM_SIP_FNID(SCM_SVC_IO_ACCESS,
+			    SCM_IO_WRITE), &desc);
+	if (ret)
+		return ret;
+
+	return le32_to_cpu(desc.ret[0]);
+}
+
+int __qcom_scm_wcss_boot(struct device *dev, u32 svc_id, u32 cmd_id,
+						 void *cmd_buf)
+{
+	long ret;
+
+	if (is_scm_armv8())
+		return __qcom_scm_wcss_boot_v8(dev, cmd_buf);
+
+	if (cmd_buf)
+		ret = qcom_scm_call(dev, svc_id, cmd_id, cmd_buf,
+				    sizeof(cmd_buf), NULL, 0);
+	else
+		ret = qcom_scm_call(dev, svc_id, cmd_id, NULL, 0, NULL, 0);
+
+	return ret;
 }
 
 int __qti_scm_dload(struct device *dev, u32 svc_id, u32 cmd_id, void *cmd_buf)

@@ -476,6 +476,24 @@ int __qcom_scm_iommu_secure_ptbl_init(struct device *dev, u64 addr, u32 size,
 	return ret;
 }
 
+int __qcom_scm_wcss_boot(struct device *dev, u32 svc_id, u32 cmd_id,
+			 void *cmd_buf)
+{
+	struct qcom_scm_desc desc = {0};
+	struct arm_smccc_res res;
+	int ret;
+	unsigned int enable;
+
+	enable = cmd_buf ? *((unsigned int *)cmd_buf) : 0;
+	desc.args[0] = TCSR_Q6SS_BOOT_TRIG_REG;
+	desc.args[1] = enable;
+	desc.arginfo = SCM_ARGS(2, QCOM_SCM_VAL, QCOM_SCM_VAL);
+	ret = qcom_scm_call(dev, ARM_SMCCC_OWNER_SIP, SCM_SVC_IO_ACCESS,
+			    SCM_IO_WRITE, &desc, &res);
+
+	return ret ? : res.a1;
+}
+
 int __qcom_scm_set_dload_mode(struct device *dev, bool enable)
 {
 	struct qcom_scm_desc desc = {0};
@@ -787,7 +805,7 @@ int __qti_scm_qseecom_unload(struct device *dev, uint32_t smc_id,
 	return ret;
 }
 
-int __qti_scm_tz_register_log_buf(struct device *dev,
+int __qti_scm_register_log_buf(struct device *dev,
 				  struct qsee_reg_log_buf_req *request,
 				  size_t req_size,
 				  struct qseecom_command_scm_resp *response,
@@ -809,6 +827,45 @@ int __qti_scm_tz_register_log_buf(struct device *dev,
 	response->data = res.a3;
 
 	return ret;
+}
+
+int __qti_scm_tls_hardening(struct device *dev, uint32_t req_addr,
+			    uint32_t req_size, uint32_t resp_addr,
+			    uint32_t resp_size, u32 cmd_id)
+{
+	int ret = 0;
+	struct qcom_scm_desc desc = {0};
+	struct arm_smccc_res res;
+
+	desc.arginfo = SCM_ARGS(4, QCOM_SCM_RW, QCOM_SCM_VAL,
+				QCOM_SCM_RW, QCOM_SCM_VAL);
+	desc.args[0] = req_addr;
+	desc.args[1] = req_size;
+	desc.args[2] = resp_addr;
+	desc.args[3] = resp_size;
+
+	ret = qcom_scm_call(dev, ARM_SMCCC_OWNER_SIP, QTI_SVC_CRYPTO, cmd_id,
+			    &desc, &res);
+
+	return ret ? : res.a1;
+}
+
+int __qti_scm_aes(struct device *dev, uint32_t req_addr, uint32_t req_size,
+		  uint32_t resp_addr, uint32_t resp_size, u32 cmd_id)
+{
+	int ret = 0;
+	struct qcom_scm_desc desc = {0};
+	struct arm_smccc_res res;
+
+	desc.arginfo = SCM_ARGS(2, QCOM_SCM_RW, QCOM_SCM_VAL);
+
+	desc.args[0] = req_addr;
+	desc.args[1] = req_size;
+
+	ret = qcom_scm_call(dev, ARM_SMCCC_OWNER_SIP, QTI_SVC_CRYPTO, cmd_id,
+			    &desc, &res);
+
+	return ret ? : res.a1;
 }
 
 /**

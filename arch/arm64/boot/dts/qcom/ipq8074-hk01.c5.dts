@@ -466,6 +466,9 @@
 };
 
 &pcie0 {
+	pinctrl-0 = <&pcie_sdx_pins>;
+	pinctrl-names = "default";
+
 	status = "ok";
 
 	pcie0_rp: pcie0_rp {
@@ -474,9 +477,6 @@
 };
 
 &pcie0_rp {
-	pinctrl-0 = <&pcie_sdx_pins>;
-	pinctrl-names = "default";
-
 	#address-cells = <5>;
 	#size-cells = <0>;
 

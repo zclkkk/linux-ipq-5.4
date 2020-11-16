@@ -129,6 +129,12 @@
 	firmware {
 		scm {
 			compatible = "qcom,scm";
+			hvc-log-cmd-id = <0xA>;
+			smmu-state-cmd-id = <0x20>;
+		};
+
+		qfprom {
+			compatible = "qcom,qfprom-sec";
 		};
 	};
 
@@ -153,6 +159,11 @@
 		compatible = "qcom,smem";
 		memory-region = <&smem_region>;
 		hwlocks = <&tcsr_mutex 0>;
+	};
+
+	qseecom: qseecom {
+		compatible = "ipq6018-qseecom";
+		status = "disabled";
 	};
 
 	soc: soc {
@@ -867,5 +878,23 @@
 				};
 			};
 		};
+	};
+
+	qti,tzlog {
+		compatible = "qti,tzlog";
+		interrupts = <GIC_SPI 244 IRQ_TYPE_EDGE_RISING>;
+		qti,tz-diag-buf-size = <0x3000>;
+		qti,tz-ring-off = <7>;
+		qti,tz-log-pos-info-off = <810>;
+		qti,hvc-enabled;
+		qti,get-smmu-state;
+	};
+
+	qti,scm_restart_reason {
+		compatible = "qti,scm_restart_reason";
+	};
+
+	ctx_save: ctx-save {
+		compatible = "qti,ctxt-save-ipq6018";
 	};
 };

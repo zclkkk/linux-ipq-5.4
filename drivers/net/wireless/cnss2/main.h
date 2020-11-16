@@ -28,9 +28,11 @@
 #define CNSS_RDDM_TIMEOUT_MS		20000
 #define RECOVERY_TIMEOUT		60000
 #define TIME_CLOCK_FREQ_HZ		19200000
+#define CNSS_DEVICE_NAME_MAX_LEN	16
 #define CNSS_NUM_META_INFO_SEGMENTS	1
 #define CNSS_RAMDUMP_MAGIC		0x574C414E /* WLAN in ASCII */
 #define CNSS_RAMDUMP_VERSION		0
+#define CNSS_RAMDUMP_FILE_NAME_MAX_LEN	(2 * CNSS_DEVICE_NAME_MAX_LEN)
 
 /* Currently these target mem modes are supported for various targets
  *
@@ -454,14 +456,14 @@ struct cnss_plat_data {
 	void *bus_priv;
 	int qrtr_node_id;
 	int userpd_id;
-	char device_name[16];
+	char device_name[CNSS_DEVICE_NAME_MAX_LEN];
 	struct cnss_vreg_info *vreg_info;
 	enum cnss_dev_bus_type bus_type;
 	struct list_head vreg_list;
 	struct list_head clk_list;
 	struct cnss_pinctrl_info pinctrl_info;
 	struct cnss_subsys_info subsys_info;
-	bool ramdump_enabled;
+	bool recovery_enabled;
 	struct cnss_ramdump_info ramdump_info;
 	struct cnss_ramdump_info_v2 ramdump_info_v2;
 	struct cnss_esoc_info esoc_info;
