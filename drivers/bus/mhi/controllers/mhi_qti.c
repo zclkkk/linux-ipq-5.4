@@ -77,24 +77,6 @@ static inline void mhi_controller_set_devdata(struct mhi_controller *mhi_cntrl,
 	mhi_cntrl->priv_data = priv;
 }
 
-/* allocate mhi controller to register */
-struct mhi_controller *mhi_alloc_controller(size_t size)
-{
-	struct mhi_controller *mhi_cntrl;
-
-	mhi_cntrl = kzalloc(size + sizeof(*mhi_cntrl), GFP_KERNEL);
-
-	if (mhi_cntrl && size)
-		mhi_controller_set_devdata(mhi_cntrl, mhi_cntrl + 1);
-
-	return mhi_cntrl;
-}
-
-static inline void mhi_free_controller(struct mhi_controller *mhi_cntrl)
-{
-	kfree(mhi_cntrl);
-}
-
 static struct mhi_channel_config mhi_sdx_mhi_channels[] = {
 	{
 		.num = 0,
@@ -463,7 +445,7 @@ static int mhi_init_pci_dev(struct mhi_controller *mhi_cntrl)
 	struct pci_dev *pci_dev = mhi_dev->pci_dev;
 	int ret;
 	resource_size_t len;
-	int i;
+	int i, nr_vectors;
 
 	mhi_dev->resn = MHI_PCI_BAR_NUM;
 	ret = pci_assign_resource(pci_dev, mhi_dev->resn);
@@ -494,14 +476,23 @@ static int mhi_init_pci_dev(struct mhi_controller *mhi_cntrl)
 		goto error_ioremap;
 	}
 
-	ret = pci_alloc_irq_vectors(pci_dev, mhi_cntrl->nr_irqs_req,
-				    mhi_cntrl->nr_irqs_req, PCI_IRQ_MSI);
-	if (IS_ERR_VALUE((ulong)ret) || ret < mhi_cntrl->nr_irqs_req) {
-		MHI_ERR("Failed to enable MSI, ret:%d\n", ret);
+	/*
+	 * Alloc one MSI vector for BHI + one vector per event ring, ideally...
+	 */
+	mhi_cntrl->nr_irqs = mhi_sdx_mhi_config.num_events + 1;
+
+	nr_vectors = pci_alloc_irq_vectors(pci_dev, 1, mhi_cntrl->nr_irqs,
+				    PCI_IRQ_MSI);
+	if (nr_vectors < 0) {
+		MHI_ERR("Error allocating MSI vectors, ret:%d\n", nr_vectors);
 		goto error_req_msi;
 	}
 
-	mhi_cntrl->nr_irqs = ret;
+	if (nr_vectors < mhi_cntrl->nr_irqs) {
+		MHI_LOG("Not enough MSI vectors (%d/%d), use shared MHI\n",
+			nr_vectors, mhi_sdx_mhi_config.num_events);
+	}
+
 	mhi_cntrl->irq = kmalloc_array(mhi_cntrl->nr_irqs,
 				       sizeof(*mhi_cntrl->irq), GFP_KERNEL);
 	if (!mhi_cntrl->irq) {
@@ -510,7 +501,8 @@ static int mhi_init_pci_dev(struct mhi_controller *mhi_cntrl)
 	}
 
 	for (i = 0; i < mhi_cntrl->nr_irqs; i++) {
-		mhi_cntrl->irq[i] = pci_irq_vector(pci_dev, i);
+		int vector = i >= nr_vectors ? (nr_vectors - 1) : i;
+		mhi_cntrl->irq[i] = pci_irq_vector(pci_dev, vector);
 		if (mhi_cntrl->irq[i] < 0) {
 			ret = mhi_cntrl->irq[i];
 			goto error_get_irq_vec;
@@ -919,7 +911,7 @@ static struct mhi_controller *dt_register_mhi_controller(struct pci_dev *pci_dev
 	if (!of_node)
 		return ERR_PTR(-ENODEV);
 
-	mhi_cntrl = mhi_alloc_controller(sizeof(*mhi_dev));
+	mhi_cntrl = mhi_alloc_controller();
 	if (!mhi_cntrl)
 		return ERR_PTR(-ENOMEM);
 

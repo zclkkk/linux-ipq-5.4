@@ -528,7 +528,7 @@ static int mhi_uci_probe(struct mhi_device *mhi_dev,
 				     uci_dev->devt, uci_dev,
 				     DEVICE_NAME "_%s_%s",
 				     dev_name(mhi_cntrl->cntrl_dev),
-				     mhi_dev->chan_name);
+				     mhi_dev->name);
 	set_bit(minor, uci_minors);
 
 	for (dir = 0; dir < 2; dir++) {
@@ -548,7 +548,7 @@ static int mhi_uci_probe(struct mhi_device *mhi_dev,
 	mutex_unlock(&mhi_uci_drv.lock);
 	mutex_unlock(&uci_dev->mutex);
 
-	dev_info(dev, "channel:%s successfully probed\n", mhi_dev->chan_name);
+	dev_info(dev, "channel:%s successfully probed\n", mhi_dev->name);
 
 	return 0;
 };
