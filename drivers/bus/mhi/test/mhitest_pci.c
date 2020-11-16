@@ -528,10 +528,10 @@ int mhitest_pci_register_mhi(struct mhitest_platform *mplat)
 	unsigned int *reg, *reg_end;
 	unsigned long start, size;
 
-	mhi_ctrl = kzalloc(sizeof(*mhi_ctrl), GFP_KERNEL);
+	mhi_ctrl = mhi_alloc_controller();
 	if (!mhi_ctrl) {
 		MHITEST_ERR("Error: not able to allocate mhi_ctrl\n");
-		return -EINVAL;
+		return -ENOMEM;
 	}
 	MHITEST_LOG("MHI CTRL :%p\n", mhi_ctrl);
 
@@ -605,7 +605,7 @@ int mhitest_pci_register_mhi(struct mhitest_platform *mplat)
 	return  0;
 
 out:
-	kfree(mhi_ctrl);
+	mhi_free_controller(mhi_ctrl);
 	return ret;
 }
 
