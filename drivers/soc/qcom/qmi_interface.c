@@ -504,12 +504,13 @@ static void qmi_handle_message(struct qmi_handle *qmi,
 				pr_err("failed to decode incoming message\n");
 
 			txn->result = ret;
-			complete(&txn->completion);
 		} else  {
 			qmi_invoke_handler(qmi, sq, txn, buf, len);
 		}
 
 		mutex_unlock(&txn->lock);
+		if (txn->dest && txn->ei)
+			complete(&txn->completion);
 	} else {
 		/* Create a txn based on the txn_id of the incoming message */
 		memset(&tmp_txn, 0, sizeof(tmp_txn));
