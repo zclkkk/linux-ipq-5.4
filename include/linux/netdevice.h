@@ -1558,6 +1558,7 @@ enum netdev_priv_flags {
  * @IFF_EXT_PPP_PPTP: device is a PPTP device
  * @IFF_EXT_GRE_V4_TAP: device is a GRE IPv4 TAP device
  * @IFF_EXT_GRE_V6_TAP: device is a GRE IPv6 TAP device
+ * @IFF_EXT_IFB: device is an IFB device
  */
 enum netdev_priv_flags_ext {
 	IFF_EXT_TUN_TAP			= 1<<0,
@@ -4727,6 +4728,11 @@ static inline bool netif_is_failover(const struct net_device *dev)
 static inline bool netif_is_failover_slave(const struct net_device *dev)
 {
 	return dev->priv_flags & IFF_FAILOVER_SLAVE;
+}
+
+static inline bool netif_is_ifb_dev(const struct net_device *dev)
+{
+	return dev->priv_flags_ext & IFF_EXT_IFB;
 }
 
 /* This device needs to keep skb dst for qdisc enqueue or ndo_start_xmit() */
