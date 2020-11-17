@@ -725,6 +725,7 @@ int qrtr_endpoint_post(struct qrtr_endpoint *ep, const void *data, size_t len)
 	unsigned int size;
 	unsigned int ver;
 	size_t hdrlen;
+	struct qrtr_ctrl_pkt *pkt;
 
 	if (len == 0 || len & 3)
 		return -EINVAL;
@@ -807,6 +808,13 @@ int qrtr_endpoint_post(struct qrtr_endpoint *ep, const void *data, size_t len)
 		   cb->type == QRTR_TYPE_DATA) {
 		qrtr_fwd_pkt(skb, cb);
 	} else {
+		/* Translate DEL_PROC to BYE for local enqueue */
+		if (cb->type == QRTR_TYPE_DEL_PROC) {
+			cb->type = QRTR_TYPE_BYE;
+			pkt = (struct qrtr_ctrl_pkt *)skb->data;
+			memset(pkt, 0, sizeof(struct qrtr_ctrl_pkt));
+			pkt->cmd = cpu_to_le32(QRTR_TYPE_BYE);
+		}
 		ipc = qrtr_port_lookup(cb->dst_port);
 		if (!ipc)
 			goto err;
