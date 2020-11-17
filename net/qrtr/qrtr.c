@@ -488,8 +488,10 @@ static int qrtr_node_enqueue(struct qrtr_node *node, struct sk_buff *skb,
 	size_t len = skb->len;
 	int rc, confirm_rx;
 
-	if (!atomic_read(&node->hello_sent) && type != QRTR_TYPE_HELLO)
+	if (!atomic_read(&node->hello_sent) && type != QRTR_TYPE_HELLO) {
+		kfree_skb(skb);
 		return rc;
+	}
 
 	/* If sk is null, this is a forwarded packet and should not wait */
 	if (!skb->sk) {
