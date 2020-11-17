@@ -33,7 +33,7 @@
 #define QRTR_STATE_INIT	-1
 
 #define AID_VENDOR_QRTR	KGIDT_INIT(2906)
-
+#define QRTR_PORT_CTRL_LEGACY 0xffff
 /**
  * struct qrtr_hdr_v1 - (I|R)PCrouter packet header version 1
  * @version: protocol version
@@ -740,6 +740,9 @@ int qrtr_endpoint_post(struct qrtr_endpoint *ep, const void *data, size_t len)
 		pr_err("qrtr: Invalid version %d\n", ver);
 		goto err;
 	}
+
+	if (cb->dst_port == QRTR_PORT_CTRL_LEGACY)
+		cb->dst_port = QRTR_PORT_CTRL;
 
 	if (cb->type != QRTR_TYPE_DATA)
 		qrtr_fwd_ctrl_pkt(skb);
