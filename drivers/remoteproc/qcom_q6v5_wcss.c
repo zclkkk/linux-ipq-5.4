@@ -200,7 +200,7 @@ static void crashdump_init(struct rproc *rproc, struct rproc_dump_segment *segme
 	struct ramdump_segment segs[MAX_SEGMENTS];
 	int ret, index = 0;
 
-	handle = create_ramdump_device(rproc->name, &rproc->dev);
+	handle = create_ramdump_device("q6mem", &rproc->dev);
 	if (!handle) {
 		dev_err(&rproc->dev, "unable to create ramdump device"
 						"for %s\n", rproc->name);

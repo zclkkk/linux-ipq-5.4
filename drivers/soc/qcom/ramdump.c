@@ -333,7 +333,7 @@ void *create_ramdump_device(const char *dev_name, struct device *parent)
 		return NULL;
 	}
 	rd_dev->index  = set_g_rd_dev(rd_dev);
-	snprintf(rd_dev->name, ARRAY_SIZE(rd_dev->name), "ramdump_%s",
+	snprintf(rd_dev->name, ARRAY_SIZE(rd_dev->name), "%s",
 		 dev_name);
 
 	init_completion(&rd_dev->ramdump_complete);
