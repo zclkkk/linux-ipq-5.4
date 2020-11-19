@@ -261,6 +261,79 @@
 			dma-names = "tx", "rx";
 			status = "disabled";
 		};
+
+		nss-common {
+			compatible = "qcom,nss-common";
+			reg = <0x39B28A04 0x01>;
+			reg-names = "nss-misc-reset";
+		};
+
+		nss0: nss@40000000 {
+			compatible = "qcom,nss";
+			interrupts = <0 431 0x1>, <0 430 0x1>, <0 429 0x1>,
+				     <0 428 0x1>, <0 427 0x1>, <0 426 0x1>,
+				     <0 425 0x1>, <0 424 0x1>, <0 423 0x1>,
+				     <0 422 0x1>;
+			reg = <0x38F00000 0x100>, <0x38200000 0x18000>,
+			      <0xB111004 0x1000>;
+			reg-names = "nphys", "vphys", "qgic-phys";
+			qcom,id = <0>;
+			qcom,num-queue = <4>;
+			qcom,num-irq = <10>;
+			qcom,num-pri = <4>;
+			qcom,load-addr = <0x40000000>;
+			qcom,low-frequency = <1500000000>;
+			qcom,mid-frequency = <1500000000>;
+			qcom,max-frequency = <1700000000>;
+			qcom,bridge-enabled;
+			qcom,ipv4-enabled;
+			qcom,ipv4-reasm-enabled;
+			qcom,ipv6-enabled;
+			qcom,ipv6-reasm-enabled;
+			qcom,wlanredirect-enabled;
+			qcom,tun6rd-enabled;
+			qcom,l2tpv2-enabled;
+			qcom,gre-enabled;
+			qcom,gre-redir-enabled;
+			qcom,gre-redir-mark-enabled;
+			qcom,map-t-enabled;
+			qcom,portid-enabled;
+			qcom,ppe-enabled;
+			qcom,pppoe-enabled;
+			qcom,pptp-enabled;
+			qcom,tunipip6-enabled;
+			qcom,shaping-enabled;
+			qcom,wlan-dataplane-offload-enabled;
+			qcom,vlan-enabled;
+			qcom,igs-enabled;
+			qcom,vxlan-enabled;
+			qcom,match-enabled;
+			qcom,mirror-enabled;
+		};
+
+		nss1: nss@40800000 {
+			compatible = "qcom,nss";
+			interrupts = <0 443 0x1>, <0 442 0x1>, <0 441 0x1>,
+				     <0 440 0x1>, <0 439 0x1>, <0 438 0x1>,
+				     <0 437 0x1>, <0 436 0x1>, <0 435 0x1>;
+			reg = <0x38F01000 0x100>, <0x38040000 0x30000>,
+				<0xB111004 0x1000>;
+			reg-names = "nphys", "vphys", "qgic-phys";
+			qcom,id = <1>;
+			qcom,num-queue = <4>;
+			qcom,num-irq = <9>;
+			qcom,num-pri = <4>;
+			qcom,load-addr = <0x40800000>;
+			qcom,capwap-enabled;
+			qcom,dtls-enabled;
+			qcom,tls-enabled;
+			qcom,crypto-enabled;
+			qcom,ipsec-enabled;
+			qcom,qvpn-enabled;
+			qcom,pvxlan-enabled;
+			qcom,clmap-enabled;
+			qcom,rmnet_rx-enabled;
+		};
 	};
 
 	psci {
