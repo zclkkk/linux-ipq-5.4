@@ -1239,7 +1239,7 @@ static int __qti_scm_dload_v8(struct device *dev, void *cmd_buf)
 	return le32_to_cpu(desc.ret[0]);
 }
 
-static int __qcom_scm_wcss_boot_v8(struct device *dev, void *cmd_buf)
+static int __qti_scm_wcss_boot_v8(struct device *dev, void *cmd_buf)
 {
 	struct scm_desc desc = {0};
 	int ret;
@@ -1258,13 +1258,13 @@ static int __qcom_scm_wcss_boot_v8(struct device *dev, void *cmd_buf)
 	return le32_to_cpu(desc.ret[0]);
 }
 
-int __qcom_scm_wcss_boot(struct device *dev, u32 svc_id, u32 cmd_id,
+int __qti_scm_wcss_boot(struct device *dev, u32 svc_id, u32 cmd_id,
 						 void *cmd_buf)
 {
 	long ret;
 
 	if (is_scm_armv8())
-		return __qcom_scm_wcss_boot_v8(dev, cmd_buf);
+		return __qti_scm_wcss_boot_v8(dev, cmd_buf);
 
 	if (cmd_buf)
 		ret = qcom_scm_call(dev, svc_id, cmd_id, cmd_buf,
