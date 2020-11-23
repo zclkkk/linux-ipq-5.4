@@ -173,8 +173,8 @@ properties:
 
       - items:
           - enum:
-              - qcom,ipq6018-cp01-c1
-              - qcom,ipq6018-cp02-c1
+              - qcom,ipq6018-ap-cp01-c1
+              - qcom,ipq6018-ap-cp02-c1
           - const: qcom,ipq6018
 
 ...
