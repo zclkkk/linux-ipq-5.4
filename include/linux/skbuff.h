@@ -633,6 +633,7 @@ typedef unsigned char *sk_buff_data_t;
  *	@offload_fwd_mark: Packet was L2-forwarded in hardware
  *	@offload_l3_fwd_mark: Packet was L3-forwarded in hardware
  *	@tc_skip_classify: do not classify packet. set by IFB device
+ *	@tc_skip_classify_nss: do not classify packet. set by NSS IFB device
  *	@tc_at_ingress: used within tc_classify to distinguish in/egress
  *	@redirected: packet was redirected by packet classifier
  *	@from_ingress: packet was redirected from the ingress path
@@ -816,6 +817,7 @@ struct sk_buff {
 #ifdef CONFIG_NET_CLS_ACT
 	__u8			tc_skip_classify:1;
 	__u8			tc_at_ingress:1;
+	__u8			tc_skip_classify_nss:1;
 #endif
 #ifdef CONFIG_NET_REDIRECT
 	__u8			redirected:1;

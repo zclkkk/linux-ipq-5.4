@@ -698,6 +698,40 @@ static inline bool skb_skip_tc_classify(struct sk_buff *skb)
 	return false;
 }
 
+/*
+ * Set skb classify bit field.
+ */
+static inline void skb_set_tc_classify_nss(struct sk_buff *skb)
+{
+#ifdef CONFIG_NET_CLS_ACT
+	skb->tc_skip_classify_nss = 1;
+#endif
+}
+
+/*
+ * Clear skb classify bit field.
+ */
+static inline void skb_clear_tc_classify_nss(struct sk_buff *skb)
+{
+#ifdef CONFIG_NET_CLS_ACT
+	skb->tc_skip_classify_nss = 0;
+#endif
+}
+
+/*
+ * Skip skb processing if sent from ifb dev.
+ */
+static inline bool skb_skip_tc_classify_nss(struct sk_buff *skb)
+{
+#ifdef CONFIG_NET_CLS_ACT
+	if (skb->tc_skip_classify_nss) {
+		skb_clear_tc_classify_nss(skb);
+		return true;
+	}
+#endif
+	return false;
+}
+
 /* Reset all TX qdiscs greater than index of a device.  */
 static inline void qdisc_reset_all_tx_gt(struct net_device *dev, unsigned int i)
 {
