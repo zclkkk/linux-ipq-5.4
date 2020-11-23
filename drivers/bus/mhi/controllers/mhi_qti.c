@@ -898,6 +898,19 @@ static const struct attribute_group mhi_group = {
 	.attrs = mhi_attrs,
 };
 
+/* allocate mhi controller to register */
+struct mhi_controller *mhi_alloc_dev_and_controller(size_t size)
+{
+	struct mhi_controller *mhi_cntrl;
+
+	mhi_cntrl = kzalloc(size + sizeof(*mhi_cntrl), GFP_KERNEL);
+
+	if (mhi_cntrl && size)
+		mhi_controller_set_devdata(mhi_cntrl, mhi_cntrl + 1);
+
+	return mhi_cntrl;
+}
+
 static struct mhi_controller *dt_register_mhi_controller(struct pci_dev *pci_dev)
 {
 	struct mhi_controller *mhi_cntrl;
@@ -911,7 +924,7 @@ static struct mhi_controller *dt_register_mhi_controller(struct pci_dev *pci_dev
 	if (!of_node)
 		return ERR_PTR(-ENODEV);
 
-	mhi_cntrl = mhi_alloc_controller();
+	mhi_cntrl = mhi_alloc_dev_and_controller(sizeof(*mhi_dev));
 	if (!mhi_cntrl)
 		return ERR_PTR(-ENOMEM);
 
