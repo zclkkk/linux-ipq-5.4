@@ -765,12 +765,7 @@ int mhi_queue_skb(struct mhi_device *mhi_dev, enum dma_data_direction dir,
  */
 void mhi_debug_reg_dump(struct mhi_controller *mhi_cntrl);
 
-/**
- * mhi_get_exec_env - get the current mhi exec environment
- * @mhi_cntrl: MHI controller
- */
 enum mhi_ee_type mhi_get_exec_env(struct mhi_controller *mhi_cntrl);
-
 /**
  * mhi_queue_is_full - Determine whether queueing new elements is possible
  * @mhi_dev: Device associated with the channels
