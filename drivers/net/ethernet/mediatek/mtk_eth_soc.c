@@ -19,6 +19,8 @@
 #include <linux/interrupt.h>
 #include <linux/pinctrl/devinfo.h>
 #include <linux/phylink.h>
+#include <linux/netfilter.h>
+#include <net/netfilter/nf_flow_table.h>
 #include <net/dsa.h>
 
 #include "mtk_eth_soc.h"
@@ -1324,8 +1326,12 @@ static int mtk_poll_rx(struct napi_struct *napi, int budget,
 		    (trxd.rxd2 & RX_DMA_VTAG))
 			__vlan_hwaccel_put_tag(skb, htons(ETH_P_8021Q),
 					       RX_DMA_VID(trxd.rxd3));
-		skb_record_rx_queue(skb, 0);
-		napi_gro_receive(napi, skb);
+		if (mtk_offload_check_rx(eth, skb, trxd.rxd4) == 0) {
+			skb_record_rx_queue(skb, 0);
+			napi_gro_receive(napi, skb);
+		} else {
+			dev_kfree_skb(skb);
+		}
 
 skip_rx:
 		ring->data[idx] = new_data;
@@ -2858,6 +2864,25 @@ static int mtk_set_rxnfc(struct net_device *dev, struct ethtool_rxnfc *cmd)
 	return ret;
 }
 
+static int
+mtk_flow_offload(enum flow_offload_type type, struct flow_offload *flow,
+		struct flow_offload_hw_path *src,
+		struct flow_offload_hw_path *dest)
+{
+	struct mtk_mac *mac = netdev_priv(src->dev);
+	struct mtk_eth *eth = mac->hw;
+
+	if (!eth->soc->offload_version)
+		return -EINVAL;
+
+	if (src->dev->base_addr != dest->dev->base_addr)
+		return -EINVAL;
+
+	mac = netdev_priv(src->dev);
+
+	return mtk_flow_offload_add(eth, type, flow, src, dest);
+}
+
 static const struct ethtool_ops mtk_ethtool_ops = {
 	.get_link_ksettings	= mtk_get_link_ksettings,
 	.set_link_ksettings	= mtk_set_link_ksettings,
@@ -2889,6 +2914,7 @@ static const struct net_device_ops mtk_netdev_ops = {
 #ifdef CONFIG_NET_POLL_CONTROLLER
 	.ndo_poll_controller	= mtk_poll_controller,
 #endif
+	.ndo_flow_offload       = mtk_flow_offload,
 };
 
 static int mtk_add_mac(struct mtk_eth *eth, struct device_node *np)
@@ -3152,6 +3178,10 @@ static int mtk_probe(struct platform_device *pdev)
 	if (eth->soc->offload_version) {
 		err = mtk_ppe_init(&eth->ppe, eth->dev,
 				   eth->base + MTK_ETH_PPE_BASE, 2);
+		if (err)
+			goto err_free_dev;
+
+		err = mtk_flow_offload_init(eth);
 		if (err)
 			goto err_free_dev;
 	}

@@ -929,6 +929,7 @@ struct mtk_eth {
 	int				ip_align;
 
 	struct mtk_ppe			ppe;
+	struct flow_offload __rcu       **foe_flow_table;
 };
 
 /* struct mtk_mac -	the structure that holds the info about the MACs of the
@@ -972,5 +973,13 @@ void mtk_sgmii_restart_an(struct mtk_eth *eth, int mac_id);
 int mtk_gmac_sgmii_path_setup(struct mtk_eth *eth, int mac_id);
 int mtk_gmac_gephy_path_setup(struct mtk_eth *eth, int mac_id);
 int mtk_gmac_rgmii_path_setup(struct mtk_eth *eth, int mac_id);
+
+int mtk_flow_offload_init(struct mtk_eth *eth);
+int mtk_flow_offload_add(struct mtk_eth *eth,
+			 enum flow_offload_type type,
+			 struct flow_offload *flow,
+			 struct flow_offload_hw_path *src,
+			 struct flow_offload_hw_path *dest);
+int mtk_offload_check_rx(struct mtk_eth *eth, struct sk_buff *skb, u32 rxd4);
 
 #endif /* MTK_ETH_H */
