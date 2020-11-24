@@ -10,31 +10,31 @@
 #include "ipq9048.dtsi"
 
 / {
-       #address-cells = <0x2>;
-       #size-cells = <0x2>;
-       model = "Qualcomm Technologies, Inc. IPQ9048-EMULATION";
-       compatible = "qcom,ipq9048-emulation", "qcom,ipq9048";
-       interrupt-parent = <&intc>;
+	#address-cells = <0x2>;
+	#size-cells = <0x2>;
+	model = "Qualcomm Technologies, Inc. IPQ9048-EMULATION";
+	compatible = "qcom,ipq9048-emulation", "qcom,ipq9048";
+	interrupt-parent = <&intc>;
 
-       aliases {
-               serial0 = &blsp1_uart3;
-       };
+	aliases {
+		serial0 = &blsp1_uart3;
+	};
 
-       chosen {
-               linux,initrd-end = <0x46000000>;
-               linux,initrd-start = <0x44000000>;
-               bootargs = "root=/dev/ram0 rw init=/init nosmp";
-               stdout-path = "serial0";
-       };
+	chosen {
+		linux,initrd-end = <0x46000000>;
+		linux,initrd-start = <0x44000000>;
+		bootargs = "root=/dev/ram0 rw init=/init nosmp";
+		stdout-path = "serial0";
+	};
 
-       memory {
-               device_type = "memory";
-               reg = <0x0 0x40000000 0x0 0x20000000>;
-       };
+	memory {
+		device_type = "memory";
+		reg = <0x0 0x40000000 0x0 0x20000000>;
+	};
 
-       soc {
-               serial@78b1000 {
-                       status = "ok";
-               };
-       };
+	soc {
+		serial@78b1000 {
+			status = "ok";
+		};
+	};
 };
