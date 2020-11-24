@@ -138,36 +138,11 @@ swconfig_set_link(struct switch_dev *dev, const struct switch_attr *attr,
 	return dev->ops->set_port_link(dev, val->port_vlan, val->value.link);
 }
 
-static const char *
-swconfig_speed_str(enum switch_port_speed speed)
-{
-	switch (speed) {
-	case SWITCH_PORT_SPEED_10:
-		return "10baseT";
-	case SWITCH_PORT_SPEED_100:
-		return "100baseT";
-	case SWITCH_PORT_SPEED_1000:
-		return "1000baseT";
-	case SWITCH_PORT_SPEED_2500:
-		return "2500baseT";
-	case SWITCH_PORT_SPEED_5000:
-		return "5000baseT";
-	case SWITCH_PORT_SPEED_10000:
-		return "10000baseT";
-	default:
-		break;
-	}
-
-	return "unknown";
-}
-
 static int
 swconfig_get_link(struct switch_dev *dev, const struct switch_attr *attr,
 			struct switch_val *val)
 {
-	struct switch_port_link link;
-	int len;
-	int ret;
+	struct switch_port_link *link = val->value.link;
 
 	if (val->port_vlan >= dev->ports)
 		return -EINVAL;
@@ -175,30 +150,8 @@ swconfig_get_link(struct switch_dev *dev, const struct switch_attr *attr,
 	if (!dev->ops->get_port_link)
 		return -EOPNOTSUPP;
 
-	memset(&link, 0, sizeof(link));
-	ret = dev->ops->get_port_link(dev, val->port_vlan, &link);
-	if (ret)
-		return ret;
-
-	memset(dev->buf, 0, sizeof(dev->buf));
-
-	if (link.link)
-		len = snprintf(dev->buf, sizeof(dev->buf),
-			       "port:%d link:up speed:%s %s-duplex %s%s%s",
-			       val->port_vlan,
-			       swconfig_speed_str(link.speed),
-			       link.duplex ? "full" : "half",
-			       link.tx_flow ? "txflow " : "",
-			       link.rx_flow ?	"rxflow " : "",
-			       link.aneg ? "auto" : "");
-	else
-		len = snprintf(dev->buf, sizeof(dev->buf), "port:%d link:down",
-			       val->port_vlan);
-
-	val->value.s = dev->buf;
-	val->len = len;
-
-	return 0;
+	memset(link, 0, sizeof(*link));
+	return dev->ops->get_port_link(dev, val->port_vlan, link);
 }
 
 static int
@@ -261,7 +214,7 @@ static struct switch_attr default_port[] = {
 		.get = swconfig_get_pvid,
 	},
 	[PORT_LINK] = {
-		.type = SWITCH_TYPE_STRING,
+		.type = SWITCH_TYPE_LINK,
 		.name = "link",
 		.description = "Get port link information",
 		.set = swconfig_set_link,
@@ -326,7 +279,6 @@ static const struct nla_policy switch_policy[SWITCH_ATTR_MAX+1] = {
 	[SWITCH_ATTR_OP_VALUE_INT] = { .type = NLA_U32 },
 	[SWITCH_ATTR_OP_VALUE_STR] = { .type = NLA_NUL_STRING },
 	[SWITCH_ATTR_OP_VALUE_PORTS] = { .type = NLA_NESTED },
-	[SWITCH_ATTR_OP_VALUE_EXT] = { .type = NLA_NESTED },
 	[SWITCH_ATTR_TYPE] = { .type = NLA_U32 },
 };
 
@@ -339,11 +291,6 @@ static struct nla_policy link_policy[SWITCH_LINK_ATTR_MAX] = {
 	[SWITCH_LINK_FLAG_DUPLEX] = { .type = NLA_FLAG },
 	[SWITCH_LINK_FLAG_ANEG] = { .type = NLA_FLAG },
 	[SWITCH_LINK_SPEED] = { .type = NLA_U32 },
-};
-
-static const struct nla_policy ext_policy[SWITCH_EXT_ATTR_MAX+1] = {
-	[SWITCH_EXT_NAME] = { .type = NLA_NUL_STRING },
-	[SWITCH_EXT_VALUE] = { .type = NLA_NUL_STRING },
 };
 
 static inline void
@@ -647,12 +594,9 @@ swconfig_parse_ports(struct sk_buff *msg, struct nlattr *head,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,2,0)
 		if (nla_parse_nested_deprecated(tb, SWITCH_PORT_ATTR_MAX, nla,
 				port_policy, NULL))
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,12,0)
-		if (nla_parse_nested(tb, SWITCH_PORT_ATTR_MAX, nla,
-				port_policy, NULL))
 #else
 		if (nla_parse_nested(tb, SWITCH_PORT_ATTR_MAX, nla,
-				port_policy))
+				port_policy, NULL))
 #endif
 			return -EINVAL;
 
@@ -669,47 +613,6 @@ swconfig_parse_ports(struct sk_buff *msg, struct nlattr *head,
 }
 
 static int
-swconfig_parse_ext(struct sk_buff *msg, struct nlattr *head,
-		struct switch_val *val, int max)
-{
-	struct nlattr *nla;
-	struct switch_ext *switch_ext_p, *switch_ext_tmp;
-	int rem;
-
-	val->len = 0;
-	switch_ext_p = val->value.ext_val;
-	nla_for_each_nested(nla, head, rem) {
-		struct nlattr *tb[SWITCH_EXT_ATTR_MAX+1];
-
-		switch_ext_tmp = kzalloc(sizeof(struct switch_ext), GFP_KERNEL);
-		if (!switch_ext_tmp)
-			return -ENOMEM;
-
-		if (nla_parse_nested_deprecated(tb, SWITCH_EXT_ATTR_MAX, nla,
-				ext_policy, NULL))
-			return -EINVAL;
-
-		if (!tb[SWITCH_EXT_NAME])
-			return -EINVAL;
-		switch_ext_tmp->option_name = nla_data(tb[SWITCH_EXT_NAME]);
-
-		if (!tb[SWITCH_EXT_VALUE])
-			return -EINVAL;
-		switch_ext_tmp->option_value = nla_data(tb[SWITCH_EXT_VALUE]);
-
-		if(!switch_ext_p)
-			val->value.ext_val = switch_ext_tmp;
-		else
-			switch_ext_p->next = switch_ext_tmp;
-		switch_ext_p=switch_ext_tmp;
-
-		val->len++;
-	}
-
-	return 0;
-}
-
-static int
 swconfig_parse_link(struct sk_buff *msg, struct nlattr *nla,
 		    struct switch_port_link *link)
 {
@@ -717,10 +620,8 @@ swconfig_parse_link(struct sk_buff *msg, struct nlattr *nla,
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,2,0)
 	if (nla_parse_nested_deprecated(tb, SWITCH_LINK_ATTR_MAX, nla, link_policy, NULL))
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,12,0)
-	if (nla_parse_nested(tb, SWITCH_LINK_ATTR_MAX, nla, link_policy, NULL))
 #else
-	if (nla_parse_nested(tb, SWITCH_LINK_ATTR_MAX, nla, link_policy))
+	if (nla_parse_nested(tb, SWITCH_LINK_ATTR_MAX, nla, link_policy, NULL))
 #endif
 		return -EINVAL;
 
@@ -737,7 +638,6 @@ swconfig_set_attr(struct sk_buff *skb, struct genl_info *info)
 	const struct switch_attr *attr;
 	struct switch_dev *dev;
 	struct switch_val val;
-	struct switch_ext *switch_ext_p;
 	int err = -EINVAL;
 
 	if (!capable(CAP_NET_ADMIN))
@@ -800,35 +700,12 @@ swconfig_set_attr(struct sk_buff *skb, struct genl_info *info)
 			err = 0;
 		}
 		break;
-	case SWITCH_TYPE_EXT:
-		if (info->attrs[SWITCH_ATTR_OP_VALUE_EXT]) {
-			err = swconfig_parse_ext(skb,
-				info->attrs[SWITCH_ATTR_OP_VALUE_EXT], &val, dev->ports);
-			if (err < 0)
-				goto error;
-		} else {
-			val.len = 0;
-			err = 0;
-		}
-		break;
 	default:
 		goto error;
 	}
 
 	err = attr->set(dev, attr, &val);
 error:
-	/* free memory if necessary */
-	if(attr) {
-		switch(attr->type) {
-		case SWITCH_TYPE_EXT:
-			switch_ext_p = val.value.ext_val;
-			while(switch_ext_p) {
-				struct switch_ext *ext_value_p = switch_ext_p;
-				switch_ext_p = switch_ext_p->next;
-				kfree(ext_value_p);
-			}
-		}
-	}
 	swconfig_put_dev(dev);
 	return err;
 }
@@ -1228,9 +1105,6 @@ static struct genl_ops swconfig_ops[] = {
 };
 
 static struct genl_family switch_fam = {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,10,0)
-	.id = GENL_ID_GENERATE,
-#endif
 	.name = "switch",
 	.hdrsize = 0,
 	.version = 1,
@@ -1416,11 +1290,7 @@ swconfig_init(void)
 {
 	INIT_LIST_HEAD(&swdevs);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,10,0)
-	return genl_register_family_with_ops(&switch_fam, swconfig_ops);
-#else
 	return genl_register_family(&switch_fam);
-#endif
 }
 
 static void __exit
