@@ -177,7 +177,7 @@ int mhitest_dump_info(struct mhitest_platform *mplat, bool in_panic)
 		return -EIO;
 	}
 
-	ret = mhi_download_rddm_img(mhi_ctrl, in_panic);
+	ret = mhi_download_rddm_image(mhi_ctrl, in_panic);
 	if (ret) {
 		MHITEST_ERR("Error .. not able to dload rddm img ret:%d\n",
 									ret);
