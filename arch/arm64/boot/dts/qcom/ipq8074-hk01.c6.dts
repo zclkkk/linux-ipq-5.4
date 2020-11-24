@@ -12,6 +12,12 @@
 		serial1 = &blsp1_uart3;
 	};
 
+	chosen {
+#ifndef __IPQ_MEM_PROFILE_256_MB__
+			bootargs-append = " vmalloc=600M";
+#endif
+	};
+
 	reserved-memory {
 /* No Pine attach in 256M profile */
 #if !defined(__IPQ_MEM_PROFILE_256_MB__)
