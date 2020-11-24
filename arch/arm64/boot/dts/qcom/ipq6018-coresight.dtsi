@@ -25,7 +25,7 @@
 		interrupts = <GIC_SPI 166 IRQ_TYPE_EDGE_RISING>;
 		interrupt-names = "byte-cntr-irq";
 
-		memory_region = <&q6_etr_region>;
+		memory-region = <&q6_etr_region>;
 		arm,buffer-size = <0x100000>;
 		arm,sg-enable;
 
