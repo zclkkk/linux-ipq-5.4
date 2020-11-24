@@ -406,7 +406,7 @@ static void q6v6_wcss_reset(struct q6v5_wcss *wcss)
 		writel(0x0, wcss->reg_base + Q6SS_DBG_CFG);
 
 	cookie = 1;
-	ret = qcom_scm_wcss_boot(Q6_BOOT_TRIG_SVC_ID,
+	ret = qti_scm_wcss_boot(Q6_BOOT_TRIG_SVC_ID,
 				 Q6_BOOT_TRIG_CMD_ID, &cookie);
 	if (ret) {
 		dev_err(wcss->dev, "q6-boot trigger scm failed\n");
@@ -1011,7 +1011,7 @@ static void q6v6_q6_powerdown(struct q6v5_wcss *wcss)
 	ipq5018_clks_prepare_disable(wcss);
 
 	cookie = 0;
-	ret = qcom_scm_wcss_boot(Q6_BOOT_TRIG_SVC_ID,
+	ret = qti_scm_wcss_boot(Q6_BOOT_TRIG_SVC_ID,
 				 Q6_BOOT_TRIG_CMD_ID, &cookie);
 	if (ret) {
 		dev_err(wcss->dev, "q6-stop trigger scm failed\n");
