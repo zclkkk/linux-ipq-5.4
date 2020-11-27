@@ -36,5 +36,9 @@
 		serial@78b1000 {
 			status = "ok";
 		};
+
+		gcc: gcc@1800000 {
+			gcc-use-dummy;
+		};
 	};
 };

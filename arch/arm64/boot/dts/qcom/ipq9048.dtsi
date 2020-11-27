@@ -115,7 +115,6 @@
 			clock-names = "xo", "sleep_clk";
 			#clock-cells = <0x1>;
 			#reset-cells = <0x1>;
-			gcc-use-dummy;
 		};
 
 		tlmm: pinctrl@1000000 {
