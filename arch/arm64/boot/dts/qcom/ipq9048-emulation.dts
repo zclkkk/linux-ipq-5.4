@@ -17,7 +17,7 @@
 	interrupt-parent = <&intc>;
 
 	aliases {
-		serial0 = &blsp1_uart3;
+		serial0 = &blsp1_uart1;
 	};
 
 	chosen {
@@ -33,7 +33,9 @@
 	};
 
 	soc {
-		serial@78b1000 {
+		serial@78af000 {
+			pinctrl-0 = <&serial_1_pins>;
+			pinctrl-names = "default";
 			status = "ok";
 		};
 
