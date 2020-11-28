@@ -707,6 +707,7 @@ static const struct msm_function ipq9048_functions[] = {
 	FUNCTION(dwc_ddrphy),
 	FUNCTION(gcc_plltest),
 	FUNCTION(gcc_tlmm),
+	FUNCTION(gpio),
 	FUNCTION(mac00),
 	FUNCTION(mac01),
 	FUNCTION(mac10),
