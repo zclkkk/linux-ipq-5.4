@@ -338,6 +338,9 @@ static ssize_t mhi_uci_read(struct file *file,
 	/* Copy the buffer to user space */
 	to_copy = min_t(size_t, count, uci_chan->rx_size);
 	ptr = uci_buf->data + (uci_buf->len - uci_chan->rx_size);
+	uci_chan->rx_size -= to_copy;
+	if (!uci_chan->rx_size)
+		uci_chan->cur_buf = NULL;
 	spin_unlock_bh(&uci_chan->lock);
 
 	ret = copy_to_user(buf, ptr, to_copy);
@@ -347,11 +350,9 @@ static ssize_t mhi_uci_read(struct file *file,
 	spin_lock_bh(&uci_chan->lock);
 
 	dev_dbg(dev, "Copied %zu of %zu bytes\n", to_copy, uci_chan->rx_size);
-	uci_chan->rx_size -= to_copy;
 
 	/* we finished with this buffer, queue it back to hardware */
 	if (!uci_chan->rx_size) {
-		uci_chan->cur_buf = NULL;
 
 		if (uci_dev->enabled)
 			ret = mhi_queue_buf(mhi_dev, DMA_FROM_DEVICE,
@@ -437,10 +438,12 @@ static int mhi_uci_open(struct inode *inode, struct file *filp)
 error_rx_queue:
 	dl_chan = &uci_dev->dl_chan;
 	mhi_unprepare_from_transfer(uci_dev->mhi_dev);
+	spin_lock_bh(&dl_chan->lock);
 	list_for_each_entry_safe(buf_itr, tmp, &dl_chan->pending, node) {
 		list_del(&buf_itr->node);
 		kfree(buf_itr->data);
 	}
+	spin_unlock_bh(&dl_chan->lock);
 
 error_open_chan:
 	mutex_unlock(&uci_dev->mutex);
