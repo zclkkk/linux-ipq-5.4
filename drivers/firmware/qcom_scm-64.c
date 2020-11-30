@@ -476,7 +476,7 @@ int __qcom_scm_iommu_secure_ptbl_init(struct device *dev, u64 addr, u32 size,
 	return ret;
 }
 
-int __qcom_scm_wcss_boot(struct device *dev, u32 svc_id, u32 cmd_id,
+int __qti_scm_wcss_boot(struct device *dev, u32 svc_id, u32 cmd_id,
 			 void *cmd_buf)
 {
 	struct qcom_scm_desc desc = {0};

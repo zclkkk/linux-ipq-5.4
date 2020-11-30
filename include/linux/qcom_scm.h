@@ -325,5 +325,5 @@ extern int qti_scm_extwdt(u32 svc_id, u32 cmd_id, unsigned int regaddr,
 	return -ENODEV;
 }
 #endif
-extern int qcom_scm_wcss_boot(u32 svc_id, u32 cmd_id, void *cmd_buf);
+extern int qti_scm_wcss_boot(u32 svc_id, u32 cmd_id, void *cmd_buf);
 #endif
