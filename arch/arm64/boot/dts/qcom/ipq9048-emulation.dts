@@ -414,4 +414,8 @@
 			clock-frequency = <240000>;
 		};
 	};
+
+	psci {
+		status = "disabled";
+	};
 };

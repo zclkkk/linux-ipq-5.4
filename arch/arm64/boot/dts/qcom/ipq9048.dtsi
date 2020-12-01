@@ -233,6 +233,5 @@
 	psci {
 		compatible = "arm,psci-1.0";
 		method = "smc";
-		status = "disabled";
 	};
 };
