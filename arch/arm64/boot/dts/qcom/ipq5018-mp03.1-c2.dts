@@ -8,7 +8,7 @@
 
 / {
 	model = "Qualcomm Technologies, Inc. IPQ5018/AP-MP03-C2";
-	compatible = "qcom,ipq5018-mp03", "qcom,ipq5018";
+	compatible = "qcom,ipq5018-ap-mp03.1-c2", "qcom,ipq5018";
 
 	aliases {
 		serial0 = &blsp1_uart1;
