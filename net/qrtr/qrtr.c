@@ -123,6 +123,7 @@ static DECLARE_RWSEM(qrtr_node_lock);
 /* local port allocation management */
 static DEFINE_IDR(qrtr_ports);
 static DEFINE_MUTEX(qrtr_port_lock);
+static DEFINE_MUTEX(qrtr_node_locking);
 
 /**
  * struct qrtr_node - endpoint node
@@ -323,7 +324,7 @@ static void __qrtr_node_release(struct kref *kref)
 	spin_unlock_irqrestore(&qrtr_nodes_lock, flags);
 
 	list_del(&node->item);
-	up_write(&qrtr_node_lock);
+	mutex_unlock(&qrtr_node_locking);
 
 	/* Free tx flow counters */
 	mutex_lock(&node->qrtr_tx_lock);
@@ -346,9 +347,15 @@ static void __qrtr_node_release(struct kref *kref)
 /* Increment reference to node. */
 static struct qrtr_node *qrtr_node_acquire(struct qrtr_node *node)
 {
-	if (node)
-		kref_get(&node->ref);
-	return node;
+	if (node) {
+		if (likely(kref_get_unless_zero(&node->ref))) {
+			return node;
+		} else {
+			pr_err("WARN: %s qrtr node is getting acquired while"
+					"being destroyed\n", __func__);
+		}
+	}
+	return NULL;
 }
 
 /* Decrement reference to node and release as necessary. */
@@ -356,7 +363,7 @@ static void qrtr_node_release(struct qrtr_node *node)
 {
 	if (!node)
 		return;
-	kref_put_rwsem_lock(&node->ref, __qrtr_node_release, &qrtr_node_lock);
+	kref_put_mutex(&node->ref, __qrtr_node_release, &qrtr_node_locking);
 }
 
 /**
@@ -724,6 +731,7 @@ int qrtr_endpoint_post(struct qrtr_endpoint *ep, const void *data, size_t len)
 	unsigned int size;
 	unsigned int ver;
 	size_t hdrlen;
+	struct qrtr_ctrl_pkt *pkt;
 
 	if (len == 0 || len & 3)
 		return -EINVAL;
@@ -806,6 +814,13 @@ int qrtr_endpoint_post(struct qrtr_endpoint *ep, const void *data, size_t len)
 		   cb->type == QRTR_TYPE_DATA) {
 		qrtr_fwd_pkt(skb, cb);
 	} else {
+		/* Translate DEL_PROC to BYE for local enqueue */
+		if (cb->type == QRTR_TYPE_DEL_PROC) {
+			cb->type = QRTR_TYPE_BYE;
+			pkt = (struct qrtr_ctrl_pkt *)skb->data;
+			memset(pkt, 0, sizeof(struct qrtr_ctrl_pkt));
+			pkt->cmd = cpu_to_le32(QRTR_TYPE_BYE);
+		}
 		ipc = qrtr_port_lookup(cb->dst_port);
 		if (!ipc)
 			goto err;

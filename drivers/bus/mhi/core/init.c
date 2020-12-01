@@ -930,11 +930,8 @@ int mhi_register_controller(struct mhi_controller *mhi_cntrl,
 
 		ret = dma_declare_coherent_memory(&mhi_dev->dev, cma_addr,
 						  cma_addr, cma_size);
-		if (ret) {
-			ret = -EBUSY;
+		if (ret)
 			dev_info(mhi_cntrl->cntrl_dev, "Failed to declare dma coherent memory");
-			goto error_alloc_dev;
-		}
 	} else {
 		dev_err(mhi_cntrl->cntrl_dev, "mhi coherent pool is not reserved");
 	}
