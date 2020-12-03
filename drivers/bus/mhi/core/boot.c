@@ -149,6 +149,17 @@ static int __mhi_download_rddm_in_panic(struct mhi_controller *mhi_cntrl)
 	int rddm_retry = rddm_timeout_us / delayus;
 	void __iomem *base = mhi_cntrl->bhie;
 	struct device *dev = &mhi_cntrl->mhi_dev->dev;
+	u32 val, i;
+	struct {
+		char *name;
+		u32 offset;
+	} error_reg[] = {
+		{ "ERROR_CODE", BHI_ERRCODE },
+		{ "ERROR_DBG1", BHI_ERRDBG1 },
+		{ "ERROR_DBG2", BHI_ERRDBG2 },
+		{ "ERROR_DBG3", BHI_ERRDBG3 },
+		{ NULL },
+	};
 
 	dev_dbg(dev, "Entered with pm_state:%s dev_state:%s ee:%s\n",
 		to_mhi_pm_state_str(mhi_cntrl->pm_state),
@@ -228,6 +239,14 @@ static int __mhi_download_rddm_in_panic(struct mhi_controller *mhi_cntrl)
 	dev_err(dev, "Did not complete RDDM transfer\n");
 	dev_err(dev, "Current EE: %s\n", TO_MHI_EXEC_STR(ee));
 	dev_err(dev, "RXVEC_STATUS: 0x%x\n", rx_status);
+	for (i = 0; error_reg[i].name; i++) {
+		ret = mhi_read_reg(mhi_cntrl, mhi_cntrl->bhi,
+				   error_reg[i].offset, &val);
+		if (ret)
+			break;
+		dev_err(dev, "reg:%s value:0x%x\n",
+			error_reg[i].name, val);
+	}
 
 	return -EIO;
 }
@@ -238,6 +257,18 @@ int mhi_download_rddm_img(struct mhi_controller *mhi_cntrl, bool in_panic)
 	void __iomem *base = mhi_cntrl->bhie;
 	struct device *dev = &mhi_cntrl->mhi_dev->dev;
 	u32 rx_status;
+	rwlock_t *pm_lock = &mhi_cntrl->pm_lock;
+	u32 val, ret, i;
+	struct {
+		char *name;
+		u32 offset;
+	} error_reg[] = {
+		{ "ERROR_CODE", BHI_ERRCODE },
+		{ "ERROR_DBG1", BHI_ERRDBG1 },
+		{ "ERROR_DBG2", BHI_ERRDBG2 },
+		{ "ERROR_DBG3", BHI_ERRDBG3 },
+		{ NULL },
+	};
 
 	if (in_panic)
 		return __mhi_download_rddm_in_panic(mhi_cntrl);
@@ -257,6 +288,20 @@ int mhi_download_rddm_img(struct mhi_controller *mhi_cntrl, bool in_panic)
 		get_crash_reason(mhi_cntrl);
 		return 0;
 	}
+	dev_err(dev, "Image download completion timed out, rx_status = %d\n",
+		rx_status);
+	read_lock_bh(pm_lock);
+	if (MHI_REG_ACCESS_VALID(mhi_cntrl->pm_state)) {
+		for (i = 0; error_reg[i].name; i++) {
+			ret = mhi_read_reg(mhi_cntrl, mhi_cntrl->bhi,
+					   error_reg[i].offset, &val);
+			if (ret)
+				break;
+			dev_err(dev, "reg:%s value:0x%x\n",
+				error_reg[i].name, val);
+		}
+	}
+	read_unlock_bh(pm_lock);
 
 	return -EIO;
 }
