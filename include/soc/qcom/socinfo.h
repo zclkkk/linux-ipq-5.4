@@ -45,13 +45,16 @@
 #define CPU_IPQ5010 426
 #define CPU_IPQ5018 427
 
-static inline const int* read_ipq_soc_version_major(void)
+static inline int read_ipq_soc_version_major(void)
 {
 	const int *prop;
 	prop = of_get_property(of_find_node_by_path("/"), "soc_version_major",
 				NULL);
 
-	return prop;
+	if (!prop)
+		return -EINVAL;
+
+	return le32_to_cpu(*prop);
 }
 
 static inline int read_ipq_cpu_type(void)
@@ -63,7 +66,8 @@ static inline int read_ipq_cpu_type(void)
 	 */
 	if (!prop)
 		return CPU_IPQ8074;
-	return *prop;
+
+	return le32_to_cpu(*prop);
 }
 
 static inline int cpu_is_ipq8070(void)
