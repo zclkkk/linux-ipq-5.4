@@ -701,31 +701,31 @@ static inline bool skb_skip_tc_classify(struct sk_buff *skb)
 /*
  * Set skb classify bit field.
  */
-static inline void skb_set_tc_classify_nss(struct sk_buff *skb)
+static inline void skb_set_tc_classify_offload(struct sk_buff *skb)
 {
 #ifdef CONFIG_NET_CLS_ACT
-	skb->tc_skip_classify_nss = 1;
+	skb->tc_skip_classify_offload = 1;
 #endif
 }
 
 /*
  * Clear skb classify bit field.
  */
-static inline void skb_clear_tc_classify_nss(struct sk_buff *skb)
+static inline void skb_clear_tc_classify_offload(struct sk_buff *skb)
 {
 #ifdef CONFIG_NET_CLS_ACT
-	skb->tc_skip_classify_nss = 0;
+	skb->tc_skip_classify_offload = 0;
 #endif
 }
 
 /*
  * Skip skb processing if sent from ifb dev.
  */
-static inline bool skb_skip_tc_classify_nss(struct sk_buff *skb)
+static inline bool skb_skip_tc_classify_offload(struct sk_buff *skb)
 {
 #ifdef CONFIG_NET_CLS_ACT
-	if (skb->tc_skip_classify_nss) {
-		skb_clear_tc_classify_nss(skb);
+	if (skb->tc_skip_classify_offload) {
+		skb_clear_tc_classify_offload(skb);
 		return true;
 	}
 #endif

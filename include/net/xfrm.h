@@ -267,6 +267,7 @@ static inline struct net *xs_net(struct xfrm_state *x)
 /* xflags - make enum if more show up */
 #define XFRM_TIME_DEFER	1
 #define XFRM_SOFT_EXPIRE 2
+#define XFRM_STATE_OFFLOAD_NSS 4
 
 enum {
 	XFRM_STATE_VOID,
@@ -374,6 +375,7 @@ int xfrm_state_register_afinfo(struct xfrm_state_afinfo *afinfo);
 int xfrm_state_unregister_afinfo(struct xfrm_state_afinfo *afinfo);
 struct xfrm_state_afinfo *xfrm_state_get_afinfo(unsigned int family);
 struct xfrm_state_afinfo *xfrm_state_afinfo_get_rcu(unsigned int family);
+struct xfrm_state_afinfo *xfrm_state_update_afinfo(unsigned int family, struct xfrm_state_afinfo *new);
 
 struct xfrm_input_afinfo {
 	unsigned int		family;
