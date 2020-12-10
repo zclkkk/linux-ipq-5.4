@@ -16,6 +16,16 @@
 	compatible = "qcom,ipq9048-emulation", "qcom,ipq9048";
 	interrupt-parent = <&intc>;
 
+	clocks {
+		sleep_clk: sleep-clk {
+			clock-frequency = <320>;
+		};
+
+		xo: xo {
+			clock-frequency = <240000>;
+		};
+	};
+
 	aliases {
 		serial0 = &blsp1_uart1;
 	};
