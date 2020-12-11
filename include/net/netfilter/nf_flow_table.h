@@ -90,6 +90,7 @@ struct flow_offload {
 #define FLOW_OFFLOAD_PATH_ETHERNET	BIT(0)
 #define FLOW_OFFLOAD_PATH_VLAN		BIT(1)
 #define FLOW_OFFLOAD_PATH_PPPOE		BIT(2)
+#define FLOW_OFFLOAD_PATH_DSA		BIT(3)
 
 struct flow_offload_hw_path {
 	struct net_device *dev;
@@ -100,6 +101,7 @@ struct flow_offload_hw_path {
 	u16 vlan_proto;
 	u16 vlan_id;
 	u16 pppoe_sid;
+	u16 dsa_port;
 };
 
 #define NF_FLOW_TIMEOUT (30 * HZ)
