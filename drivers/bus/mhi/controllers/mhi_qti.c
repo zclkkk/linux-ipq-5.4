@@ -824,10 +824,9 @@ static struct mhi_controller *dt_register_mhi_controller(struct pci_dev *pci_dev
 	struct mhi_controller *mhi_cntrl;
 	struct mhi_dev *mhi_dev;
 	struct device_node *of_node = pci_dev->dev.of_node;
-	const struct firmware_info *firmware_info;
 	bool use_bb;
 	u64 addr_win[2];
-	int ret, i;
+	int ret;
 
 	if (!of_node)
 		return ERR_PTR(-ENODEV);
@@ -850,11 +849,11 @@ static struct mhi_controller *dt_register_mhi_controller(struct pci_dev *pci_dev
 		ret = of_property_count_elems_of_size(of_node, "qti,addr-win",
 						      sizeof(addr_win));
 		if (ret != 1)
-			goto error_register;
+			return ERR_PTR(-EINVAL);
 		ret = of_property_read_u64_array(of_node, "qti,addr-win",
 						 addr_win, 2);
 		if (ret)
-			goto error_register;
+			return ERR_PTR(-EINVAL);
 	} else {
 		addr_win[0] = memblock_start_of_DRAM();
 		addr_win[1] = memblock_end_of_DRAM();
@@ -885,28 +884,7 @@ static struct mhi_controller *dt_register_mhi_controller(struct pci_dev *pci_dev
 	mhi_cntrl->read_reg = mhi_sdx_read_reg;
 	mhi_cntrl->write_reg = mhi_sdx_write_reg;
 
-	ret = mhi_register_controller(mhi_cntrl, &mhi_sdx_mhi_config);
-	if (ret)
-		goto error_register;
-
-	for (i = 0; i < ARRAY_SIZE(firmware_table); i++) {
-		firmware_info = firmware_table + i;
-		/* debug mode always use default */
-		if (!debug_mode && pci_dev->device == firmware_info->dev_id)
-			break;
-	}
-	mhi_cntrl->fw_image = firmware_info->fw_image;
-	mhi_cntrl->edl_image = firmware_info->edl_image;
-
-	if (sysfs_create_group(&mhi_cntrl->mhi_dev->dev.kobj, &mhi_group))
-		MHI_ERR("Error while creating the sysfs group\n");
-
 	return mhi_cntrl;
-
-error_register:
-	mhi_free_controller(mhi_cntrl);
-
-	return ERR_PTR(-EINVAL);
 }
 
 static int mhi_panic_handler(struct notifier_block *this,
@@ -979,8 +957,9 @@ int mhi_pci_probe(struct pci_dev *pci_dev,
 		  const struct pci_device_id *device_id)
 {
 	struct mhi_controller *mhi_cntrl;
+	const struct firmware_info *firmware_info;
 	struct mhi_dev *mhi_dev;
-	int ret;
+	int i, ret;
 
 	/* Fix me: Add check to see if already registered */
 	mhi_cntrl = dt_register_mhi_controller(pci_dev);
@@ -998,6 +977,22 @@ int mhi_pci_probe(struct pci_dev *pci_dev,
 	ret = mhi_init_pci_dev(mhi_cntrl);
 	if (ret)
 		goto error_init_pci;
+
+	ret = mhi_register_controller(mhi_cntrl, &mhi_sdx_mhi_config);
+	if (ret)
+		goto error_register;
+
+	for (i = 0; i < ARRAY_SIZE(firmware_table); i++) {
+		firmware_info = firmware_table + i;
+		/* debug mode always use default */
+		if (!debug_mode && pci_dev->device == firmware_info->dev_id)
+			break;
+	}
+	mhi_cntrl->fw_image = firmware_info->fw_image;
+	mhi_cntrl->edl_image = firmware_info->edl_image;
+
+	if (sysfs_create_group(&mhi_cntrl->mhi_dev->dev.kobj, &mhi_group))
+		MHI_ERR("Error while creating the sysfs group\n");
 
 	/* start power up sequence */
 	if (!debug_mode) {
@@ -1051,6 +1046,9 @@ int mhi_pci_probe(struct pci_dev *pci_dev,
 
 error_power_up:
 	mhi_deinit_pci_dev(mhi_cntrl);
+
+error_register:
+	mhi_free_controller(mhi_cntrl);
 
 error_init_pci:
 	mhi_arch_pcie_deinit(mhi_cntrl);
