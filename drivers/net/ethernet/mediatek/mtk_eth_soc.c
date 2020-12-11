@@ -1316,6 +1316,10 @@ static int mtk_poll_rx(struct napi_struct *napi, int budget,
 		skb->protocol = eth_type_trans(skb, netdev);
 		bytes += pktlen;
 
+		hash = trxd.rxd4 & GENMASK(13, 0);
+		if (hash != GENMASK(13, 0))
+			skb_set_hash(skb, hash, PKT_HASH_TYPE_L4);
+
 		if (netdev->features & NETIF_F_HW_VLAN_CTAG_RX &&
 		    (trxd.rxd2 & RX_DMA_VTAG))
 			__vlan_hwaccel_put_tag(skb, htons(ETH_P_8021Q),
