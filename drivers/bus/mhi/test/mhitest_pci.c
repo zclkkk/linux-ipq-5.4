@@ -1183,7 +1183,6 @@ void mhitest_pci_remove(struct pci_dev *pci_dev)
 	mhitest_subsystem_unregister(mplat);
 	mhitest_event_work_deinit(mplat);
 	pci_load_and_free_saved_state(pci_dev, &mplat->pci_dev_default_state);
-	kfree(mplat->mhi_ctrl);
 	mhitest_free_mplat(mplat);
 }
 
