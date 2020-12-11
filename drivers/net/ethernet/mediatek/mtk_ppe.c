@@ -375,6 +375,8 @@ int mtk_ppe_init(struct mtk_ppe *ppe, struct device *dev, void __iomem *base,
 
 	ppe->foe_table = foe;
 
+	mtk_ppe_debugfs_init(ppe);
+
 	return 0;
 }
 

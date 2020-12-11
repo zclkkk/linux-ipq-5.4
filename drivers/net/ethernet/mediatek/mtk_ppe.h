@@ -271,4 +271,7 @@ int mtk_foe_entry_set_pppoe(struct mtk_foe_entry *entry, int sid);
 int mtk_foe_entry_commit(struct mtk_ppe *ppe, struct mtk_foe_entry *entry,
 			 u16 timestamp);
 
+/* internal */
+int mtk_ppe_debugfs_init(struct mtk_ppe *ppe);
+
 #endif
