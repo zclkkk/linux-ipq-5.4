@@ -1419,9 +1419,13 @@ static void mt7530_phylink_mac_config(struct dsa_switch *ds, int port,
 	switch (state->speed) {
 	case SPEED_1000:
 		mcr_new |= PMCR_FORCE_SPEED_1000;
+		if (priv->eee_enable & BIT(port))
+			mcr_new |= PMCR_FORCE_EEE1G;
 		break;
 	case SPEED_100:
 		mcr_new |= PMCR_FORCE_SPEED_100;
+		if (priv->eee_enable & BIT(port))
+			mcr_new |= PMCR_FORCE_EEE100;
 		break;
 	}
 	if (state->duplex == DUPLEX_FULL) {
@@ -1557,6 +1561,54 @@ mt7530_phylink_mac_link_state(struct dsa_switch *ds, int port,
 	return 1;
 }
 
+static int mt7530_get_mac_eee(struct dsa_switch *ds, int port,
+			      struct ethtool_eee *e)
+{
+	struct mt7530_priv *priv = ds->priv;
+	u32 eeecr, pmsr;
+
+	e->eee_enabled = !!(priv->eee_enable & BIT(port));
+
+	if (e->eee_enabled) {
+		eeecr = mt7530_read(priv, MT7530_PMEEECR_P(port));
+		e->tx_lpi_enabled = !(eeecr & LPI_MODE_EN);
+		e->tx_lpi_timer   = (eeecr >> 4) & 0xFFF;
+		pmsr = mt7530_read(priv, MT7530_PMSR_P(port));
+		e->eee_active  = e->eee_enabled && !!(pmsr & PMSR_EEE1G);
+	} else {
+		e->tx_lpi_enabled = 0;
+		e->tx_lpi_timer = 0;
+		e->eee_active = 0;
+	}
+
+	return 0;
+}
+
+static int mt7530_set_mac_eee(struct dsa_switch *ds, int port,
+			      struct ethtool_eee *e)
+{
+	struct mt7530_priv *priv = ds->priv;
+	u32 eeecr;
+
+	if (e->tx_lpi_enabled && e->tx_lpi_timer > 0xFFF)
+		return -EINVAL;
+
+	if (e->eee_enabled) {
+		priv->eee_enable |= BIT(port);
+		//MT7530_PMEEECR_P
+		eeecr = mt7530_read(priv, MT7530_PMEEECR_P(port));
+		eeecr &= 0xFFFF0000;
+		if (!e->tx_lpi_enabled)
+			eeecr |= LPI_MODE_EN;
+		eeecr = LPI_THRESH(e->tx_lpi_timer);
+		mt7530_write(priv, MT7530_PMEEECR_P(port), eeecr);
+	} else {
+		priv->eee_enable &= ~(BIT(port));
+	}
+
+	return 0;
+}
+
 static const struct dsa_switch_ops mt7530_switch_ops = {
 	.get_tag_protocol	= mtk_get_tag_protocol,
 	.setup			= mt7530_setup,
@@ -1584,6 +1636,8 @@ static const struct dsa_switch_ops mt7530_switch_ops = {
 	.phylink_mac_config	= mt7530_phylink_mac_config,
 	.phylink_mac_link_down	= mt7530_phylink_mac_link_down,
 	.phylink_mac_link_up	= mt7530_phylink_mac_link_up,
+	.get_mac_eee		= mt7530_get_mac_eee,
+	.set_mac_eee		= mt7530_set_mac_eee,
 };
 
 static const struct of_device_id mt7530_of_match[] = {
