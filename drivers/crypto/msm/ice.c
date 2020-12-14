@@ -1298,14 +1298,12 @@ static int qcom_ice_config_start(struct platform_device *pdev,
 	 */
 	return 0;
 }
-EXPORT_SYMBOL(qcom_ice_config_start);
 
 static int qcom_ice_config_end(struct request *req)
 {
 
 	return 0;
 }
-EXPORT_SYMBOL(qcom_ice_config_end);
 
 
 static int qcom_ice_status(struct platform_device *pdev)

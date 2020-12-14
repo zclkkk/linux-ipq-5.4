@@ -1600,7 +1600,7 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 	struct dw_pcie *pci;
 	struct qcom_pcie *pcie;
 	struct qcom_pcie_of_data *data;
-	const int *soc_version_major;
+	int soc_version_major;
 	int ret;
 	int i, domain;
 	char irq_name[20];
@@ -1657,14 +1657,14 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 		 * gen2 port in both V1 and V2.
 		 */
 		soc_version_major = read_ipq_soc_version_major();
-		BUG_ON(!soc_version_major);
-		if (*soc_version_major == 2) {
+		BUG_ON(soc_version_major <= 0);
+		if (soc_version_major == 2) {
 			pcie->phy = devm_phy_optional_get(dev, "pciephy-gen3");
 			if (IS_ERR(pcie->phy)) {
 				ret = PTR_ERR(pcie->phy);
 				goto err_pm_runtime_put;
 			}
-		} else if (*soc_version_major == 1) {
+		} else if (soc_version_major == 1) {
 			/*
 			 * Probe the pcie port as gen2 port if it is ipq8074 V1
 			 * since there are no gen3 ports in ipq8074 V1. The QCOM

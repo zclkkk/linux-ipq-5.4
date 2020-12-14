@@ -2468,7 +2468,7 @@ static int qcom_qmp_phy_probe(struct platform_device *pdev)
 	void __iomem *base;
 	int num, id;
 	int ret;
-	const int *soc_version_major;
+	int soc_version_major;
 
 	qmp = devm_kzalloc(dev, sizeof(*qmp), GFP_KERNEL);
 	if (!qmp)
@@ -2483,15 +2483,15 @@ static int qcom_qmp_phy_probe(struct platform_device *pdev)
 		return -EINVAL;
 
 	soc_version_major = read_ipq_soc_version_major();
-	BUG_ON(!soc_version_major);
+	BUG_ON(soc_version_major <= 0);
 
 	if (of_device_is_compatible(dev->of_node,
 				    "qcom,ipq8074-qmp-pcie-gen3-phy") &&
-				    *soc_version_major == 1) {
+				    soc_version_major == 1) {
 		return -EACCES;
 	} else if (of_device_is_compatible(dev->of_node,
 					   "qcom,ipq8074-qmp-pcie-gen2-phy") &&
-					   *soc_version_major == 2) {
+					   soc_version_major == 2) {
 		return -EACCES;
 	}
 

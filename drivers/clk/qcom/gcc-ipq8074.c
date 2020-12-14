@@ -5068,13 +5068,13 @@ static const struct qcom_cc_desc gcc_ipq8074_desc = {
 static int gcc_ipq8074_probe(struct platform_device *pdev)
 {
 	struct regmap *regmap;
-	const int *soc_version_major;
+	int soc_version_major;
 	struct device *dev = &pdev->dev;
 
 	soc_version_major = read_ipq_soc_version_major();
-	BUG_ON(!soc_version_major);
+	BUG_ON(soc_version_major <= 0);
 
-	if (*soc_version_major == 1) {
+	if (soc_version_major == 1) {
 		pr_info("Soc version is 1, changing clock offsets\n");
 
 		v1fix_clk_offset(pcie0_axi_clk_src);
