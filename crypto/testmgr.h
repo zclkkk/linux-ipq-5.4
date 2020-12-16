@@ -12625,7 +12625,9 @@ static const struct cipher_testvec aes_tv_template[] = {
 		.ctext	= "\x69\xc4\xe0\xd8\x6a\x7b\x04\x30"
 			  "\xd8\xcd\xb7\x80\x70\xb4\xc5\x5a",
 		.len	= 16,
-	}, {
+	},
+#ifndef CONFIG_CRYPTO_DISABLE_AES192_TEST
+	{
 		.key	= "\x00\x01\x02\x03\x04\x05\x06\x07"
 			  "\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f"
 			  "\x10\x11\x12\x13\x14\x15\x16\x17",
@@ -12635,7 +12637,9 @@ static const struct cipher_testvec aes_tv_template[] = {
 		.ctext	= "\xdd\xa9\x7c\xa4\x86\x4c\xdf\xe0"
 			  "\x6e\xaf\x70\xa0\xec\x0d\x71\x91",
 		.len	= 16,
-	}, {
+	},
+#endif
+	{
 		.key	= "\x00\x01\x02\x03\x04\x05\x06\x07"
 			  "\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f"
 			  "\x10\x11\x12\x13\x14\x15\x16\x17"
@@ -12810,7 +12814,9 @@ static const struct cipher_testvec aes_cbc_tv_template[] = {
 			  "\x75\x86\x60\x2d\x25\x3c\xff\xf9"
 			  "\x1b\x82\x66\xbe\xa6\xd6\x1a\xb1",
 		.len	= 32,
-	}, { /* From NIST SP800-38A */
+	},
+#ifndef CONFIG_CRYPTO_DISABLE_AES192_TEST
+	{ /* From NIST SP800-38A */
 		.key	= "\x8e\x73\xb0\xf7\xda\x0e\x64\x52"
 			  "\xc8\x10\xf3\x2b\x80\x90\x79\xe5"
 			  "\x62\xf8\xea\xd2\x52\x2c\x6b\x7b",
@@ -12836,7 +12842,9 @@ static const struct cipher_testvec aes_cbc_tv_template[] = {
 			  "\x08\xb0\xe2\x79\x88\x59\x88\x81"
 			  "\xd9\x20\xa9\xe6\x4f\x56\x15\xcd",
 		.len	= 64,
-	}, {
+	},
+#endif
+	{
 		.key	= "\x60\x3d\xeb\x10\x15\xca\x71\xbe"
 			  "\x2b\x73\xae\xf0\x85\x7d\x77\x81"
 			  "\x1f\x35\x2c\x07\x3b\x61\x08\xd7"
@@ -13322,7 +13330,9 @@ static const struct aead_testvec hmac_sha1_aes_cbc_tv_temp[] = {
 			  "\xe1\xc5\x0b\x73\x4d\x82\x55\xa8"
 			  "\x85\xe1\x59\xf7",
 		.clen	= 80 + 20,
-       }, { /* NIST SP800-38A F.2.3 CBC-AES192.Encrypt */
+       },
+#ifndef CONFIG_CRYPTO_DISABLE_AES192_TEST
+	{ /* NIST SP800-38A F.2.3 CBC-AES192.Encrypt */
 #ifdef __LITTLE_ENDIAN
 		.key    = "\x08\x00"            /* rta length */
 			  "\x01\x00"		/* rta type */
@@ -13364,7 +13374,9 @@ static const struct aead_testvec hmac_sha1_aes_cbc_tv_temp[] = {
 			  "\x5a\xf1\x5b\xa8\x98\x07\xc5\x36"
 			  "\x47\x4c\xfc\x36",
 		.clen	= 64 + 20,
-	}, { /* NIST SP800-38A F.2.5 CBC-AES256.Encrypt */
+	},
+#endif
+	{ /* NIST SP800-38A F.2.5 CBC-AES256.Encrypt */
 #ifdef __LITTLE_ENDIAN
 		.key    = "\x08\x00"		/* rta length */
 			  "\x01\x00"		/* rta type */
@@ -13647,7 +13659,9 @@ static const struct aead_testvec hmac_sha256_aes_cbc_tv_temp[] = {
 			  "\x73\xc3\x46\x20\x2c\xb1\xef\x68"
 			  "\xbb\x8a\x32\x7e\x12\x8c\x69\xcf",
 		.clen	= 80 + 32,
-       }, { /* NIST SP800-38A F.2.3 CBC-AES192.Encrypt */
+       },
+#ifndef CONFIG_CRYPTO_DISABLE_AES192_TEST
+	{ /* NIST SP800-38A F.2.3 CBC-AES192.Encrypt */
 #ifdef __LITTLE_ENDIAN
 		.key    = "\x08\x00"            /* rta length */
 			  "\x01\x00"		/* rta type */
@@ -13691,7 +13705,9 @@ static const struct aead_testvec hmac_sha256_aes_cbc_tv_temp[] = {
 			  "\xca\x71\x85\x93\xf7\x85\x55\x8b"
 			  "\x7a\xe4\x94\xca\x8b\xba\x19\x33",
 		.clen	= 64 + 32,
-	}, { /* NIST SP800-38A F.2.5 CBC-AES256.Encrypt */
+	},
+#endif
+	{ /* NIST SP800-38A F.2.5 CBC-AES256.Encrypt */
 #ifdef __LITTLE_ENDIAN
 		.key    = "\x08\x00"		/* rta length */
 			  "\x01\x00"		/* rta type */
@@ -13950,7 +13966,9 @@ static const struct aead_testvec hmac_sha384_aes_cbc_tv_temp[] = {
 			  "\x36\x43\x74\xfc\xc2\x64\x81\x8a"
 			  "\x2c\x15\x72\xdf\x3f\x9d\x5b\xa4",
 		.clen   = 80 + 48,
-       }, { /* NIST SP800-38A F.2.3 CBC-AES192.Encrypt */
+       },
+#ifndef CONFIG_CRYPTO_DISABLE_AES192_TEST
+	{ /* NIST SP800-38A F.2.3 CBC-AES192.Encrypt */
 #ifdef __LITTLE_ENDIAN
 		.key    = "\x08\x00"            /* rta length */
 			  "\x01\x00"		/* rta type */
@@ -13998,7 +14016,9 @@ static const struct aead_testvec hmac_sha384_aes_cbc_tv_temp[] = {
 			  "\x72\xce\x26\xbc\x74\xd9\x6f\xa2"
 			  "\xf1\xd9\xd0\xb1\xdf\x3d\x93\x14",
 		.clen   = 64 + 48,
-	}, { /* NIST SP800-38A F.2.5 CBC-AES256.Encrypt */
+	},
+#endif
+	{ /* NIST SP800-38A F.2.5 CBC-AES256.Encrypt */
 #ifdef __LITTLE_ENDIAN
 		.key    = "\x08\x00"		/* rta length */
 			  "\x01\x00"		/* rta type */
@@ -14281,7 +14301,9 @@ static const struct aead_testvec hmac_sha512_aes_cbc_tv_temp[] = {
 			  "\x62\x4f\x9a\x62\x25\xc3\x75\x80"
 			  "\xb7\x0a\x17\xf5\xd7\x94\xb4\x14",
 		.clen	= 80 + 64,
-       }, { /* NIST SP800-38A F.2.3 CBC-AES192.Encrypt */
+       },
+#ifndef CONFIG_CRYPTO_DISABLE_AES192_TEST
+	{ /* NIST SP800-38A F.2.3 CBC-AES192.Encrypt */
 #ifdef __LITTLE_ENDIAN
 		.key    = "\x08\x00"            /* rta length */
 			  "\x01\x00"		/* rta type */
@@ -14333,7 +14355,9 @@ static const struct aead_testvec hmac_sha512_aes_cbc_tv_temp[] = {
 			  "\x8d\x43\x98\xa7\x94\x16\x07\x02"
 			  "\x0f\xb6\x81\x50\x28\x95\x2e\x75",
 		.clen	= 64 + 64,
-	}, { /* NIST SP800-38A F.2.5 CBC-AES256.Encrypt */
+	},
+#endif
+	{ /* NIST SP800-38A F.2.5 CBC-AES256.Encrypt */
 #ifdef __LITTLE_ENDIAN
 		.key    = "\x08\x00"		/* rta length */
 			  "\x01\x00"		/* rta type */
@@ -16003,7 +16027,9 @@ static const struct cipher_testvec aes_ctr_rfc3686_tv_template[] = {
 			  "\xeb\x2e\x1e\xfc\x46\xda\x57\xc8"
 			  "\xfc\xe6\x30\xdf\x91\x41\xbe\x28",
 		.len	= 32,
-	}, {
+	},
+#ifndef CONFIG_CRYPTO_DISABLE_AES192_TEST
+	{
 		.key	= "\x16\xaf\x5b\x14\x5f\xc9\xf5\x79"
 			  "\xc1\x75\xf9\x3e\x3b\xfb\x0e\xed"
 			  "\x86\x3d\x06\xcc\xfd\xb7\x85\x15"
@@ -16030,7 +16056,9 @@ static const struct cipher_testvec aes_ctr_rfc3686_tv_template[] = {
 			  "\x84\x90\x70\x1c\x5a\xd4\xa7\x9c"
 			  "\xfc\x1f\xe0\xff\x42\xf4\xfb\x00",
 		.len	= 32,
-	}, {
+	},
+#endif
+	{
 		.key	= "\x77\x6b\xef\xf2\x85\x1d\xb0\x6f"
 			  "\x4c\x8a\x05\x42\xc8\x69\x6f\x6c"
 			  "\x6a\x81\xaf\x1e\xec\x96\xb4\xd3"
