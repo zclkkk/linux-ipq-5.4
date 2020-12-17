@@ -253,6 +253,13 @@ config CRYPTO_DISABLE_AES192_TEST
 	help
 	  Disable testcases with 192 key length
 
+config CRYPTO_NO_ZERO_LEN_HASH
+	bool "Disable support for zero data length cases"
+	default y
+	depends on CRYPTO_TEST
+	help
+	  Disable support for zero data length cases
+
 config CRYPTO_SIMD
 	tristate
 	select CRYPTO_CRYPTD
