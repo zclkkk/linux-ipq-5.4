@@ -302,7 +302,7 @@ static void mhi_assign_of_node(struct mhi_controller *mhi_cntrl,
 		if (ret)
 			continue;
 
-		if (!strcmp(mhi_dev->chan_name, dt_name)) {
+		if (!strcmp(mhi_dev->name, dt_name)) {
 			mhi_dev->dev.of_node = node;
 			break;
 		}

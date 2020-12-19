@@ -26,7 +26,7 @@ config MHI_BUS_TEST
 	default n
 	depends on MHI_BUS
 	help
-	 Test driver for testing the MHI bus
+	  Test driver for testing the MHI bus
 
 source "drivers/bus/mhi/clients/Kconfig"
 source "drivers/bus/mhi/controllers/Kconfig"

@@ -405,6 +405,7 @@ struct mhi_controller {
 	u32 minor_version;
 	u32 serial_number;
 	u32 oem_pk_hash[MHI_MAX_OEM_PK_HASH_SEGMENTS];
+	struct notifier_block mhi_panic_notifier;
 
 	struct mhi_event *mhi_event;
 	struct mhi_cmd *mhi_cmd;
@@ -781,5 +782,7 @@ void mhi_debug_reg_dump(struct mhi_controller *mhi_cntrl);
  * @dir: DMA direction for the channel
  */
 bool mhi_queue_is_full(struct mhi_device *mhi_dev, enum dma_data_direction dir);
+
+void mhi_wdt_panic_handler(void);
 
 #endif /* _MHI_H_ */
