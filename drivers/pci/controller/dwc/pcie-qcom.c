@@ -16,12 +16,14 @@
 #include <linux/iopoll.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
+#include <linux/notifier.h>
 #include <linux/of_device.h>
 #include <linux/of_gpio.h>
 #include <linux/pci.h>
 #include <linux/pm_runtime.h>
 #include <linux/platform_device.h>
 #include <linux/phy/phy.h>
+#include <linux/reboot.h>
 #include <linux/regulator/consumer.h>
 #include <linux/reset.h>
 #include <linux/slab.h>
@@ -245,6 +247,12 @@ struct qcom_pcie {
 	struct gpio_desc *reset;
 	const struct qcom_pcie_ops *ops;
 	u32 max_speed;
+	struct work_struct handle_wake_work;
+	struct work_struct handle_e911_work;
+	int wake_irq;
+	int mdm2ap_e911_irq;
+	bool enumerated;
+	struct notifier_block pci_reboot_notifier;
 };
 
 #define MAX_MSI_CTRLS_IPQ8074	4
@@ -252,6 +260,8 @@ int msi_dev_irq[MAX_MSI_CTRLS_IPQ8074];
 char pci_irq_name[2][MAX_MSI_CTRLS_IPQ8074][20];
 
 #define to_qcom_pcie(x)		dev_get_drvdata((x)->dev)
+
+struct gpio_desc *mdm2ap_e911;
 
 static void qcom_ep_reset_assert(struct qcom_pcie *pcie)
 {
@@ -279,6 +289,41 @@ static int qcom_pcie_establish_link(struct qcom_pcie *pcie)
 		pcie->ops->ltssm_enable(pcie);
 
 	return dw_pcie_wait_for_link(pci);
+}
+
+/* PCIe wake-irq handler */
+static void handle_wake_func(struct work_struct *work)
+{
+	int ret;
+	struct qcom_pcie *pcie = container_of(work, struct qcom_pcie,
+					      handle_wake_work);
+	struct pcie_port *pp = &(pcie->pci)->pp;
+
+	if (pcie->enumerated) {
+		pr_info("PCIe: RC has been already enumerated\n");
+		return;
+	}
+
+	pci_lock_rescan_remove();
+	if (!gpiod_get_value(mdm2ap_e911)) {
+		ret = dw_pcie_host_init(pp);
+		if (ret) {
+			pr_err("PCIe: failed to enable RC upon wake request from the device\n");
+		} else {
+			pcie->enumerated = true;
+			pr_info("PCIe: enumerated RC successfully upon wake request from the device\n");
+		}
+	}
+	pci_unlock_rescan_remove();
+}
+
+static irqreturn_t qcom_pcie_wake_irq_handler(int irq, void *data)
+{
+	struct qcom_pcie *pcie = data;
+
+	schedule_work(&pcie->handle_wake_work);
+
+	return IRQ_HANDLED;
 }
 
 static void qcom_pcie_2_1_0_ltssm_enable(struct qcom_pcie *pcie)
@@ -1451,6 +1496,9 @@ static int qcom_pcie_host_init(struct pcie_port *pp)
 	struct qcom_pcie *pcie = to_qcom_pcie(pci);
 	int ret;
 
+	if (gpiod_get_value(mdm2ap_e911))
+		return -EBUSY;
+
 	qcom_ep_reset_assert(pcie);
 
 	ret = pcie->ops->init(pcie);
@@ -1591,6 +1639,53 @@ static const struct qcom_pcie_of_data qcom_pcie_2_9_0 = {
 static const struct dw_pcie_ops dw_pcie_ops = {
 	.link_up = qcom_pcie_link_up,
 };
+
+static void handle_e911_func(struct work_struct *work)
+{
+	struct pci_bus *b = NULL;
+
+	pci_lock_rescan_remove();
+
+	if (gpiod_get_value(mdm2ap_e911)) {
+		while ((b = pci_find_next_bus(b)) != NULL)
+		{
+			pci_stop_root_bus(b);
+			pci_remove_root_bus(b);
+		}
+	} else {
+		while ((b = pci_find_next_bus(b)) != NULL)
+			pci_rescan_bus(b);
+	}
+
+	pci_unlock_rescan_remove();
+}
+
+static irqreturn_t handle_mdm2ap_e911_irq(int irq, void *data)
+{
+	struct qcom_pcie *pcie = data;
+
+	schedule_work(&pcie->handle_e911_work);
+
+	return IRQ_HANDLED;
+}
+
+static int pci_reboot_handler(struct notifier_block *this,
+			      unsigned long event, void *ptr)
+{
+	struct pci_bus *b = NULL;
+
+	pci_lock_rescan_remove();
+
+	while ((b = pci_find_next_bus(b)) != NULL)
+	{
+		pci_stop_root_bus(b);
+		pci_remove_root_bus(b);
+	}
+
+	pci_unlock_rescan_remove();
+
+	return 0;
+}
 
 static int qcom_pcie_probe(struct platform_device *pdev)
 {
@@ -1741,6 +1836,37 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 
 	pp->ops = &qcom_pcie_dw_ops;
 
+	pcie->mdm2ap_e911_irq = platform_get_irq_byname_optional(pdev,
+								"mdm2ap_e911");
+	if (pcie->mdm2ap_e911_irq >= 0) {
+		mdm2ap_e911 = devm_gpiod_get_optional(&pdev->dev, "e911",
+						      GPIOD_IN);
+		if (IS_ERR(mdm2ap_e911)) {
+			pr_err("requesting for e911 gpio failed %ld\n",
+			       PTR_ERR(mdm2ap_e911));
+			return PTR_ERR(mdm2ap_e911);
+		}
+
+		INIT_WORK(&pcie->handle_e911_work, handle_e911_func);
+
+		ret = devm_request_irq(&pdev->dev, pcie->mdm2ap_e911_irq,
+				       handle_mdm2ap_e911_irq,
+				       IRQ_TYPE_EDGE_BOTH, "mdm2ap_e911",
+				       pcie);
+		if (ret) {
+			dev_err(&pdev->dev, "Unable to request mdm2ap_e911 irq\n");
+			return ret;
+		}
+
+		pcie->pci_reboot_notifier.notifier_call = pci_reboot_handler;
+		ret = register_reboot_notifier(&pcie->pci_reboot_notifier);
+		if (ret) {
+			pr_warn("%s: Failed to register notifier (%d)\n",
+				__func__, ret);
+			return ret;
+		}
+	}
+
 	if (IS_ENABLED(CONFIG_PCI_MSI)) {
 		domain = of_get_pci_domain_nr(pdev->dev.of_node);
 		if (domain < 0) {
@@ -1776,6 +1902,21 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 		goto err_pm_runtime_put;
 	}
 
+	pcie->wake_irq = platform_get_irq_byname_optional(pdev, "wake_gpio");
+
+	if (pcie->wake_irq >= 0) {
+		INIT_WORK(&pcie->handle_wake_work, handle_wake_func);
+		ret = devm_request_irq(&pdev->dev, pcie->wake_irq,
+				       qcom_pcie_wake_irq_handler,
+				       IRQF_TRIGGER_FALLING, "qcom-pcie-wake",
+				       pcie);
+		if (ret) {
+			dev_err(&pdev->dev, "Unable to request wake irq\n");
+			pm_runtime_disable(&pdev->dev);
+			goto err_pm_runtime_put;
+		}
+	}
+
 	platform_set_drvdata(pdev, pcie);
 
 	ret = dw_pcie_host_init(pp);
@@ -1784,6 +1925,9 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 		dev_err(dev, "cannot initialize host\n");
 		pm_runtime_disable(&pdev->dev);
 		goto err_pm_runtime_put;
+	} else {
+		pcie->enumerated = true;
+		pr_info("PCIe: RC enabled during bootup\n");
 	}
 
 	return 0;

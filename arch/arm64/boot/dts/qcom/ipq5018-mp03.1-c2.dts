@@ -22,6 +22,10 @@
 	};
 
 	soc {
+		wifi0: wifi@c000000 {
+			status = "ok";
+		};
+
 		mdio0: mdio@88000 {
 			status = "ok";
 

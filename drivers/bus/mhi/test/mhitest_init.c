@@ -264,15 +264,16 @@ void mhitest_pci_unregister_mhi(struct mhitest_platform *mplat)
 
 	mhi_unregister_controller(mhi_ctrl);
 	kfree(mhi_ctrl->irq);
+	mhi_free_controller(mhi_ctrl);
 }
 
 int mhitest_pci_remove_all(struct mhitest_platform *mplat)
 {
 	MHITEST_VERB("Enter\n");
 
-	mhitest_pci_unregister_mhi(mplat);
 	mhitest_pci_disable_msi(mplat);
 	mhitest_pci_disable_bus(mplat);
+	mhitest_pci_unregister_mhi(mplat);
 	mhitest_unregister_ramdump(mplat);
 
 	MHITEST_VERB("Exit\n");

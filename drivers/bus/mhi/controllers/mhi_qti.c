@@ -23,7 +23,6 @@
 #include "mhi_qti.h"
 #include "../core/internal.h"
 
-#define MHI_SSR_ENABLE	0
 #define WDOG_TIMEOUT	30
 #define MHI_PANIC_TIMER_STEP	1000
 
@@ -34,10 +33,9 @@ bool mhi_ssr_negotiate;
 
 void __iomem *wdt;
 
-struct notifier_block *global_mhi_panic_notifier;
-
-#if MHI_SSR_ENABLE
 static struct kobject *mhi_kobj;
+
+struct notifier_block *global_mhi_panic_notifier;
 
 static ssize_t sysfs_show(struct kobject *kobj, struct kobj_attribute *attr,
 			  char *buf);
@@ -62,7 +60,6 @@ static ssize_t sysfs_store(struct kobject *kobj, struct kobj_attribute *attr,
 	}
 	return count;
 }
-#endif
 
 struct firmware_info {
 	unsigned int dev_id;
@@ -75,24 +72,6 @@ static inline void mhi_controller_set_devdata(struct mhi_controller *mhi_cntrl,
 					      void *priv)
 {
 	mhi_cntrl->priv_data = priv;
-}
-
-/* allocate mhi controller to register */
-struct mhi_controller *mhi_alloc_controller(size_t size)
-{
-	struct mhi_controller *mhi_cntrl;
-
-	mhi_cntrl = kzalloc(size + sizeof(*mhi_cntrl), GFP_KERNEL);
-
-	if (mhi_cntrl && size)
-		mhi_controller_set_devdata(mhi_cntrl, mhi_cntrl + 1);
-
-	return mhi_cntrl;
-}
-
-static inline void mhi_free_controller(struct mhi_controller *mhi_cntrl)
-{
-	kfree(mhi_cntrl);
 }
 
 static struct mhi_channel_config mhi_sdx_mhi_channels[] = {
@@ -463,7 +442,7 @@ static int mhi_init_pci_dev(struct mhi_controller *mhi_cntrl)
 	struct pci_dev *pci_dev = mhi_dev->pci_dev;
 	int ret;
 	resource_size_t len;
-	int i;
+	int i, nr_vectors;
 
 	mhi_dev->resn = MHI_PCI_BAR_NUM;
 	ret = pci_assign_resource(pci_dev, mhi_dev->resn);
@@ -494,14 +473,23 @@ static int mhi_init_pci_dev(struct mhi_controller *mhi_cntrl)
 		goto error_ioremap;
 	}
 
-	ret = pci_alloc_irq_vectors(pci_dev, mhi_cntrl->nr_irqs_req,
-				    mhi_cntrl->nr_irqs_req, PCI_IRQ_MSI);
-	if (IS_ERR_VALUE((ulong)ret) || ret < mhi_cntrl->nr_irqs_req) {
-		MHI_ERR("Failed to enable MSI, ret:%d\n", ret);
+	/*
+	 * Alloc one MSI vector for BHI + one vector per event ring, ideally...
+	 */
+	mhi_cntrl->nr_irqs = mhi_sdx_mhi_config.num_events + 1;
+
+	nr_vectors = pci_alloc_irq_vectors(pci_dev, 1, mhi_cntrl->nr_irqs,
+				    PCI_IRQ_MSI);
+	if (nr_vectors < 0) {
+		MHI_ERR("Error allocating MSI vectors, ret:%d\n", nr_vectors);
 		goto error_req_msi;
 	}
 
-	mhi_cntrl->nr_irqs = ret;
+	if (nr_vectors < mhi_cntrl->nr_irqs) {
+		MHI_LOG("Not enough MSI vectors (%d/%d), use shared MHI\n",
+			nr_vectors, mhi_sdx_mhi_config.num_events);
+	}
+
 	mhi_cntrl->irq = kmalloc_array(mhi_cntrl->nr_irqs,
 				       sizeof(*mhi_cntrl->irq), GFP_KERNEL);
 	if (!mhi_cntrl->irq) {
@@ -510,7 +498,8 @@ static int mhi_init_pci_dev(struct mhi_controller *mhi_cntrl)
 	}
 
 	for (i = 0; i < mhi_cntrl->nr_irqs; i++) {
-		mhi_cntrl->irq[i] = pci_irq_vector(pci_dev, i);
+		int vector = i >= nr_vectors ? (nr_vectors - 1) : i;
+		mhi_cntrl->irq[i] = pci_irq_vector(pci_dev, vector);
 		if (mhi_cntrl->irq[i] < 0) {
 			ret = mhi_cntrl->irq[i];
 			goto error_get_irq_vec;
@@ -561,7 +550,6 @@ error_enable_device:
 	return ret;
 }
 
-#if MHI_SSR_ENABLE
 static int mhi_runtime_suspend(struct device *dev)
 {
 	int ret = 0;
@@ -597,8 +585,6 @@ exit_runtime_suspend:
 
 static int mhi_runtime_idle(struct device *dev)
 {
-	struct mhi_controller *mhi_cntrl = dev_get_drvdata(dev);
-
 	MHI_LOG("Entered returning -EBUSY\n");
 
 	/*
@@ -650,7 +636,6 @@ rpm_resume_exit:
 static int mhi_system_resume(struct device *dev)
 {
 	int ret = 0;
-	struct mhi_controller *mhi_cntrl = dev_get_drvdata(dev);
 
 	ret = mhi_runtime_resume(dev);
 	if (ret) {
@@ -665,7 +650,6 @@ static int mhi_system_resume(struct device *dev)
 
 int mhi_system_suspend(struct device *dev)
 {
-	struct mhi_controller *mhi_cntrl = dev_get_drvdata(dev);
 	int ret;
 
 	MHI_LOG("Entered\n");
@@ -685,82 +669,6 @@ int mhi_system_suspend(struct device *dev)
 	MHI_LOG("Exit\n");
 	return 0;
 }
-
-/* checks if link is down */
-static int mhi_link_status(struct mhi_controller *mhi_cntrl)
-{
-	struct mhi_dev *mhi_dev = mhi_cntrl->priv_data;
-	u16 dev_id;
-	int ret;
-
-	/* try reading device id, if dev id don't match, link is down */
-	ret = pci_read_config_word(mhi_dev->pci_dev, PCI_DEVICE_ID, &dev_id);
-
-	return (ret || dev_id != mhi_cntrl->dev_id) ? -EIO : 0;
-}
-
-/* disable PCIe L1 */
-static int mhi_lpm_disable(struct mhi_controller *mhi_cntrl)
-{
-	struct mhi_dev *mhi_dev = mhi_cntrl->priv_data;
-	struct pci_dev *pci_dev = mhi_dev->pci_dev;
-	int lnkctl = pci_dev->pcie_cap + PCI_EXP_LNKCTL;
-	u8 val;
-	int ret;
-
-	ret = pci_read_config_byte(pci_dev, lnkctl, &val);
-	if (ret) {
-		MHI_ERR("Error reading LNKCTL, ret:%d\n", ret);
-		return ret;
-	}
-
-	/* L1 is not supported or already disabled */
-	if (!(val & PCI_EXP_LNKCTL_ASPM_L1))
-		return 0;
-
-	val &= ~PCI_EXP_LNKCTL_ASPM_L1;
-	ret = pci_write_config_byte(pci_dev, lnkctl, val);
-	if (ret) {
-		MHI_ERR("Error writing LNKCTL to disable LPM, ret:%d\n", ret);
-		return ret;
-	}
-
-	mhi_dev->lpm_disabled = true;
-
-	return ret;
-}
-
-/* enable PCIe L1 */
-static int mhi_lpm_enable(struct mhi_controller *mhi_cntrl)
-{
-	struct mhi_dev *mhi_dev = mhi_cntrl->priv_data;
-	struct pci_dev *pci_dev = mhi_dev->pci_dev;
-	int lnkctl = pci_dev->pcie_cap + PCI_EXP_LNKCTL;
-	u8 val;
-	int ret;
-
-	/* L1 is not supported or already disabled */
-	if (!mhi_dev->lpm_disabled)
-		return 0;
-
-	ret = pci_read_config_byte(pci_dev, lnkctl, &val);
-	if (ret) {
-		MHI_ERR("Error reading LNKCTL, ret:%d\n", ret);
-		return ret;
-	}
-
-	val |= PCI_EXP_LNKCTL_ASPM_L1;
-	ret = pci_write_config_byte(pci_dev, lnkctl, val);
-	if (ret) {
-		MHI_ERR("Error writing LNKCTL to enable LPM, ret:%d\n", ret);
-		return ret;
-	}
-
-	mhi_dev->lpm_disabled = false;
-
-	return ret;
-}
-#endif
 
 static int mhi_power_up(struct mhi_controller *mhi_cntrl)
 {
@@ -842,14 +750,6 @@ static void mhi_status_cb(struct mhi_controller *mhi_cntrl,
 	}
 }
 
-#if MHI_SSR_ENABLE
-/* capture host SoC XO time in ticks */
-static u64 mhi_time_get(struct mhi_controller *mhi_cntrl)
-{
-	return __arch_counter_get_cntvct();
-}
-#endif
-
 static ssize_t timeout_ms_show(struct device *dev,
 			       struct device_attribute *attr,
 			       char *buf)
@@ -906,20 +806,32 @@ static const struct attribute_group mhi_group = {
 	.attrs = mhi_attrs,
 };
 
+/* allocate mhi controller to register */
+struct mhi_controller *mhi_alloc_dev_and_controller(size_t size)
+{
+	struct mhi_controller *mhi_cntrl;
+
+	mhi_cntrl = kzalloc(size + sizeof(*mhi_cntrl), GFP_KERNEL);
+
+	if (mhi_cntrl && size)
+		mhi_controller_set_devdata(mhi_cntrl, mhi_cntrl + 1);
+
+	return mhi_cntrl;
+}
+
 static struct mhi_controller *dt_register_mhi_controller(struct pci_dev *pci_dev)
 {
 	struct mhi_controller *mhi_cntrl;
 	struct mhi_dev *mhi_dev;
 	struct device_node *of_node = pci_dev->dev.of_node;
-	const struct firmware_info *firmware_info;
 	bool use_bb;
 	u64 addr_win[2];
-	int ret, i;
+	int ret;
 
 	if (!of_node)
 		return ERR_PTR(-ENODEV);
 
-	mhi_cntrl = mhi_alloc_controller(sizeof(*mhi_dev));
+	mhi_cntrl = mhi_alloc_dev_and_controller(sizeof(*mhi_dev));
 	if (!mhi_cntrl)
 		return ERR_PTR(-ENOMEM);
 
@@ -937,11 +849,11 @@ static struct mhi_controller *dt_register_mhi_controller(struct pci_dev *pci_dev
 		ret = of_property_count_elems_of_size(of_node, "qti,addr-win",
 						      sizeof(addr_win));
 		if (ret != 1)
-			goto error_register;
+			return ERR_PTR(-EINVAL);
 		ret = of_property_read_u64_array(of_node, "qti,addr-win",
 						 addr_win, 2);
 		if (ret)
-			goto error_register;
+			return ERR_PTR(-EINVAL);
 	} else {
 		addr_win[0] = memblock_start_of_DRAM();
 		addr_win[1] = memblock_end_of_DRAM();
@@ -971,48 +883,15 @@ static struct mhi_controller *dt_register_mhi_controller(struct pci_dev *pci_dev
 	mhi_cntrl->runtime_put = mhi_runtime_put;
 	mhi_cntrl->read_reg = mhi_sdx_read_reg;
 	mhi_cntrl->write_reg = mhi_sdx_write_reg;
-#if MHI_SSR_ENABLE
-	mhi_cntrl->link_status = mhi_link_status;
-
-	mhi_cntrl->lpm_disable = mhi_lpm_disable;
-	mhi_cntrl->lpm_enable = mhi_lpm_enable;
-	mhi_cntrl->time_get = mhi_time_get;
-#endif
-
-	ret = mhi_register_controller(mhi_cntrl, &mhi_sdx_mhi_config);
-	if (ret)
-		goto error_register;
-
-	for (i = 0; i < ARRAY_SIZE(firmware_table); i++) {
-		firmware_info = firmware_table + i;
-#if MHI_SSR_ENABLE
-		/* debug mode always use default */
-		if (!debug_mode && mhi_cntrl->dev_id == firmware_info->dev_id)
-			break;
-#endif
-	}
-	mhi_cntrl->fw_image = firmware_info->fw_image;
-	mhi_cntrl->edl_image = firmware_info->edl_image;
-
-	if (sysfs_create_group(&mhi_cntrl->mhi_dev->dev.kobj, &mhi_group))
-		MHI_ERR("Error while creating the sysfs group\n");
 
 	return mhi_cntrl;
-
-error_register:
-	mhi_free_controller(mhi_cntrl);
-
-	return ERR_PTR(-EINVAL);
 }
 
-#if MHI_SSR_ENABLE
 static int mhi_panic_handler(struct notifier_block *this,
 			     unsigned long event, void *ptr)
 {
 	int mdmreboot = 0, i;
 	struct gpio_desc *ap2mdm, *mdm2ap;
-	struct mhi_controller *mhi_cntrl = container_of(this,
-		       struct mhi_controller, mhi_panic_notifier);
 
 	ap2mdm = gpio_to_desc(ap2mdm_gpio);
 	if (IS_ERR(ap2mdm))
@@ -1066,14 +945,11 @@ static int mhi_panic_handler(struct notifier_block *this,
 
 	return NOTIFY_DONE;
 }
-#endif
 
 void mhi_wdt_panic_handler(void)
 {
-#if MHI_SSR_ENABLE
 	mhi_panic_handler(global_mhi_panic_notifier,
 			0, NULL);
-#endif
 }
 EXPORT_SYMBOL(mhi_wdt_panic_handler);
 
@@ -1081,11 +957,12 @@ int mhi_pci_probe(struct pci_dev *pci_dev,
 		  const struct pci_device_id *device_id)
 {
 	struct mhi_controller *mhi_cntrl;
+	const struct firmware_info *firmware_info;
 	struct mhi_dev *mhi_dev;
-	int ret;
+	int i, ret;
 
+	/* Fix me: Add check to see if already registered */
 	mhi_cntrl = dt_register_mhi_controller(pci_dev);
-
 	if (IS_ERR(mhi_cntrl))
 		return PTR_ERR(mhi_cntrl);
 
@@ -1101,6 +978,22 @@ int mhi_pci_probe(struct pci_dev *pci_dev,
 	if (ret)
 		goto error_init_pci;
 
+	ret = mhi_register_controller(mhi_cntrl, &mhi_sdx_mhi_config);
+	if (ret)
+		goto error_register;
+
+	for (i = 0; i < ARRAY_SIZE(firmware_table); i++) {
+		firmware_info = firmware_table + i;
+		/* debug mode always use default */
+		if (!debug_mode && pci_dev->device == firmware_info->dev_id)
+			break;
+	}
+	mhi_cntrl->fw_image = firmware_info->fw_image;
+	mhi_cntrl->edl_image = firmware_info->edl_image;
+
+	if (sysfs_create_group(&mhi_cntrl->mhi_dev->dev.kobj, &mhi_group))
+		MHI_ERR("Error while creating the sysfs group\n");
+
 	/* start power up sequence */
 	if (!debug_mode) {
 		ret = mhi_power_up(mhi_cntrl);
@@ -1113,7 +1006,6 @@ int mhi_pci_probe(struct pci_dev *pci_dev,
 
 	mhi_ssr_negotiate = of_property_read_bool(mhi_cntrl->of_node, "mhi,ssr-negotiate");
 
-#if MHI_SSR_ENABLE
 	if (mhi_ssr_negotiate) {
 		ret = of_property_read_u32(mhi_cntrl->of_node, "ap2mdm",
 						&ap2mdm_gpio);
@@ -1148,13 +1040,15 @@ int mhi_pci_probe(struct pci_dev *pci_dev,
 			MHI_ERR("Unable to create mhi sysfs entry\n");
 		}
 	}
-#endif
 	MHI_LOG("Return successful\n");
 
 	return 0;
 
 error_power_up:
 	mhi_deinit_pci_dev(mhi_cntrl);
+
+error_register:
+	mhi_free_controller(mhi_cntrl);
 
 error_init_pci:
 	mhi_arch_pcie_deinit(mhi_cntrl);
@@ -1164,17 +1058,11 @@ error_init_pci:
 
 void mhi_pci_device_removed(struct pci_dev *pci_dev)
 {
-#if MHI_SSR_ENABLE
 	struct mhi_controller *mhi_cntrl;
-
-	u32 domain = pci_domain_nr(pci_dev->bus);
-	u32 bus = pci_dev->bus->number;
-	u32 dev_id = pci_dev->device;
-	u32 slot = PCI_SLOT(pci_dev->devfn);
 	struct gpio_desc *mdm2ap;
 	bool graceful = 0;
 
-	mhi_cntrl = mhi_bdf_to_controller(domain, bus, slot, dev_id);
+	mhi_cntrl = dev_get_drvdata(&pci_dev->dev);
 
 	if (mhi_cntrl) {
 
@@ -1218,19 +1106,16 @@ void mhi_pci_device_removed(struct pci_dev *pci_dev)
 
 		kobject_put(mhi_kobj);
 
-		mhi_unregister_mhi_controller(mhi_cntrl);
+		mhi_unregister_controller(mhi_cntrl);
 	}
-#endif
 }
 
-#if MHI_SSR_ENABLE
 static const struct dev_pm_ops pm_ops = {
 	SET_RUNTIME_PM_OPS(mhi_runtime_suspend,
 			   mhi_runtime_resume,
 			   mhi_runtime_idle)
 	SET_SYSTEM_SLEEP_PM_OPS(mhi_system_suspend, mhi_system_resume)
 };
-#endif
 
 static struct pci_device_id mhi_pcie_device_id[] = {
 	{PCI_DEVICE(MHI_PCIE_VENDOR_ID, 0x0300)},
@@ -1249,9 +1134,7 @@ static struct pci_driver mhi_pcie_driver = {
 	.probe = mhi_pci_probe,
 	.remove = mhi_pci_device_removed,
 	.driver = {
-#if MHI_SSR_ENABLE
 		.pm = &pm_ops
-#endif
 	}
 };
 
