@@ -24,7 +24,8 @@ struct qseecom_props {
 };
 
 const struct qseecom_props qseecom_props_ipq807x = {
-	.function = (MUL | CRYPTO | AES_SEC_KEY | RSA_SEC_KEY),
+	.function = (MUL | CRYPTO | AES_SEC_KEY | RSA_SEC_KEY | LOG_BITMASK |
+							FUSE | MISC),
 	.libraries_inbuilt = false,
 	.logging_support_enabled = true,
 };
@@ -36,7 +37,7 @@ const struct qseecom_props qseecom_props_ipq6018 = {
 };
 
 const struct qseecom_props qseecom_props_ipq5018 = {
-	.function = (MUL | CRYPTO),
+	.function = (MUL | CRYPTO | AES_SEC_KEY | RSA_SEC_KEY),
 	.libraries_inbuilt = false,
 	.logging_support_enabled = true,
 };
@@ -2059,6 +2060,32 @@ static ssize_t seg_write(struct file *filp, struct kobject *kobj,
 	return count;
 }
 
+static ssize_t auth_write(struct file *filp, struct kobject *kobj,
+	struct bin_attribute *bin_attr,
+	char *buf, loff_t pos, size_t count)
+{
+	uint8_t *tmp = NULL;
+
+	if (pos == 0) {
+		kfree(auth_file);
+		auth_file = kzalloc((count) * sizeof(uint8_t), GFP_KERNEL);
+	} else {
+		tmp = auth_file;
+		auth_file = krealloc(tmp, (pos + count) * sizeof(uint8_t),
+					GFP_KERNEL);
+	}
+
+	if (!auth_file) {
+		kfree(tmp);
+		return -ENOMEM;
+	}
+
+	memcpy((auth_file + pos), buf, count);
+	auth_size = pos + count;
+
+	return count;
+}
+
 static int qseecom_unload_app(void)
 {
 	struct qseecom_unload_ireq req;
@@ -2121,6 +2148,7 @@ static int qtiapp_test(struct device *dev, void *input,
 	 * Getting virtual page address. pg_tmp will be pointing to
 	 * first page structure
 	 */
+
 	msgreq = (struct qsee_64_send_cmd *) page_address(pg_tmp);
 
 	if (!msgreq) {
@@ -2131,7 +2159,7 @@ static int qtiapp_test(struct device *dev, void *input,
 	pg_addr = (unsigned long) msgreq;
 
 	msgrsp = (struct qsee_send_cmd_rsp *)((uint8_t *) msgreq +
-				sizeof(struct qsee_64_send_cmd));
+					sizeof(struct qsee_64_send_cmd));
 	if (!msgrsp) {
 		kfree(msgreq);
 		pr_err("Unable to allocate memory\n");
@@ -2139,23 +2167,81 @@ static int qtiapp_test(struct device *dev, void *input,
 	}
 
 	/*
-	 * option = 1 -> Basic Multiplication,
-	 * option = 4 -> Crypto Function
+	 * option = 1 -> Basic Multiplication, option = 2 -> Encryption,
+	 * option = 3 -> Decryption, option = 4 -> Crypto Function
+	 * option = 5 -> Authorized OTP fusing
+	 * option = 6 -> Log Bitmask function, option = 7 -> Fuse test
+	 * option = 8 -> Miscellaneous function
 	 */
-
 	switch (option) {
-	case 1:
+	case QTI_APP_BASIC_DATA_TEST_ID:
 		msgreq->cmd_id = CLIENT_CMD1_BASIC_DATA;
 		msgreq->data = *((dma_addr_t *)input);
 		break;
-	case 4:
+	case QTI_APP_ENC_TEST_ID:
+		msgreq->cmd_id = CLIENT_CMD8_RUN_CRYPTO_ENCRYPT;
+		break;
+	case QTI_APP_DEC_TEST_ID:
+		msgreq->cmd_id = CLIENT_CMD9_RUN_CRYPTO_DECRYPT;
+		break;
+	case QTI_APP_CRYPTO_TEST_ID:
 		msgreq->cmd_id = CLIENT_CMD8_RUN_CRYPTO_TEST;
+		break;
+	case QTI_APP_AUTH_OTP_TEST_ID:
+		if (!auth_file) {
+			pr_err("No OTP file provided\n");
+			return -ENOMEM;
+		}
+
+		msgreq->cmd_id = CLIENT_CMD_AUTH;
+		msgreq->data = dma_map_single(dev, auth_file,
+					      auth_size, DMA_TO_DEVICE);
+		ret = dma_mapping_error(dev, msgreq->data);
+		if (ret) {
+			pr_err("DMA Mapping Error: otp_buffer %d",
+				ret);
+			return ret;
+		}
+
+		break;
+	case QTI_APP_LOG_BITMASK_TEST_ID:
+		msgreq->cmd_id = CLIENT_CMD53_RUN_LOG_BITMASK_TEST;
+		break;
+	case QTI_APP_FUSE_TEST_ID:
+		msgreq->cmd_id = CLIENT_CMD18_RUN_FUSE_TEST;
+		break;
+	case QTI_APP_MISC_TEST_ID:
+		msgreq->cmd_id = CLIENT_CMD13_RUN_MISC_TEST;
 		break;
 	default:
 		pr_err("Invalid Option\n");
 		goto fn_exit;
 	}
+	if (option == QTI_APP_ENC_TEST_ID || option == QTI_APP_DEC_TEST_ID) {
+		msgreq->data = dma_map_single(dev, input,
+				input_len, DMA_TO_DEVICE);
+		msgreq->data2 = dma_map_single(dev, output,
+				input_len, DMA_FROM_DEVICE);
+		ret1 = dma_mapping_error(dev, msgreq->data);
+		ret2 = dma_mapping_error(dev, msgreq->data2);
 
+		if (ret1 || ret2) {
+			pr_err("\nDMA Mapping Error:input:%d output:%d",
+			      ret1, ret2);
+			if (!ret1) {
+				dma_unmap_single(dev, msgreq->data,
+					input_len, DMA_TO_DEVICE);
+			}
+
+			if (!ret2) {
+				dma_unmap_single(dev, msgreq->data2,
+					input_len, DMA_FROM_DEVICE);
+			}
+			return ret1 ? ret1 : ret2;
+		}
+		msgreq->test_buf_size = input_len;
+		msgreq->len = input_len;
+	}
 	send_data_req.v1.app_id = qsee_app_id;
 
 	send_data_req.v1.req_ptr = dma_map_single(dev, msgreq,
@@ -2166,10 +2252,28 @@ static int qtiapp_test(struct device *dev, void *input,
 	ret1 = dma_mapping_error(dev, send_data_req.v1.req_ptr);
 	ret2 = dma_mapping_error(dev, send_data_req.v1.rsp_ptr);
 
-	if (ret1 || ret2) {
-		pr_err("DMA Mapping Error:req_ptr:%d rsp_ptr:%d\n",
-		      ret1, ret2);
-		return ret1 ? ret1 : ret2;
+
+	if (!ret1 && !ret2) {
+		send_data_req.v1.req_len =
+				sizeof(struct qsee_64_send_cmd);
+		send_data_req.v1.rsp_len =
+				sizeof(struct qsee_send_cmd_rsp);
+		ret = qti_scm_qseecom_send_data(&send_data_req,
+						sizeof(send_data_req.v2)
+						, &resp, sizeof(resp));
+	}
+
+	if (option == QTI_APP_ENC_TEST_ID || option == QTI_APP_DEC_TEST_ID) {
+		dma_unmap_single(dev, msgreq->data,
+					input_len, DMA_TO_DEVICE);
+		dma_unmap_single(dev, msgreq->data2,
+					input_len, DMA_FROM_DEVICE);
+
+	}
+
+	if (!ret1) {
+		dma_unmap_single(dev, send_data_req.v1.req_ptr,
+			sizeof(*msgreq), DMA_TO_DEVICE);
 	}
 
 	send_data_req.v1.req_len =
@@ -2201,7 +2305,7 @@ static int qtiapp_test(struct device *dev, void *input,
 			ret = -EINVAL;
 			goto fn_exit;
 		} else {
-			if (option == 4) {
+			if (option == QTI_APP_CRYPTO_TEST_ID) {
 				if (!msgrsp->status) {
 					pr_info("Crypto operation success\n");
 				} else {
@@ -2212,15 +2316,49 @@ static int qtiapp_test(struct device *dev, void *input,
 		}
 	}
 
-	if (option == 1) {
+	if (option == QTI_APP_BASIC_DATA_TEST_ID) {
 		if (msgrsp->status) {
 			pr_err("Input size exceeded supported range\n");
 			ret = -EINVAL;
 		}
 		basic_output = msgrsp->data;
+	} else if (option == QTI_APP_AUTH_OTP_TEST_ID) {
+		if (msgrsp->status) {
+			pr_err("Auth OTP failed with response %d\n",
+							msgrsp->status);
+			ret = -EIO;
+		} else
+			pr_info("Auth and Blow Success");
+	} else if (option == QTI_APP_LOG_BITMASK_TEST_ID) {
+		if (!msgrsp->status) {
+			pr_info("Log Bitmask test Success\n");
+		} else {
+			pr_info("Log Bitmask test failed\n");
+			goto fn_exit;
+		}
+	} else if (option == QTI_APP_FUSE_TEST_ID) {
+		if (!msgrsp->status) {
+			pr_info("Fuse test success\n");
+		} else {
+			pr_info("Fuse test failed\n");
+			goto fn_exit;
+		}
+	} else if (option == QTI_APP_MISC_TEST_ID) {
+		if (!msgrsp->status) {
+			pr_info("Misc test success\n");
+		} else {
+			pr_info("Misc test failed\n");
+			goto fn_exit;
+		}
 	}
+
 fn_exit:
 	free_page(pg_addr);
+	if (option == QTI_APP_AUTH_OTP_TEST_ID) {
+		dma_unmap_single(dev, msgreq->data, auth_size,
+							DMA_TO_DEVICE);
+	}
+	basic_output = msgrsp->data;
 
 	return ret;
 }
@@ -2331,9 +2469,109 @@ store_basic_input(struct device *dev, struct device_attribute *attr,
 		pr_err("Please enter a valid unsigned integer less than %u\n",
 			(U32_MAX / 10));
 	else
-		ret = qtiapp_test(dev, &basic_input, NULL, 0, 1);
+		ret = qtiapp_test(dev, &basic_input, NULL, 0, QTI_APP_BASIC_DATA_TEST_ID);
 
 	return ret ? ret : count;
+}
+
+/* To show encrypted plain text*/
+static ssize_t
+show_encrypt_output(struct device *dev, struct device_attribute *attr,
+					char *buf)
+{
+	memcpy(buf, encrypt_text, enc_len);
+	return enc_len;
+}
+
+/* To Encrypt input plain text */
+static ssize_t
+store_encrypt_input(struct device *dev, struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	int32_t ret = -EINVAL;
+	uint8_t *input_pt;
+	uint8_t *output_pt;
+
+	enc_len = count;
+	if (enc_len == 0) {
+		pr_err("Input cannot be NULL!\n");
+		return -EINVAL;
+	}
+	if ((enc_len % 16 != 0) || (enc_len > MAX_INPUT_SIZE)) {
+		pr_info("Input Length must be multiple of 16 & < 4096 bytes\n");
+		return -EINVAL;
+	}
+
+	input_pt = kzalloc(enc_len * sizeof(uint8_t *), GFP_KERNEL);
+	if (!input_pt)
+		return -ENOMEM;
+	memcpy(input_pt, buf, count);
+
+	output_pt = kzalloc(enc_len * sizeof(uint8_t *), GFP_KERNEL);
+	if (!output_pt) {
+		kfree(input_pt);
+		return -ENOMEM;
+	}
+
+	ret = qtiapp_test(dev, (uint8_t *)input_pt,
+			 (uint8_t *)output_pt, enc_len, QTI_APP_ENC_TEST_ID);
+
+	if (!ret)
+		memcpy(encrypt_text, output_pt, enc_len);
+
+	kfree(input_pt);
+	kfree(output_pt);
+	return count;
+}
+
+/* To show decrypted cipher text */
+static ssize_t
+show_decrypt_output(struct device *dev, struct device_attribute *attr,
+		 char *buf)
+{
+	memcpy(buf, decrypt_text, dec_len);
+	return dec_len;
+}
+
+/* To decrypt input cipher text */
+static ssize_t
+store_decrypt_input(struct device *dev, struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	int32_t ret = -EINVAL;
+	uint8_t *input_pt;
+	uint8_t *output_pt;
+
+	dec_len = count;
+	if (dec_len == 0) {
+		pr_err("Input cannot be NULL!\n");
+		return -EINVAL;
+	}
+
+	if ((dec_len % 16 != 0) || (dec_len > MAX_INPUT_SIZE)) {
+		pr_info("Input Length must be multiple of 16 & < 4096 bytes\n");
+		return -EINVAL;
+	}
+
+	input_pt = kzalloc(dec_len * sizeof(uint8_t *), GFP_KERNEL);
+	if (!input_pt)
+		return -ENOMEM;
+	memcpy(input_pt, buf, dec_len);
+
+	output_pt = kzalloc(dec_len * sizeof(uint8_t *), GFP_KERNEL);
+	if (!output_pt) {
+		kfree(input_pt);
+		return -ENOMEM;
+	}
+
+	ret = qtiapp_test(dev, (uint8_t *)input_pt,
+			 (uint8_t *)output_pt, dec_len, QTI_APP_DEC_TEST_ID);
+	if (!ret)
+		memcpy(decrypt_text, output_pt, dec_len);
+
+	kfree(input_pt);
+	kfree(output_pt);
+	return count;
 }
 
 static ssize_t
@@ -2414,7 +2652,39 @@ static ssize_t
 store_crypto_input(struct device *dev, struct device_attribute *attr,
 		const char *buf, size_t count)
 {
-	qtiapp_test(dev, NULL, NULL, 0, 4);
+	qtiapp_test(dev, NULL, NULL, 0, QTI_APP_CRYPTO_TEST_ID);
+	return count;
+}
+
+static ssize_t
+store_fuse_otp_input(struct device *dev, struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	qtiapp_test(dev, (void *)buf, NULL, 0, QTI_APP_AUTH_OTP_TEST_ID);
+	return count;
+}
+
+static ssize_t
+store_log_bitmask_input(struct device *dev, struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	qtiapp_test(dev, NULL, NULL, 0, QTI_APP_LOG_BITMASK_TEST_ID);
+	return count;
+}
+
+static ssize_t
+store_fuse_input(struct device *dev, struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	qtiapp_test(dev, NULL, NULL, 0, QTI_APP_FUSE_TEST_ID);
+	return count;
+}
+
+static ssize_t
+store_misc_input(struct device *dev, struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	qtiapp_test(dev, NULL, NULL, 0, QTI_APP_MISC_TEST_ID);
 	return count;
 }
 
@@ -2426,7 +2696,7 @@ static int __init qtiapp_init(void)
 				+ 1) * sizeof(*qtiapp_attrs), GFP_KERNEL);
 
 	if (!qtiapp_attrs) {
-		pr_err("Cannot allocate memory..tzapp\n");
+		pr_err("Cannot allocate memory..qtiapp\n");
 		return -ENOMEM;
 	}
 
@@ -2435,8 +2705,26 @@ static int __init qtiapp_init(void)
 	if (props->function & MUL)
 		qtiapp_attrs[i++] = &dev_attr_basic_data.attr;
 
+	if (props->function & ENC)
+		qtiapp_attrs[i++] = &dev_attr_encrypt.attr;
+
+	if (props->function & DEC)
+		qtiapp_attrs[i++] = &dev_attr_decrypt.attr;
+
 	if (props->function & CRYPTO)
 		qtiapp_attrs[i++] = &dev_attr_crypto.attr;
+
+	if (props->function & AUTH_OTP)
+		qtiapp_attrs[i++] = &dev_attr_fuse_otp.attr;
+
+	if (props->function & LOG_BITMASK)
+		qtiapp_attrs[i++] = &dev_attr_log_bitmask.attr;
+
+	if (props->function & FUSE)
+		qtiapp_attrs[i++] = &dev_attr_fuse.attr;
+
+	if (props->function & MISC)
+		qtiapp_attrs[i++] = &dev_attr_misc.attr;
 
 	if (props->logging_support_enabled)
 		qtiapp_attrs[i++] = &dev_attr_log_buf.attr;
@@ -2518,6 +2806,8 @@ load:
 	sysfs_create_bin_file(firmware_kobj, &mdt_attr);
 	sysfs_create_bin_file(firmware_kobj, &seg_attr);
 
+	if (props->function & AUTH_OTP)
+		sysfs_create_bin_file(firmware_kobj, &auth_attr);
 	if (!qtiapp_init())
 		pr_info("Loaded tzapp successfully!\n");
 	else
@@ -2552,6 +2842,8 @@ static int __exit qseecom_remove(struct platform_device *pdev)
 	sysfs_remove_bin_file(firmware_kobj, &mdt_attr);
 	sysfs_remove_bin_file(firmware_kobj, &seg_attr);
 
+	if (props->function & AUTH_OTP)
+		sysfs_remove_bin_file(firmware_kobj, &auth_attr);
 	sysfs_remove_group(qtiapp_kobj, &qtiapp_attr_grp);
 	kobject_put(qtiapp_kobj);
 
@@ -2610,6 +2902,9 @@ static int __exit qseecom_remove(struct platform_device *pdev)
 
 	kfree(mdt_file);
 	kfree(seg_file);
+
+	if (props->function & AUTH_OTP)
+		kfree(auth_file);
 
 	kfree(qsee_sbuffer);
 

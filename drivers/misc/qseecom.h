@@ -52,6 +52,10 @@
 #define CLIENT_CMD8_RUN_CRYPTO_TEST	3
 #define CLIENT_CMD8_RUN_CRYPTO_ENCRYPT	8
 #define CLIENT_CMD9_RUN_CRYPTO_DECRYPT	9
+#define CLIENT_CMD_AUTH			26
+#define CLIENT_CMD53_RUN_LOG_BITMASK_TEST	53
+#define CLIENT_CMD18_RUN_FUSE_TEST	18
+#define CLIENT_CMD13_RUN_MISC_TEST	13
 #define MAX_INPUT_SIZE			4096
 #define QSEE_64				64
 #define QSEE_32				32
@@ -305,11 +309,15 @@ enum qseecom_qceos_cmd_status {
 static uint32_t qsee_app_id;
 static void *qsee_sbuffer;
 static unsigned long basic_output;
+static size_t enc_len;
+static size_t dec_len;
 static int basic_data_len;
 static int mdt_size;
 static int seg_size;
+static int auth_size;
 static uint8_t *mdt_file;
 static uint8_t *seg_file;
+static uint8_t *auth_file;
 
 static struct kobject *sec_kobj;
 static uint8_t *key;
@@ -348,11 +356,34 @@ static struct qtidbg_log_t *g_qsee_log;
 
 static struct device *qdev;
 
+/*
+ * Array Length is 4096 bytes, since 4MB is the max input size
+ * that can be passed to SCM call
+ */
+static uint8_t encrypt_text[MAX_INPUT_SIZE];
+static uint8_t decrypt_text[MAX_INPUT_SIZE];
+
 #define MUL		0x1
+#define ENC		0x2
+#define DEC		0x4
 #define CRYPTO		0x8
+#define AUTH_OTP	0x10
 #define AES_SEC_KEY	0x20
 #define RSA_SEC_KEY	0x40
+#define LOG_BITMASK	0x80
+#define FUSE		0x100
+#define MISC		0x200
 
+enum qti_app_cmd_ids {
+	QTI_APP_BASIC_DATA_TEST_ID = 1,
+	QTI_APP_ENC_TEST_ID,
+	QTI_APP_DEC_TEST_ID,
+	QTI_APP_CRYPTO_TEST_ID,
+	QTI_APP_AUTH_OTP_TEST_ID,
+	QTI_APP_LOG_BITMASK_TEST_ID,
+	QTI_APP_FUSE_TEST_ID,
+	QTI_APP_MISC_TEST_ID
+};
 static ssize_t show_qsee_app_log_buf(struct device *dev,
 				    struct device_attribute *attr, char *buf);
 
@@ -445,6 +476,10 @@ static ssize_t seg_write(struct file *filp, struct kobject *kobj,
 			struct bin_attribute *bin_attr,
 			char *buf, loff_t pos, size_t count);
 
+static ssize_t auth_write(struct file *filp, struct kobject *kobj,
+			 struct bin_attribute *bin_attr,
+			 char *buf, loff_t pos, size_t count);
+
 static ssize_t store_load_start(struct device *dev,
 			       struct device_attribute *attr,
 			       const char *buf, size_t count);
@@ -456,14 +491,50 @@ static ssize_t store_basic_input(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count);
 
+static ssize_t show_encrypt_output(struct device *dev,
+				  struct device_attribute *attr, char *buf);
+
+static ssize_t store_encrypt_input(struct device *dev,
+				  struct device_attribute *attr,
+				  const char *buf, size_t count);
+
+static ssize_t show_decrypt_output(struct device *dev,
+				  struct device_attribute *attr, char *buf);
+
+static ssize_t store_decrypt_input(struct device *dev,
+				  struct device_attribute *attr,
+				  const char *buf, size_t count);
+
 static ssize_t store_crypto_input(struct device *dev,
 				 struct device_attribute *attr,
 				 const char *buf, size_t count);
 
+static ssize_t store_fuse_otp_input(struct device *dev,
+				   struct device_attribute *attr,
+				   const char *buf, size_t count);
+
+static ssize_t store_log_bitmask_input(struct device *dev,
+				   struct device_attribute *attr,
+				   const char *buf, size_t count);
+
+static ssize_t store_fuse_input(struct device *dev,
+				   struct device_attribute *attr,
+				   const char *buf, size_t count);
+
+static ssize_t store_misc_input(struct device *dev,
+				   struct device_attribute *attr,
+				   const char *buf, size_t count);
+
 static DEVICE_ATTR(log_buf, 0644, show_qsee_app_log_buf, NULL);
 static DEVICE_ATTR(load_start, S_IWUSR, NULL, store_load_start);
 static DEVICE_ATTR(basic_data, 0644, show_basic_output, store_basic_input);
+static DEVICE_ATTR(encrypt, 0644, show_encrypt_output, store_encrypt_input);
+static DEVICE_ATTR(decrypt, 0644, show_decrypt_output, store_decrypt_input);
 static DEVICE_ATTR(crypto, 0644, NULL, store_crypto_input);
+static DEVICE_ATTR(fuse_otp, 0644, NULL, store_fuse_otp_input);
+static DEVICE_ATTR(log_bitmask, 0644, NULL, store_log_bitmask_input);
+static DEVICE_ATTR(fuse, 0644, NULL, store_fuse_input);
+static DEVICE_ATTR(misc, 0644, NULL, store_misc_input);
 
 static DEVICE_ATTR(generate, 0644, generate_key_blob, NULL);
 static DEVICE_ATTR(import, 0644, import_key_blob, store_key);
@@ -523,6 +594,11 @@ struct bin_attribute mdt_attr = {
 struct bin_attribute seg_attr = {
 	.attr = {.name = "seg_file", .mode = 0666},
 	.write = seg_write,
+};
+
+struct bin_attribute auth_attr = {
+	.attr = {.name = "auth_file", .mode = 0666},
+	.write = auth_write,
 };
 
 #endif
