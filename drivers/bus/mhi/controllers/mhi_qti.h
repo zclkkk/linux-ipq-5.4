@@ -18,7 +18,7 @@
 #define MHI_RPM_SUSPEND_TMR_MS (250)
 #define MHI_PCI_BAR_NUM (0)
 
-#ifdef CONFIG_MHI_DEBUG
+#ifdef CONFIG_MHI_BUS_DEBUG
 
 #define MHI_LOG(fmt, ...) do { \
 		pr_info("[D][%s] " fmt, __func__, ##__VA_ARGS__);\

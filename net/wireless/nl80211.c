@@ -985,6 +985,10 @@ static int nl80211_msg_put_channel(struct sk_buff *msg, struct wiphy *wiphy,
 		}
 	}
 
+	if (nla_put_u16(msg, NL80211_FREQUENCY_ATTR_CHANNEL,
+			chan->hw_value))
+		goto nla_put_failure;
+
 	return 0;
 
  nla_put_failure:
@@ -1294,12 +1298,9 @@ static int nl80211_key_allowed(struct wireless_dev *wdev)
 	case NL80211_IFTYPE_AP_VLAN:
 	case NL80211_IFTYPE_P2P_GO:
 	case NL80211_IFTYPE_MESH_POINT:
-		break;
 	case NL80211_IFTYPE_ADHOC:
 	case NL80211_IFTYPE_STATION:
 	case NL80211_IFTYPE_P2P_CLIENT:
-		if (!wdev->current_bss)
-			return -ENOLINK;
 		break;
 	case NL80211_IFTYPE_UNSPECIFIED:
 	case NL80211_IFTYPE_OCB:
@@ -10138,8 +10139,6 @@ static int nl80211_connect(struct sk_buff *skb, struct genl_info *info)
 	if (nla_get_flag(info->attrs[NL80211_ATTR_EXTERNAL_AUTH_SUPPORT])) {
 		if (!info->attrs[NL80211_ATTR_SOCKET_OWNER]) {
 			kzfree(connkeys);
-			GENL_SET_ERR_MSG(info,
-					 "external auth requires connection ownership");
 			return -EINVAL;
 		}
 		connect.flags |= CONNECT_REQ_EXTERNAL_AUTH_SUPPORT;
@@ -17013,8 +17012,9 @@ int cfg80211_external_auth_request(struct net_device *dev,
 	    nla_put_u32(msg, NL80211_ATTR_EXTERNAL_AUTH_ACTION,
 			params->action) ||
 	    nla_put(msg, NL80211_ATTR_BSSID, ETH_ALEN, params->bssid) ||
-	    nla_put(msg, NL80211_ATTR_SSID, params->ssid.ssid_len,
-		    params->ssid.ssid))
+	    (params->ssid.ssid_len &&
+		nla_put(msg, NL80211_ATTR_SSID, params->ssid.ssid_len,
+			params->ssid.ssid)))
 		goto nla_put_failure;
 
 	genlmsg_end(msg, hdr);

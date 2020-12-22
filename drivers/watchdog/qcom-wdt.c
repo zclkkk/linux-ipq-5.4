@@ -14,9 +14,11 @@
 #include <linux/of_device.h>
 #include <linux/sched/clock.h>
 #include <linux/qcom_scm.h>
+#include <linux/mhi.h>
 
 #define TCSR_WONCE_REG 0x193d010
 
+bool mhi_wdt_panic_enable;
 enum wdt_reg {
 	WDT_RST,
 	WDT_EN,
@@ -76,6 +78,11 @@ static void qcom_wdt_bite(struct qcom_wdt *wdt, unsigned int ticks)
 	pr_info("Watchdog bark! Now = %lu.%06lu\n", (unsigned long) t,
 							nanosec_rem / 1000);
 
+#ifdef CONFIG_MHI_BUS
+	if (mhi_wdt_panic_enable)
+		mhi_wdt_panic_handler();
+#endif
+
 	pr_info("Causing a watchdog bite!");
 	writel(0, wdt_addr(wdt, WDT_EN));
 	writel(1, wdt_addr(wdt, WDT_RST));
@@ -113,8 +120,33 @@ static int qcom_wdt_start(struct watchdog_device *wdd)
 
 	writel(0, wdt_addr(wdt, WDT_EN));
 	writel(1, wdt_addr(wdt, WDT_RST));
-	writel(bark * wdt->rate, wdt_addr(wdt, WDT_BARK_TIME));
-	writel(wdd->timeout * wdt->rate, wdt_addr(wdt, WDT_BITE_TIME));
+
+	/*
+	 * mhi-wdt-panic-enable if set, BARK and BITE time should have
+	 * enough difference for the MDM to collect crash dump and
+	 * reboot i.e BITE time should be set twice as BARK time.
+	 *
+	 * Openwrt sets the BITE and BARK time to be 30 and 29. In order
+	 * to have time for MDM dump collection, the following command must
+	 * be used to set BARK and BITE time to 15 and 30.
+	 *
+	 *	ubus call system watchdog '{ "timeout":15 }'
+	 *
+	 * The max timeout value that can be configured is only 32 and so
+	 * the above command must be run to give sufficient time difference
+	 * between bark and bite. Failing to run above command will lead to
+	 * timeout round off as a result of which bite time will be less than
+	 * bark time.
+	 *
+	 */
+	if (!mhi_wdt_panic_enable) {
+		writel(bark * wdt->rate, wdt_addr(wdt, WDT_BARK_TIME));
+		writel(wdd->timeout * wdt->rate, wdt_addr(wdt, WDT_BITE_TIME));
+	} else {
+		writel(wdd->timeout * wdt->rate, wdt_addr(wdt, WDT_BARK_TIME));
+		writel((wdd->timeout * wdt->rate) * 2, wdt_addr(wdt, WDT_BITE_TIME));
+	}
+
 	writel(qcom_get_enable(wdd), wdt_addr(wdt, WDT_EN));
 	return 0;
 }
@@ -241,6 +273,8 @@ static int qcom_wdt_probe(struct platform_device *pdev)
 
 	res->start += percpu_offset;
 	res->end += percpu_offset;
+
+	mhi_wdt_panic_enable = of_property_read_bool(np, "mhi-wdt-panic-enable");
 
 	wdt->base = devm_ioremap_resource(dev, res);
 	if (IS_ERR(wdt->base))

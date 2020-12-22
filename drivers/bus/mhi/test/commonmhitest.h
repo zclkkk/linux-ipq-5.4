@@ -32,9 +32,16 @@
 #define PCI_BAR_NUM                     0
 #define PCI_DMA_MASK_64_BIT		64
 #define MHI_TIMEOUT_DEFAULT		10000
-#define PCIE_SOC_GLOBAL_RESET_VALUE	0x5
+#define PCIE_SOC_GLOBAL_RESET_V		1
 #define PCIE_SOC_GLOBAL_RESET_ADDRESS	0x3008
-#define MAX_SOC_GLOBAL_RESET_WAIT_CNT	50 /* x 20msec */
+#define PCIE_TXVECDB			0x360
+#define PCIE_TXVECSTATUS		0x368
+#define PCIE_RXVECDB			0x394
+#define PCIE_RXVECSTATUS		0x39C
+
+#define MHISTATUS			0x48
+#define MHICTRL				0x38
+#define MHICTRL_RESET_MASK		0x2
 
 /* Add DEBUG related here  */
 enum MHITEST_DEBUG_KLVL{

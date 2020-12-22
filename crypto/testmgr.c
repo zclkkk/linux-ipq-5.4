@@ -291,12 +291,13 @@ static const struct testvec_config default_cipher_testvec_configs[] = {
 		.inplace = true,
 		.src_divs = { { .proportion_of_total = 10000 } },
 	},
-#ifndef CONFIG_CRYPTO_DISABLE_OUTOFPLACE_TESTS
+
 	{
 		.name = "out-of-place",
+		.inplace = false,
 		.src_divs = { { .proportion_of_total = 10000 } },
 	},
-#endif
+
 	{
 		.name = "unaligned buffer, offset=1",
 		.inplace = true,

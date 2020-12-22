@@ -3817,7 +3817,7 @@ void cnss_pci_collect_dump_info(struct cnss_pci_data *pci_priv, bool in_panic)
 	plat_priv->target_assert_timestamp = ktime_to_ms(ktime_get());
 	cnss_pci_dump_qdss_reg(pci_priv);
 
-	ret = mhi_download_rddm_img(pci_priv->mhi_ctrl, in_panic);
+	ret = mhi_download_rddm_image(pci_priv->mhi_ctrl, in_panic);
 	if (ret) {
 		cnss_fatal_err("Failed to download RDDM image, err = %d\n",
 			       ret);
