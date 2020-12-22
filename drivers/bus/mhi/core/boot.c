@@ -533,6 +533,18 @@ void mhi_fw_load_handler(struct mhi_controller *mhi_cntrl)
 	size_t size;
 	int i, ret;
 	u32 instance;
+	rwlock_t *pm_lock = &mhi_cntrl->pm_lock;
+	u32 val;
+	struct {
+		char *name;
+		u32 offset;
+	} error_reg[] = {
+		{ "ERROR_CODE", BHI_ERRCODE },
+		{ "ERROR_DBG1", BHI_ERRDBG1 },
+		{ "ERROR_DBG2", BHI_ERRDBG2 },
+		{ "ERROR_DBG3", BHI_ERRDBG3 },
+		{ NULL },
+	};
 
 	if (MHI_PM_IN_ERROR_STATE(mhi_cntrl->pm_state)) {
 		dev_err(dev, "Device MHI is not in valid state\n");
@@ -677,6 +689,18 @@ fw_load_ee_pthru:
 	return;
 
 error_ready_state:
+	read_lock_bh(pm_lock);
+	if (MHI_REG_ACCESS_VALID(mhi_cntrl->pm_state)) {
+		for (i = 0; error_reg[i].name; i++) {
+			ret = mhi_read_reg(mhi_cntrl, mhi_cntrl->bhi,
+					   error_reg[i].offset, &val);
+			if (ret)
+				break;
+			dev_err(dev, "reg:%s value:0x%x\n",
+				error_reg[i].name, val);
+		}
+	}
+	read_unlock_bh(pm_lock);
 	mhi_free_bhie_table(mhi_cntrl, mhi_cntrl->fbc_image);
 	mhi_cntrl->fbc_image = NULL;
 
