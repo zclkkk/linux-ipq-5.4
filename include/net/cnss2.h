@@ -352,6 +352,14 @@ static inline void cnss_get_ramdump_device_name(struct device *dev,
 						size_t ramdump_dev_name_len)
 {
 }
+static inline unsigned int cnss_get_driver_mode(void)
+{
+	return CNSS_MISSION;
+}
+static inline int cnss_set_driver_mode(unsigned int mode)
+{
+	return -EINVAL;
+}
 #else
 extern int cnss_wlan_register_driver(struct cnss_wlan_driver *driver);
 extern void cnss_wlan_unregister_driver(struct cnss_wlan_driver *driver);
@@ -432,5 +440,7 @@ u64 cnss_get_q6_time(struct device *dev);
 void cnss_get_ramdump_device_name(struct device *dev,
 				  char *ramdump_dev_name,
 				  size_t ramdump_dev_name_len);
+unsigned int cnss_get_driver_mode(void);
+int cnss_set_driver_mode(unsigned int mode);
 #endif
 #endif /* _NET_CNSS2_H */
