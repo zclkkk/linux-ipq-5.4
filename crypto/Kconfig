@@ -246,6 +246,13 @@ config CRYPTO_DISABLE_AHASH_TYPE3_TESTS
 	help
 	  Disable AHASH type 3 tests
 
+config CRYPTO_DISABLE_AES192_TEST
+	bool "Disable testcases with 192 key length"
+	default y
+	depends on CRYPTO_TEST
+	help
+	  Disable testcases with 192 key length
+
 config CRYPTO_SIMD
 	tristate
 	select CRYPTO_CRYPTD
