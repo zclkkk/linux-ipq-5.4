@@ -63,7 +63,6 @@
 #define	NAND_READ_LOCATION_LAST_CW_3	0xf4c
 #define	NAND_QSPI_MSTR_CONFIG		0xf60
 
-
 /* dummy register offsets, used by write_reg_dma */
 #define	NAND_DEV_CMD1_RESTORE		0xdead
 #define	NAND_DEV_CMD_VLD_RESTORE	0xbeef
@@ -2987,13 +2986,14 @@ static void qspi_nand_init(struct qcom_nand_controller *nandc)
 	u32 spi_cfg_val = 0x0;
 	u32 reg = 0x0;
 
-	spi_cfg_val |= (LOAD_CLK_CNTR_INIT_EN | CLK_CNTR_INIT_VAL_VEC
-			| FEA_STATUS_DEV_ADDR | SPI_CFG);
+	spi_cfg_val |= (LOAD_CLK_CNTR_INIT_EN | (CLK_CNTR_INIT_VAL_VEC << 16)
+			| (FEA_STATUS_DEV_ADDR << 8) | SPI_CFG);
 
-	qspi_write_reg_bam(nandc, 0x0, NAND_FLASH_SPI_CFG);
-	qspi_write_reg_bam(nandc, spi_cfg_val, NAND_FLASH_SPI_CFG);
+	reg = dev_cmd_reg_addr(nandc, NAND_FLASH_SPI_CFG);
+	nandc_write(nandc, reg, 0);
+	nandc_write(nandc, reg, spi_cfg_val);
 	spi_cfg_val &= ~LOAD_CLK_CNTR_INIT_EN;
-	qspi_write_reg_bam(nandc, spi_cfg_val, NAND_FLASH_SPI_CFG);
+	nandc_write(nandc, reg, spi_cfg_val);
 
 	reg = dev_cmd_reg_addr(nandc, NAND_DEV_CMD0);
 	nandc_write(nandc, reg, CMD0_VAL);
@@ -3004,8 +3004,9 @@ static void qspi_nand_init(struct qcom_nand_controller *nandc)
 	reg = dev_cmd_reg_addr(nandc, NAND_DEV_CMD3);
 	nandc_write(nandc, reg, CMD3_VAL);
 
-	qspi_write_reg_bam(nandc, SPI_NUM_ADDR, NAND_SPI_NUM_ADDR_CYCLES);
-	qspi_write_reg_bam(nandc, WAIT_CNT, NAND_SPI_BUSY_CHECK_WAIT_CNT);
+	reg = dev_cmd_reg_addr(nandc, NAND_SPI_NUM_ADDR_CYCLES);
+	nandc_write(nandc, reg, SPI_NUM_ADDR);
+	nandc_write(nandc, reg + 4, WAIT_CNT);
 }
 
 static void qspi_set_phase(struct qcom_nand_controller *nandc, int phase)
