@@ -2,7 +2,7 @@
 /*
  * IPQ9048 SoC device tree source
  *
- * Copyright (c) 2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2020-2021 The Linux Foundation. All rights reserved.
  */
 
 #include <dt-bindings/interrupt-controller/arm-gic.h>
@@ -331,7 +331,7 @@
 				     <0 425 0x1>, <0 424 0x1>, <0 423 0x1>,
 				     <0 422 0x1>;
 			reg = <0x38F00000 0x100>, <0x38200000 0x18000>,
-			      <0xB111004 0x1000>;
+			      <0xB11A000 0x1000>;
 			reg-names = "nphys", "vphys", "qgic-phys";
 			qcom,id = <0>;
 			qcom,num-queue = <4>;
@@ -373,7 +373,7 @@
 				     <0 440 0x1>, <0 439 0x1>, <0 438 0x1>,
 				     <0 437 0x1>, <0 436 0x1>, <0 435 0x1>;
 			reg = <0x38F01000 0x100>, <0x38040000 0x30000>,
-				<0xB111004 0x1000>;
+				<0xB11A000 0x1000>;
 			reg-names = "nphys", "vphys", "qgic-phys";
 			qcom,id = <1>;
 			qcom,num-queue = <4>;
