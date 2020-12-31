@@ -2061,8 +2061,10 @@ static int sdhci_msm_probe(struct platform_device *pdev)
 	host->caps1 = SDHCI_SUPPORT_SDR104 | SDHCI_SUPPORT_SDR50 |
 			SDHCI_SUPPORT_DDR50;
 
-	if (device_property_read_bool(&pdev->dev, "qcom,emulation") &&
-			device_property_read_bool(&pdev->dev, "cap-mmc-highspeed"))
+	if ((device_property_read_bool(&pdev->dev, "qcom,emulation")) &&
+			(device_property_read_bool(&pdev->dev, "cap-mmc-highspeed") ||
+			device_property_read_bool(&pdev->dev, "mmc-ddr-3_3v") ||
+			device_property_read_bool(&pdev->dev, "mmc-ddr-1_8v")))
 		host->caps1 &= ~SDHCI_SUPPORT_SDR104;
 
 	host->quirks  |= SDHCI_QUIRK_MISSING_CAPS;
