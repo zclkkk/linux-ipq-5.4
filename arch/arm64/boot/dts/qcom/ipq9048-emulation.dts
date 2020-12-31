@@ -118,6 +118,11 @@
 			};
 		};
 
+		sdhci@7804000 {
+			status = "ok";
+			qcom,emulation;
+		};
+
 		gcc: gcc@1800000 {
 			gcc-use-dummy;
 		};
