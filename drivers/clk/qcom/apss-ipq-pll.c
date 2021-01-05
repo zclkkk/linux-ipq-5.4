@@ -4,6 +4,7 @@
 #include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
+#include <linux/of_device.h>
 
 #include "clk-alpha-pll.h"
 
@@ -37,7 +38,19 @@ static struct clk_alpha_pll ipq_pll = {
 	},
 };
 
-static const struct alpha_pll_config ipq_pll_config = {
+static const struct alpha_pll_config ipq6018_pll_config = {
+	.l = 0x37,
+	.config_ctl_val = 0x240D4828,
+	.config_ctl_hi_val = 0x6,
+	.early_output_mask = BIT(3),
+	.aux2_output_mask = BIT(2),
+	.aux_output_mask = BIT(1),
+	.main_output_mask = BIT(0),
+	.test_ctl_val = 0x1C0000C0,
+	.test_ctl_hi_val = 0x4000,
+};
+
+static const struct alpha_pll_config ipq9048_pll_config = {
 	.l = 0x37,
 	.config_ctl_val = 0x240D4828,
 	.config_ctl_hi_val = 0x6,
@@ -57,11 +70,19 @@ static const struct regmap_config ipq_pll_regmap_config = {
 	.fast_io		= true,
 };
 
+static const struct of_device_id apss_ipq_pll_match_table[] = {
+	{ .compatible = "qcom,ipq6018-a53pll", .data = &ipq6018_pll_config, },
+	{ .compatible = "qcom,ipq9048-a53pll", .data = &ipq9048_pll_config, },
+	{ }
+};
+
 static int apss_ipq_pll_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct regmap *regmap;
 	void __iomem *base;
+	const struct of_device_id *match;
+	const struct alpha_pll_config *ipq_pll_config;
 	int ret;
 
 	base = devm_platform_ioremap_resource(pdev, 0);
@@ -72,7 +93,13 @@ static int apss_ipq_pll_probe(struct platform_device *pdev)
 	if (IS_ERR(regmap))
 		return PTR_ERR(regmap);
 
-	clk_alpha_pll_configure(&ipq_pll, regmap, &ipq_pll_config);
+	match = of_match_device(apss_ipq_pll_match_table, &pdev->dev);
+	if(!match)
+		return -ENODEV;
+
+	ipq_pll_config = (struct alpha_pll_config *)match->data;
+
+	clk_alpha_pll_configure(&ipq_pll, regmap, ipq_pll_config);
 
 	ret = devm_clk_register_regmap(dev, &ipq_pll.clkr);
 	if (ret)
@@ -81,11 +108,6 @@ static int apss_ipq_pll_probe(struct platform_device *pdev)
 	return devm_of_clk_add_hw_provider(dev, of_clk_hw_simple_get,
 					   &ipq_pll.clkr.hw);
 }
-
-static const struct of_device_id apss_ipq_pll_match_table[] = {
-	{ .compatible = "qcom,ipq6018-a53pll" },
-	{ }
-};
 
 static struct platform_driver apss_ipq_pll_driver = {
 	.probe = apss_ipq_pll_probe,
