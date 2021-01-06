@@ -10,7 +10,7 @@
  */
 #if !defined(__IPQ_MEM_PROFILE_256_MB__)
 &tmc_etr {
-	/delete-property/ memory_region;
+	/delete-property/ memory-region;
 };
 
 &q6v5_wcss {
