@@ -2,7 +2,7 @@
 /*
  * IPQ9048 Emulation board device tree source
  *
- * Copyright (c) 2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2020-2021 The Linux Foundation. All rights reserved.
  */
 
 /dts-v1/;
@@ -54,7 +54,7 @@
 
 		nss@40000000 {
 			no-map;
-			reg = <0x0 0x40000000 0x0 0x01000000>;
+			reg = <0x0 0x40000000 0x0 0x02000000>;
 		};
 	};
 

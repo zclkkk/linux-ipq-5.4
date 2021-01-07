@@ -359,7 +359,7 @@
 				     <0 428 0x1>, <0 427 0x1>, <0 426 0x1>,
 				     <0 425 0x1>, <0 424 0x1>, <0 423 0x1>,
 				     <0 422 0x1>;
-			reg = <0x38F00000 0x100>, <0x38200000 0x18000>,
+			reg = <0x38F00000 0x100>, <0x38200000 0xC000>,
 			      <0xB11A000 0x1000>;
 			reg-names = "nphys", "vphys", "qgic-phys";
 			qcom,id = <0>;
@@ -400,13 +400,14 @@
 			compatible = "qcom,nss";
 			interrupts = <0 443 0x1>, <0 442 0x1>, <0 441 0x1>,
 				     <0 440 0x1>, <0 439 0x1>, <0 438 0x1>,
-				     <0 437 0x1>, <0 436 0x1>, <0 435 0x1>;
-			reg = <0x38F01000 0x100>, <0x38040000 0x30000>,
+				     <0 437 0x1>, <0 436 0x1>, <0 435 0x1>,
+				     <0 434 0x1>;
+			reg = <0x38F01000 0x100>, <0x3820C000 0xC000>,
 				<0xB11A000 0x1000>;
 			reg-names = "nphys", "vphys", "qgic-phys";
 			qcom,id = <1>;
 			qcom,num-queue = <4>;
-			qcom,num-irq = <9>;
+			qcom,num-irq = <10>;
 			qcom,num-pri = <4>;
 			qcom,load-addr = <0x40800000>;
 			qcom,capwap-enabled;
@@ -418,6 +419,38 @@
 			qcom,pvxlan-enabled;
 			qcom,clmap-enabled;
 			qcom,rmnet_rx-enabled;
+		};
+
+		nss2: nss@41000000 {
+			compatible = "qcom,nss";
+			interrupts = <0 455 0x1>, <0 454 0x1>, <0 453 0x1>,
+				     <0 452 0x1>, <0 451 0x1>, <0 450 0x1>,
+				     <0 449 0x1>, <0 448 0x1>, <0 447 0x1>,
+				     <0 446 0x1>;
+			reg = <0x38F02000 0x100>, <0x38218000 0xC000>,
+				<0xB11A000 0x1000>;
+			reg-names = "nphys", "vphys", "qgic-phys";
+			qcom,id = <2>;
+			qcom,num-queue = <4>;
+			qcom,num-irq = <10>;
+			qcom,num-pri = <4>;
+			qcom,load-addr = <0x41000000>;
+		};
+
+		nss3: nss@41800000 {
+			compatible = "qcom,nss";
+			interrupts = <0 467 0x1>, <0 466 0x1>, <0 465 0x1>,
+				     <0 464 0x1>, <0 463 0x1>, <0 462 0x1>,
+				     <0 461 0x1>, <0 460 0x1>, <0 459 0x1>,
+				     <0 458 0x1>;
+			reg = <0x38F03000 0x100>, <0x38224000 0xC000>,
+				<0xB11A000 0x1000>;
+			reg-names = "nphys", "vphys", "qgic-phys";
+			qcom,id = <3>;
+			qcom,num-queue = <4>;
+			qcom,num-irq = <10>;
+			qcom,num-pri = <4>;
+			qcom,load-addr = <0x41800000>;
 		};
 	};
 
