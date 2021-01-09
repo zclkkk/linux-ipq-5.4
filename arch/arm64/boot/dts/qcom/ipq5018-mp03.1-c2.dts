@@ -185,3 +185,8 @@
 	pinctrl-names = "default";
 	status = "ok";
 };
+
+&pcie_x2 {
+        status = "ok";
+        perst-gpio = <&tlmm 15 1>;
+};

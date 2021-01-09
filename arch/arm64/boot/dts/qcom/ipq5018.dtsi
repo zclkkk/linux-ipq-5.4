@@ -641,7 +641,7 @@
 				      "axi_m_sticky",
 				      "axi_s_sticky";
 
-			status = "ok";
+			status = "disabled";
 
 			pcie_x2_rp: pcie_x2_rp {
 				reg = <0 0 0 0 0>;
