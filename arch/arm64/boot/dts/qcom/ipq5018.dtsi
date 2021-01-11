@@ -239,7 +239,7 @@
 			reset-names = "phy",
 					"phy_phy";
 			mode_fixed = <1>;
-			status = "ok";
+			status = "disabled";
 		};
 
 		tlmm: pinctrl@1000000 {
