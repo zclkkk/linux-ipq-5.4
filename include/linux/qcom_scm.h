@@ -242,6 +242,7 @@ extern int qti_config_sec_ice(void *buf, int size);
 extern int qti_scm_pshold(void);
 extern int qti_scm_extwdt(u32 svc_id, u32 cmd_id, unsigned int regaddr,
 			   unsigned int val);
+extern int qti_scm_tcsr_reg_write(u32 reg_addr, u32 value);
 #else
 
 #include <linux/errno.h>
@@ -321,6 +322,10 @@ static inline int qcom_scm_set_resettype(u32 reset_type) { return -ENODEV; }
 static int qti_scm_pshold(void) { return -ENODEV; }
 extern int qti_scm_extwdt(u32 svc_id, u32 cmd_id, unsigned int regaddr,
 			   unsigned int val)
+{
+	return -ENODEV;
+}
+extern int qti_scm_tcsr_reg_write(u32 reg_addr, u32 value)
 {
 	return -ENODEV;
 }
