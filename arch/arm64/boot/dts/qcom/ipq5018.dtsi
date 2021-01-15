@@ -493,6 +493,14 @@
 			interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
 		};
 
+		watchdog@b017000 {
+			compatible = "qcom,kpss-wdt";
+			interrupts = <GIC_SPI 3 IRQ_TYPE_NONE>;
+			reg = <0x0b017000 0x40>;
+			clocks = <&sleep_clk>;
+			max-timeout-sec = <32>;
+		};
+
 		apcs_glb: mailbox@b111000 {
 			compatible = "qcom,ipq8074-apcs-apps-global";
 			reg = <0x0b111000 0xc>;
