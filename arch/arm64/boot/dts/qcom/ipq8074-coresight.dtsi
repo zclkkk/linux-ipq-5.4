@@ -217,14 +217,6 @@
 						<&funnel_in0_in_funnel_center>;
 				};
 			};
-			port@1 {
-				reg = <2>;
-				funnel_center_in_dbgui:endpoint {
-					slave-mode;
-					remote-endpoint =
-						<&dbgui_out_funnel_center>;
-				};
-			};
 		};
 	};
 
@@ -781,28 +773,6 @@
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
 		clock-names = "core_clk", "core_a_clk";
-	};
-
-	dbgui: dbgui@6108000 {
-		compatible = "qcom,coresight-dbgui";
-		reg = <0x6108000 0x1000>;
-		reg-names = "dbgui-base";
-
-		coresight-name = "coresight-dbgui";
-
-		qcom,dbgui-addr-offset = <0x30>;
-		qcom,dbgui-data-offset = <0x130>;
-		qcom,dbgui-size = <64>;
-
-		clocks = <&gcc GCC_QDSS_DAP_CLK>,
-			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
-
-		port{
-			dbgui_out_funnel_center:endpoint {
-				remote-endpoint = <&funnel_center_in_dbgui>;
-			};
-		};
 	};
 
 	tpda: tpda@6003000 {
