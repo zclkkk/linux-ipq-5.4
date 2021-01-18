@@ -25,7 +25,8 @@ struct qseecom_props {
 
 const struct qseecom_props qseecom_props_ipq807x = {
 	.function = (MUL | CRYPTO | AES_SEC_KEY | RSA_SEC_KEY | LOG_BITMASK |
-	FUSE | MISC | AES_TZAPP | RSA_TZAPP),
+					FUSE | MISC | AES_TZAPP | RSA_TZAPP |
+					FUSE_WRITE),
 	.libraries_inbuilt = false,
 	.logging_support_enabled = true,
 };
@@ -2326,6 +2327,11 @@ static int qtiapp_test(struct device *dev, void *input,
 	case QTI_APP_MISC_TEST_ID:
 		msgreq->cmd_id = CLIENT_CMD13_RUN_MISC_TEST;
 		break;
+	case QTI_APP_FUSE_BLOW_ID:
+		msgreq->cmd_id = CLIENT_CMD43_RUN_FUSE_BLOW;
+		msgreq->data = (dma_addr_t)input;
+		msgreq->len = input_len;
+		break;
 	case QTI_APP_AES_ENCRYPT_ID:
 		msgreq->cmd_id = CLIENT_CMD40_RUN_AES_ENCRYPT;
 		msgreq->data = (dma_addr_t)input;
@@ -2476,12 +2482,13 @@ static int qtiapp_test(struct device *dev, void *input,
 			pr_info("Misc test failed\n");
 			goto fn_exit;
 		}
-	} else if (option == QTI_APP_RSA_ENC_DEC_ID) {
+	} else if (option == QTI_APP_RSA_ENC_DEC_ID ||
+			option == QTI_APP_FUSE_BLOW_ID) {
 		if (msgrsp->status) {
 			ret = -EINVAL;
 		}
 	} else if (option == QTI_APP_AES_ENCRYPT_ID ||
-		option == QTI_APP_AES_DECRYPT_ID) {
+			option == QTI_APP_AES_DECRYPT_ID) {
 		if (msgrsp->status) {
 			ret = -EOPNOTSUPP;
 		}
@@ -3064,6 +3071,136 @@ static ssize_t show_qsee_app_id(struct device *dev,
 				   struct device_attribute *attr, char *buf)
 {
 	return snprintf(buf, sizeof(uint32_t) + 1, "%u\n", qsee_app_id);
+}
+
+static ssize_t
+store_addr_fuse_write_qtiapp(struct device *dev, struct device_attribute *attr,
+			const char *buf, size_t count)
+{
+	unsigned long long val;
+
+	if (kstrtoull(buf, 0, &val))
+		return -EINVAL;
+
+	fuse_addr = val;
+
+	return count;
+}
+static ssize_t
+store_value_fuse_write_qtiapp(struct device *dev, struct device_attribute *attr,
+			const char *buf, size_t count)
+{
+	unsigned long long val;
+
+	if (kstrtoull(buf, 0, &val))
+		return -EINVAL;
+
+	if(val > MAX_FUSE_WRITE_VALUE) {
+		pr_err("Invalid input: %llu\n", val);
+		return -EINVAL;
+	}
+	fuse_value = val;
+
+	return count;
+}
+static ssize_t
+store_fec_value_fuse_write_qtiapp(struct device *dev, struct device_attribute *attr,
+			const char *buf, size_t count)
+{
+	unsigned long long val;
+
+	if (kstrtoull(buf, 0, &val))
+		return -EINVAL;
+
+	if(val > MAX_FUSE_FEC_VALUE) {
+		pr_err("\nInvalid input: %llu\n", val);
+		return -EINVAL;
+	}
+	fuse_fec_value = val;
+
+	return count;
+}
+static ssize_t
+store_fec_enable_fuse_write_qtiapp(struct device *dev, struct device_attribute *attr,
+			const char *buf, size_t count)
+{
+	unsigned long long val;
+
+	if (kstrtoull(buf, 10, &val))
+		return -EINVAL;
+
+	if(val != 0 && val !=1) {
+		pr_err("\nInvalid input: %llu\n", val);
+		pr_err("fec enable should be either 0 or 1\n");
+		return -EINVAL;
+	}
+	is_fec_enable = val;
+
+	return count;
+}
+
+static ssize_t
+store_blow_fuse_write_qtiapp(struct device *dev, struct device_attribute *attr,
+			const char *buf, size_t count)
+{
+	uint32_t ret = 0;
+	struct qti_storage_service_fuse_blow_req *req_ptr = NULL;
+	uint64_t req_size = 0;
+	size_t req_order = 0;
+	struct page *req_page = NULL;
+	dma_addr_t dma_req_addr = 0;
+
+	unsigned long long val;
+
+	if (kstrtoull(buf, 10, &val))
+		return -EINVAL;
+
+	if(val !=1) {
+		pr_err("\nInvalid input: %llu\n", val);
+		pr_err("echo 1 to blow the fuse\n");
+		return -EINVAL;
+	} else if (is_fec_enable && !fuse_fec_value) {
+		pr_err("\nfec value should be given, if fec is enabled\n");
+		return -EINVAL;
+	}
+
+	dev = qdev;
+
+	req_size = sizeof(struct qti_storage_service_fuse_blow_req);
+	req_order = get_order(req_size);
+	req_page = alloc_pages(GFP_KERNEL|GFP_DMA, req_order);
+	if (req_page)
+		req_ptr = page_address(req_page);
+	else
+		return -ENOMEM;
+
+	req_ptr->addr = fuse_addr;
+	req_ptr->value = fuse_value;
+	req_ptr->is_fec_enable = is_fec_enable;
+	req_ptr->fec_value = fuse_fec_value;
+
+	dma_req_addr = dma_map_single(dev, req_ptr, req_size, DMA_TO_DEVICE);
+	ret = dma_mapping_error(dev, dma_req_addr);
+	if (ret) {
+		pr_err("DMA Mapping Error\n");
+		goto free_dma_req;
+	}
+
+	ret = qtiapp_test(dev, (void *)dma_req_addr, NULL, req_size,
+					QTI_APP_FUSE_BLOW_ID);
+	if (ret) {
+		pr_err("Fuse Blow failed from QTI app with error code %d\n",ret);
+	}
+	else
+		ret = count;
+
+	dma_unmap_single(dev, dma_req_addr, req_size, DMA_TO_DEVICE);
+
+free_dma_req:
+	free_pages((unsigned long)req_ptr, req_order);
+
+	return ret;
+
 }
 
 static ssize_t
@@ -3824,7 +3961,16 @@ static int __init qtiapp_init(void)
 		}
 	}
 
+	if(props->function & FUSE_WRITE) {
 
+		qtiapp_fuse_write_kobj = kobject_create_and_add("fuse_write", qtiapp_kobj);
+
+		err = sysfs_create_group(qtiapp_fuse_write_kobj, &qtiapp_fuse_write_attr_grp);
+
+		if (err) {
+			kobject_put(qtiapp_fuse_write_kobj);
+		}
+	}
 
 	return 0;
 }
@@ -4032,6 +4178,15 @@ static int __exit qseecom_remove(struct platform_device *pdev)
 
 		sysfs_remove_group(qtiapp_rsa_kobj, &qtiapp_rsa_attr_grp);
 		kobject_put(qtiapp_rsa_kobj);
+	}
+
+
+	if (props->function & FUSE_WRITE) {
+
+		sysfs_remove_group(qtiapp_fuse_write_kobj,
+						&qtiapp_fuse_write_attr_grp);
+		kobject_put(qtiapp_fuse_write_kobj);
+
 	}
 
 	kfree(mdt_file);
