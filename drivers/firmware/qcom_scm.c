@@ -821,6 +821,12 @@ int qti_scm_set_resettype(u32 reset_type)
 }
 EXPORT_SYMBOL(qti_scm_set_resettype);
 
+int qti_scm_tcsr_reg_write(u32 reg_addr, u32 value)
+{
+	return __qti_scm_tcsr_reg_write(__scm->dev, reg_addr, value);
+}
+EXPORT_SYMBOL(qti_scm_tcsr_reg_write);
+
 /*
  * qti_config_sec_ice() - Configure ICE block securely
  */

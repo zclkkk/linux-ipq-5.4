@@ -1595,3 +1595,20 @@ int __qti_scm_extwdt(struct device *dev, u32 svc_id, u32 cmd_id,
 
 	return ret;
 }
+
+int __qti_scm_tcsr_reg_write(struct device *dev, u32 reg_addr, u32 value)
+{
+	struct scm_desc desc = {0};
+	int ret;
+
+	desc.args[0] = reg_addr;
+	desc.args[1] = value;
+
+	desc.arginfo = SCM_ARGS(2, QCOM_SCM_VAL, QCOM_SCM_VAL);
+	ret = qti_scm_call2(dev, SCM_SIP_FNID(QCOM_SCM_SVC_IO,
+					QCOM_SCM_IO_WRITE), &desc);
+	if (ret)
+		return ret;
+
+	return le32_to_cpu(desc.ret[0]);
+}

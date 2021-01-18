@@ -239,7 +239,7 @@
 			reset-names = "phy",
 					"phy_phy";
 			mode_fixed = <1>;
-			status = "ok";
+			status = "disabled";
 		};
 
 		tlmm: pinctrl@1000000 {
@@ -913,6 +913,12 @@
 			qcom,mirror-enabled;
 			qcom,crypto-enabled;
 			qcom,ipsec-enabled;
+		};
+
+		scm_restart_reason: scm_restart_reason {
+			compatible = "qti,scm_restart_reason";
+			dload_status = <0>;
+			dload_warm_status = <0>;
 		};
 	};
 };
