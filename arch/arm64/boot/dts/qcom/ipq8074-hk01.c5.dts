@@ -504,6 +504,21 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 
+			mhi_netdev_0: mhi_rmnet@0 {
+				reg = <0x0>;
+				mhi,chan = "IP_HW0";
+				mhi,interface-name = "rmnet_mhi";
+				mhi,mru = <0x4000>;
+				mhi,chain-skb;
+			};
+
+			mhi_rmnet@1 {
+				reg = <0x1>;
+				mhi,chan = "IP_HW0_RSC";
+				mhi,mru = <0x8000>;
+				mhi,rsc-parent = <&mhi_netdev_0>;
+			};
+
 			mhi_netdev_2: mhi_rmnet@2 {
 				reg = <0x2>;
 				mhi,chan = "IP_SW0";
