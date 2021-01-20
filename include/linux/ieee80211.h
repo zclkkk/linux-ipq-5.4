@@ -1570,6 +1570,79 @@ struct ieee80211_vht_operation {
 } __packed;
 
 /**
+ * enum ieee80211_eht_mcs_support - EHT MCS support definitions
+ * @IEEE80211_EHT_MCS_SUPPORT_0_9: MCSes 0-9 are supported for the
+ *	number of streams
+ * @IEEE80211_EHT_MCS_SUPPORT_0_11: MCSes 0-11 are supported
+ * @IEEE80211_EHT_MCS_SUPPORT_0_13: MCSes 0-13 are supported
+ * @IEEE80211_EHT_MCS_NOT_SUPPORTED: This number of streams isn't supported
+ *
+ * These definitions are used in each 2-bit subfield of the rx_mcs_*
+ * and tx_mcs_* fields of &struct ieee80211_eht_mcs_nss_supp, which are
+ * both split into 16 subfields by number of streams. These values indicate
+ * which MCSes are supported for the number of streams the value appears
+ * for.
+ */
+enum ieee80211_eht_mcs_support {
+	IEEE80211_EHT_MCS_SUPPORT_0_9	= 0,
+	IEEE80211_EHT_MCS_SUPPORT_0_11	= 1,
+	IEEE80211_EHT_MCS_SUPPORT_0_13	= 2,
+	IEEE80211_EHT_MCS_NOT_SUPPORTED	= 3,
+};
+
+/**
+ * struct ieee80211_eht_mcs_nss_supp - EHT Tx/Rx HE MCS NSS Support Field
+ *
+ * This structure holds the data required for the Tx/Rx HE MCS NSS Support Field
+ * described in Drat
+ *
+ * @rx_mcs_80: Rx MCS map 2 bits for each stream, total 16 streams, for channel
+ *     widths less than 80MHz.
+ * @tx_mcs_80: Tx MCS map 2 bits for each stream, total 16 streams, for channel
+ *     widths less than 80MHz.
+ * @rx_mcs_160: Rx MCS map 2 bits for each stream, total 16 streams, for channel
+ *     width 160MHz.
+ * @tx_mcs_160: Tx MCS map 2 bits for each stream, total 16 streams, for channel
+ *     width 160MHz.
+ * @rx_mcs_320: Rx MCS map 2 bits for each stream, total 16 streams, for channel
+ *	   width 320MHz.
+ * @tx_mcs_320: Tx MCS map 2 bits for each stream, total 16 streams, for channel
+ *     width 320MHz.
+ */
+struct ieee80211_eht_mcs_nss_supp {
+	__le32 rx_mcs_80;
+	__le32 tx_mcs_80;
+	__le32 rx_mcs_160;
+	__le32 tx_mcs_160;
+	__le32 rx_mcs_320;
+	__le32 tx_mcs_320;
+} __packed;
+
+/**
+ * struct ieee80211_eht_operation - EHT capabilities element
+ *
+ * This structure is the "EHT operation element" fields as
+ * described in 11be Draft
+ */
+struct ieee80211_eht_operation {
+	__le32 eht_oper_params;
+	__le16 eht_mcs_nss_set;
+	/* Optional 0,1,3,4,5,7 or 8 bytes: depends on @eht_oper_params */
+	u8 optional[0];
+} __packed;
+
+/**
+ * struct ieee80211_eht_cap_elem - HE capabilities element
+ *
+ * This structure is the "EHT capabilities element" fixed fields as
+ * described in 11be Draft
+ */
+struct ieee80211_eht_cap_elem {
+	u8 mac_cap_info[6]; /* TBD */
+	u8 phy_cap_info[11]; /* TBD */
+} __packed;
+
+/**
  * struct ieee80211_he_cap_elem - HE capabilities element
  *
  * This structure is the "HE capabilities element" fixed fields as
@@ -1579,6 +1652,7 @@ struct ieee80211_he_cap_elem {
 	u8 mac_cap_info[6];
 	u8 phy_cap_info[11];
 } __packed;
+
 
 #define IEEE80211_TX_RX_MCS_NSS_DESC_MAX_LEN	5
 
@@ -2129,6 +2203,14 @@ ieee80211_he_spr_size(const u8 *he_spr_ie)
 
 	return spr_len;
 }
+
+/* 802.11be EHT MAC capabilities */
+
+/* TBD: 11BE MAC capabilities go here */
+
+/* 802.11be EHT PHY capabilities */
+
+/* TBD: 11BE PHY capabilities go here */
 
 /* Authentication algorithms */
 #define WLAN_AUTH_OPEN 0
