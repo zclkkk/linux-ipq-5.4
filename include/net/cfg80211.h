@@ -1089,6 +1089,7 @@ struct cfg80211_ap_settings {
 	bool twt_responder;
 	u32 flags;
 	struct ieee80211_he_obss_pd he_obss_pd;
+	const struct ieee80211_eht_cap_elem *eht_cap;
 };
 
 /**
