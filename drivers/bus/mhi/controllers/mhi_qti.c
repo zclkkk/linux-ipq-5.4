@@ -20,6 +20,7 @@
 #include <linux/notifier.h>
 #include <linux/io.h>
 #include <linux/gpio/consumer.h>
+#include <linux/of_gpio.h>
 #include "mhi_qti.h"
 #include "../core/internal.h"
 
@@ -1007,14 +1008,12 @@ int mhi_pci_probe(struct pci_dev *pci_dev,
 	mhi_ssr_negotiate = of_property_read_bool(mhi_cntrl->of_node, "mhi,ssr-negotiate");
 
 	if (mhi_ssr_negotiate) {
-		ret = of_property_read_u32(mhi_cntrl->of_node, "ap2mdm",
-						&ap2mdm_gpio);
-		if (ret != 0)
+		ap2mdm_gpio = of_get_named_gpio(mhi_cntrl->of_node, "ap2mdm-gpio", 0);
+		if (ap2mdm_gpio < 0)
 			pr_err("AP2MDM GPIO not configured\n");
 
-		ret = of_property_read_u32(mhi_cntrl->of_node, "mdm2ap",
-						&mdm2ap_gpio);
-		if (ret != 0)
+		mdm2ap_gpio = of_get_named_gpio(mhi_cntrl->of_node, "mdm2ap-gpio", 0);
+		if (mdm2ap_gpio < 0)
 			pr_err("MDM2AP GPIO not configured\n");
 
 		mhi_cntrl->mhi_panic_notifier.notifier_call = mhi_panic_handler;
