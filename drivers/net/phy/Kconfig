@@ -288,10 +288,6 @@ config MVSWITCH_PHY
 	tristate "Driver for Marvell 88E6060 switches"
 	select ETHERNET_PACKET_MANGLE
 
-config MVSW61XX_PHY
-	tristate "Driver for Marvell 88E6171/6172 switches"
-	select SWCONFIG
-
 config PSB6970_PHY
 	tristate "Lantiq XWAY Tantos (PSB6970) Ethernet switch"
 	select SWCONFIG
