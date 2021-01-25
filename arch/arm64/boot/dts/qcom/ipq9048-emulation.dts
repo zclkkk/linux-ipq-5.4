@@ -27,7 +27,7 @@
 	};
 
 	aliases {
-		serial0 = &blsp1_uart1;
+		serial0 = &blsp1_uart0;
 		ethernet0 = "/soc/dp1";
 		ethernet1 = "/soc/dp2";
 		ethernet2 = "/soc/dp3";
@@ -82,7 +82,7 @@
 
 	soc {
 		serial@78af000 {
-			pinctrl-0 = <&serial_1_pins>;
+			pinctrl-0 = <&serial_0_pins>;
 			pinctrl-names = "default";
 			status = "ok";
 		};
