@@ -330,7 +330,7 @@
 		qpic_bam: dma@7984000 {
 			compatible = "qcom,bam-v1.7.0";
 			reg = <0x7984000 0x1c000>;
-			interrupts = <GIC_SPI 146 IRQ_TYPE_NONE>;
+			interrupts = <GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&gcc GCC_QPIC_AHB_CLK>;
 			clock-names = "bam_clk";
 			#dma-cells = <1>;
