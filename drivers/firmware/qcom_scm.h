@@ -279,3 +279,4 @@ extern int __qti_scm_pshold(struct device *);
 #define QTI_SCM_EXTWDT_CMD            0x2
 extern int __qti_scm_extwdt(struct device *, u32 svc_id, u32 cmd_id,
 			     unsigned int regaddr, unsigned int val);
+extern int __qti_scm_tcsr_reg_write(struct device *dev, u32 reg_addr, u32 value);

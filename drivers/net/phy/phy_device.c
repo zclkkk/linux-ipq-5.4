@@ -1912,9 +1912,6 @@ int genphy_update_link(struct phy_device *phydev)
 	if (bmcr & BMCR_ANRESTART)
 		goto done;
 
-	if (phydev->drv && phydev->drv->update_link)
-		return phydev->drv->update_link(phydev);
-
 	/* The link state is latched low so that momentary link
 	 * drops can be detected. Do not double-read the status
 	 * in polling mode to detect such short link drops.

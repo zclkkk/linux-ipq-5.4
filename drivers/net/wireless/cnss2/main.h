@@ -103,7 +103,7 @@
  * | MODE | Memory |  HREMOTE  |M3 Dump Off| QDSS Off  | Caldb Off | MHI DMA  |
  * |      |        |    SIZE   |    1MB    |    1MB    |    8MB    | RESERVED |
  * +======+========+===========+===========+===========+===========+==========+
- * |   0  |  55MB  |    45MB   | 0x2D00000 | 0x2E00000 | 0x2F00000 |   24MB   |
+ * |   0  |  45MB  |    35MB   | 0x2300000 | 0x2400000 | 0x2500000 |   24MB   |
  * +------+--------+-----------+-----------+-----------+-----------+----------+
  * |   1  |  30MB  |    20MB   | 0x1400000 | 0x1500000 | 0x1600000 |   16MB   |
  * +------+--------+-----------+-----------+-----------+-----------+----------+
@@ -441,7 +441,7 @@ struct m3_dump {
 	void *dump_addr;
 };
 
-struct target_qcn9100 {
+struct target_qcn6122 {
 	void *bar_addr_va;
 	u64 bar_addr_pa;
 	u32 bar_size;
@@ -531,7 +531,7 @@ struct cnss_plat_data {
 	u32 eeprom_caldata_read_timeout;
 	struct m3_dump m3_dump_data;
 	union {
-		struct target_qcn9100 qcn9100;
+		struct target_qcn6122 qcn6122;
 	};
 };
 
