@@ -65,6 +65,10 @@
 			};
 		};
 
+		gpio_keys {
+			status = "disabled";
+		};
+
 		i2c@78b6000 {
 			 status = "disabled";
 		};
