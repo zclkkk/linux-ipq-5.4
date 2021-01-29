@@ -469,7 +469,6 @@ struct qcom_nand_controller {
 
 	u32 cmd1, vld;
 	const struct qcom_nandc_props *props;
-	u32 hw_version;
 };
 
 /*
@@ -530,13 +529,15 @@ struct qcom_nand_host {
  * @is_qpic - whether NAND CTRL is part of qpic IP
  * @dev_cmd_reg_start - NAND_DEV_CMD_* registers starting offset
  * @is_serial_nand - QSPI nand flag, whether QPIC support serial nand or not
+ * @qpic_v2 - flag to indicate QPIC IP version 2
  */
 struct qcom_nandc_props {
 	u32 ecc_modes;
 	bool is_bam;
 	bool is_qpic;
-	u32 dev_cmd_reg_start;
 	bool is_serial_nand;
+	bool qpic_v2;
+	u32 dev_cmd_reg_start;
 };
 
 /* Frees the BAM transaction memory */
@@ -808,7 +809,7 @@ static void update_rw_regs(struct qcom_nand_host *host, int num_cw, bool read)
 	nandc_set_reg(nandc, NAND_EXEC_CMD, 1);
 
 	if (read) {
-		if (nandc->hw_version >= QPIC_v2_0)
+		if (nandc->props->qpic_v2)
 			nandc_set_read_loc_last(nandc, 0, 0, host->use_ecc ?
 				host->cw_data : host->cw_size, 1);
 		else
@@ -1193,7 +1194,7 @@ static void
 config_nand_cw_read(struct qcom_nand_controller *nandc, bool use_ecc, bool last_cw)
 {
 	if (nandc->props->is_bam) {
-		if (nandc->hw_version >= QPIC_v2_0 && last_cw)
+		if (nandc->props->qpic_v2 && last_cw)
 			write_reg_dma(nandc, NAND_READ_LOCATION_LAST_CW_0,
 					4, NAND_BAM_NEXT_SGL);
 		else	write_reg_dma(nandc, NAND_READ_LOCATION_0, 4,
@@ -1739,8 +1740,7 @@ qcom_nandc_read_cw_raw(struct mtd_info *mtd, struct nand_chip *chip,
 	}
 
 	if (nandc->props->is_bam) {
-		if ((nandc->hw_version >= QPIC_v2_0) &&
-				(cw == (ecc->steps - 1))) {
+		if ((nandc->props->qpic_v2) && (cw == (ecc->steps - 1))) {
 			nandc_set_read_loc_last(nandc, 0, read_loc, data_size1, 0);
 			read_loc += data_size1;
 
@@ -1993,7 +1993,7 @@ static int read_page_ecc(struct qcom_nand_host *host, u8 *data_buf,
 
 		if (nandc->props->is_bam) {
 			if (data_buf && oob_buf) {
-				if (nandc->hw_version >= QPIC_v2_0 && i == (ecc->steps - 1)) {
+				if (nandc->props->qpic_v2 && i == (ecc->steps - 1)) {
 					nandc_set_read_loc_last(nandc, 0, 0, data_size, 0);
 					nandc_set_read_loc_last(nandc, 1, data_size, oob_size, 1);
 				} else {
@@ -2001,12 +2001,12 @@ static int read_page_ecc(struct qcom_nand_host *host, u8 *data_buf,
 					nandc_set_read_loc(nandc, 1, data_size, oob_size, 1);
 				}
 			} else if (data_buf) {
-				if (nandc->hw_version >= QPIC_v2_0 && i == (ecc->steps - 1))
+				if (nandc->props->qpic_v2 && i == (ecc->steps - 1))
 					nandc_set_read_loc_last(nandc, 0, 0, data_size, 1);
 				else
 					nandc_set_read_loc(nandc, 0, 0, data_size, 1);
 			} else {
-				if (nandc->hw_version >= QPIC_v2_0 && i == (ecc->steps - 1))
+				if (nandc->props->qpic_v2 && i == (ecc->steps - 1))
 					nandc_set_read_loc_last(nandc, 0, data_size, oob_size, 1);
 				else
 					nandc_set_read_loc(nandc, 0, data_size, oob_size, 1);
@@ -2621,7 +2621,6 @@ static int qcom_nand_attach_chip(struct nand_chip *chip)
 	int ecc_mode = 1;
 	int num_addr_cycle = 5, dsbl_sts_aftr_write = 0;
 	int wr_rd_bsy_gap = 2, recovery_cycle = 7;
-	u32 version_reg;
 
 	/* controller only supports 512 bytes data steps */
 	ecc->size = NANDC_STEP_SIZE;
@@ -2634,17 +2633,6 @@ static int qcom_nand_attach_chip(struct nand_chip *chip)
 	 */
 	if (chip->base.eccreq.strength >= 8)
 		ecc->strength = 8;
-
-	/* Read QPIC version register */
-	version_reg = (NAND_VERSION + 0x4000);
-	nandc->hw_version = nandc_read(nandc, version_reg);
-	pr_info("QPIC controller hw version Major:%d, Minor:%d\n",
-			((nandc->hw_version & NAND_VERSION_MAJOR_MASK)
-			 >> NAND_VERSION_MAJOR_SHIFT),
-			((nandc->hw_version & NAND_VERSION_MINOR_MASK)
-			 >> NAND_VERSION_MINOR_SHIFT));
-	nandc->hw_version = ((nandc->hw_version & NAND_VERSION_MAJOR_MASK)
-			>> NAND_VERSION_MAJOR_SHIFT);
 	/*
 	 * Each CW has 4 available OOB bytes which will be protected with ECC
 	 * so remaining bytes can be used for ECC.
@@ -3473,8 +3461,9 @@ static const struct qcom_nandc_props ipq8074_nandc_props = {
 static const struct qcom_nandc_props ipq5018_nandc_props = {
 	.ecc_modes = (ECC_BCH_4BIT | ECC_BCH_8BIT),
 	.is_bam = true,
-	.dev_cmd_reg_start = 0x7000,
 	.is_serial_nand = true,
+	.qpic_v2 = true,
+	.dev_cmd_reg_start = 0x7000,
 };
 
 /*
