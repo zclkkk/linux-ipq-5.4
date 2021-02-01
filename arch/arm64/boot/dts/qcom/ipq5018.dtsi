@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: ISC
 /*
- * Copyright (c) 2018-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2018-2021, The Linux Foundation. All rights reserved.
  */
 
 #include <dt-bindings/interrupt-controller/arm-gic.h>
@@ -981,6 +981,12 @@
 			qcom,mirror-enabled;
 			qcom,crypto-enabled;
 			qcom,ipsec-enabled;
+			qcom,wlanredirect-enabled;
+			qcom,gre-redir-enabled;
+			qcom,gre-redir-mark-enabled;
+			qcom,portid-enabled;
+			qcom,wlan-dataplane-offload-enabled;
+			qcom,pvxlan-enabled;
 		};
 
 		scm_restart_reason: scm_restart_reason {
