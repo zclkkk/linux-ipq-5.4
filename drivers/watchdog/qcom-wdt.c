@@ -99,7 +99,7 @@ static void qcom_wdt_bite(struct qcom_wdt *wdt, unsigned int ticks)
 	 */
 	wmb();
 
-	msleep(150);
+	mdelay(150);
 }
 
 

@@ -228,7 +228,8 @@ static int mtdpart_setup_real(char *s)
 		if (semicol)
 			*semicol = '\0';
 
-		/* make sure that part-names with ":" will not be handled as
+		/*
+		 * make sure that part-names with ":" will not be handled as
 		 * part of the mtd-id with an ":"
 		 */
 		open_parenth = strchr(s, '(');
