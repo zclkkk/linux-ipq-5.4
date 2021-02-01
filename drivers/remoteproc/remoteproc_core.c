@@ -2216,7 +2216,7 @@ static int rproc_panic_handler(struct notifier_block *this,
 		if (r->ops->report_panic)
 			r->ops->report_panic(r);
 	}
-
+	mutex_unlock(&rproc_list_mutex);
 	return 0;
 }
 
