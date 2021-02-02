@@ -759,8 +759,6 @@ static int cnss_create_debug_only_node(struct cnss_plat_data *plat_priv)
 
 	debugfs_create_file("dev_boot", 0600, root_dentry, plat_priv,
 			    &cnss_dev_boot_debug_fops);
-	debugfs_create_file("qmi_record", 0600, root_dentry, plat_priv,
-			    &cnss_qmi_record_debug_fops);
 	debugfs_create_file("reg_read", 0600, root_dentry, plat_priv,
 			    &cnss_reg_read_debug_fops);
 	debugfs_create_file("reg_write", 0600, root_dentry, plat_priv,
@@ -788,6 +786,10 @@ int cnss_debugfs_create(struct cnss_plat_data *plat_priv)
 			cnss_pr_err("Unable to create debugfs %d\n", ret);
 			goto out;
 		}
+
+		/* Create qmi_record under /sys/kernel/debug/cnss2/ */
+		debugfs_create_file("qmi_record", 0600, cnss_root_dentry, NULL,
+				    &cnss_qmi_record_debug_fops);
 	}
 
 	root_dentry = debugfs_create_dir((char *)&plat_priv->device_name,
