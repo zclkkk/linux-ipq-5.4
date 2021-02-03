@@ -1905,7 +1905,7 @@ static const struct qcom_pcie_ops ops_2_9_0 = {
 	.ltssm_enable = qcom_pcie_2_3_2_ltssm_enable,
 };
 
-/* Qcom IP rev.: 2.9.0	Synopsys IP rev.: 5.00a */
+/* QTI IP rev.: 2.9.0	Synopsys IP rev.: 5.00a */
 static const struct qcom_pcie_ops ops_2_9_0_ipq5018 = {
 	.get_resources = qcom_pcie_get_resources_2_9_0,
 	.init = qcom_pcie_init_2_9_0_5018,
