@@ -431,12 +431,7 @@ EXPORT_SYMBOL(netdev_alloc_frag);
 struct sk_buff *__netdev_alloc_skb(struct net_device *dev,
 				   unsigned int length, gfp_t gfp_mask)
 {
-	struct page_frag_cache *nc;
 	struct sk_buff *skb;
-	bool pfmemalloc;
-	bool page_frag_alloc_enable = true;
-	void *data;
-
 	unsigned int len = length;
 
 #ifdef CONFIG_SKB_RECYCLER
@@ -467,6 +462,11 @@ struct sk_buff *__netdev_alloc_skb(struct net_device *dev,
 
 	goto skb_success;
 #else
+	struct page_frag_cache *nc;
+	bool pfmemalloc;
+	bool page_frag_alloc_enable = true;
+	void *data;
+
 	len += NET_SKB_PAD;
 
 #ifdef CONFIG_ALLOC_SKB_PAGE_FRAG_DISABLE
