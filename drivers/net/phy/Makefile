@@ -28,7 +28,6 @@ obj-$(CONFIG_AR8216_PHY)	+= ar8216.o ar8327.o
 obj-$(CONFIG_SWCONFIG_B53)	+= b53/
 obj-$(CONFIG_IP17XX_PHY)	+= ip17xx.o
 obj-$(CONFIG_MVSWITCH_PHY)	+= mvswitch.o
-obj-$(CONFIG_MVSW61XX_PHY)	+= mvsw61xx.o
 obj-$(CONFIG_PSB6970_PHY)	+= psb6970.o
 obj-$(CONFIG_RTL8306_PHY)	+= rtl8306.o
 obj-$(CONFIG_RTL8366_SMI)	+= rtl8366_smi.o

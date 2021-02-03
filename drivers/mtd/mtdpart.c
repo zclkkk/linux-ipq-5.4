@@ -1244,14 +1244,14 @@ int mtd_is_partition(const struct mtd_info *mtd)
 }
 EXPORT_SYMBOL_GPL(mtd_is_partition);
 
-struct mtd_info *mtdpart_get_master(const struct mtd_info *mtd)
+struct mtd_info *mtd_get_master(const struct mtd_info *mtd)
 {
 	if (!mtd_is_partition(mtd))
 		return (struct mtd_info *)mtd;
 
 	return mtd_to_part(mtd)->parent;
 }
-EXPORT_SYMBOL_GPL(mtdpart_get_master);
+EXPORT_SYMBOL_GPL(mtd_get_master);
 
 uint64_t mtdpart_get_offset(const struct mtd_info *mtd)
 {

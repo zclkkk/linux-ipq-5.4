@@ -3368,6 +3368,38 @@ int cnss_smmu_map(struct device *dev,
 }
 EXPORT_SYMBOL(cnss_smmu_map);
 
+void cnss_free_soc_info(struct cnss_plat_data *plat_priv)
+{
+	/* Free SOC specific resources like memory remapped for PCI BAR */
+	switch (plat_priv->device_id) {
+	case QCN9000_DEVICE_ID:
+		/* For PCI targets, BAR is freed from cnss_pci_disable_bus */
+		break;
+	case QCN6122_DEVICE_ID:
+		/* QCN6122 is considered AHB target from host but is actually
+		 * a PCI target where enumeration is handled by the firmware
+		 * PCI BAR is remmaped as part of QMI Device Info message.
+		 * iounmap the PCI BAR memory here */
+		if (plat_priv->qcn6122.bar_addr_va) {
+			cnss_pr_info("Freeing BAR Info for %s",
+				     plat_priv->device_name);
+			iounmap(plat_priv->qcn6122.bar_addr_va);
+			plat_priv->qcn6122.bar_addr_va = NULL;
+			plat_priv->qcn6122.bar_addr_pa = 0;
+			plat_priv->qcn6122.bar_size = 0;
+		}
+		break;
+	case QCA8074_DEVICE_ID:
+	case QCA8074V2_DEVICE_ID:
+	case QCA6018_DEVICE_ID:
+	case QCA5018_DEVICE_ID:
+		/* PCI BAR not applicable for other AHB targets */
+		break;
+	default:
+		break;
+	}
+}
+
 int cnss_get_soc_info(struct device *dev, struct cnss_soc_info *info)
 {
 	struct cnss_plat_data *plat_priv = cnss_bus_dev_to_plat_priv(dev);
@@ -3473,18 +3505,22 @@ int cnss_get_user_msi_assignment(struct device *dev, char *user_name,
 				 int *num_vectors, u32 *user_base_data,
 				 u32 *base_vector)
 {
-	struct pci_dev *pci_dev = to_pci_dev(dev);
+	struct pci_dev *pci_dev;
 	struct cnss_pci_data *pci_priv = NULL;
-	struct cnss_plat_data *plat_priv = NULL;
+	struct cnss_plat_data *plat_priv = cnss_bus_dev_to_plat_priv(dev);
 	struct cnss_msi_config *msi_config;
 	int idx;
 
-	if (pci_dev->device != QCN9000_DEVICE_ID) {
+	if (!plat_priv)
+		return -ENODEV;
+
+	if (plat_priv->device_id != QCN9000_DEVICE_ID) {
 		cnss_pr_dbg("MSI not supported on device 0x%x",
-			    pci_dev->device);
+			    plat_priv->device_id);
 		return -EINVAL;
 	}
 
+	pci_dev = to_pci_dev(dev);
 	pci_priv = cnss_get_pci_priv(pci_dev);
 	if (!pci_priv)
 		return -ENODEV;

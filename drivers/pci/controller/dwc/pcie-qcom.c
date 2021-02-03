@@ -254,6 +254,7 @@ struct qcom_pcie {
 	int wake_irq;
 	int mdm2ap_e911_irq;
 	bool enumerated;
+	uint32_t rc_idx;
 	struct notifier_block pci_reboot_notifier;
 };
 
@@ -263,6 +264,9 @@ char pci_irq_name[2][MAX_MSI_CTRLS_IPQ8074][20];
 
 #define to_qcom_pcie(x)		dev_get_drvdata((x)->dev)
 
+#define MAX_RC_NUM	3
+static struct qcom_pcie *pcie_dev_arr[MAX_RC_NUM];
+struct pci_ops* pcie_ops_dw;
 struct gpio_desc *mdm2ap_e911;
 
 static void qcom_ep_reset_assert(struct qcom_pcie *pcie)
@@ -293,6 +297,46 @@ static int qcom_pcie_establish_link(struct qcom_pcie *pcie)
 	return dw_pcie_wait_for_link(pci);
 }
 
+int pci_create_scan_root_bus(struct pcie_port *pp)
+{
+	int ret;
+	LIST_HEAD(res);
+	struct pci_bus *child;
+	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
+	struct device *dev = pci->dev;
+
+	pci_add_resource(&res, pp->busn);
+	pci_add_resource(&res, pp->io);
+	pci_add_resource(&res, pp->mem);
+
+	if (pp->ops->host_init) {
+		ret = pp->ops->host_init(pp);
+		if (ret)
+			return ret;
+	}
+
+	pp->root_bus_nr = pp->busn->start;
+	pp->root_bus = pci_scan_root_bus(dev,
+			pp->root_bus_nr, pcie_ops_dw, pp, &res);
+
+	if (!pp->root_bus) {
+		dev_err(pci->dev, "root_bus is not created\n");
+		return -ENOMEM;
+	}
+
+	if (pp->ops->scan_bus)
+		pp->ops->scan_bus(pp);
+
+	pci_bus_size_bridges(pp->root_bus);
+	pci_bus_assign_resources(pp->root_bus);
+
+	list_for_each_entry(child, &pp->root_bus->children, node)
+		pcie_bus_configure_settings(child);
+
+	pci_bus_add_devices(pp->root_bus);
+	return 0;
+}
+
 /* PCIe wake-irq handler */
 static void handle_wake_func(struct work_struct *work)
 {
@@ -301,14 +345,15 @@ static void handle_wake_func(struct work_struct *work)
 					      handle_wake_work);
 	struct pcie_port *pp = &(pcie->pci)->pp;
 
+	pci_lock_rescan_remove();
 	if (pcie->enumerated) {
 		pr_info("PCIe: RC has been already enumerated\n");
+		pci_unlock_rescan_remove();
 		return;
 	}
 
-	pci_lock_rescan_remove();
 	if (!gpiod_get_value(mdm2ap_e911)) {
-		ret = dw_pcie_host_init(pp);
+		ret = pci_create_scan_root_bus(pp);
 		if (ret) {
 			pr_err("PCIe: failed to enable RC upon wake request from the device\n");
 		} else {
@@ -1883,22 +1928,170 @@ static const struct dw_pcie_ops dw_pcie_ops = {
 	.link_up = qcom_pcie_link_up,
 };
 
-static void handle_e911_func(struct work_struct *work)
+int pcie_rescan(void)
 {
-	struct pci_bus *b = NULL;
+	int i, ret;
+	struct pcie_port *pp;
+	struct qcom_pcie *pcie;
+
+	for (i = 0; i < MAX_RC_NUM; i++) {
+		pcie = pcie_dev_arr[i];
+		/* reset and enumerate the pcie devices */
+		if (pcie) {
+			pr_notice("---> Initializing %d\n", i);
+			if (pcie->enumerated)
+				continue;
+
+			pp = &(pcie->pci)->pp;
+			ret = pci_create_scan_root_bus(pp);
+			if (!ret)
+				pcie->enumerated = true;
+			pr_notice(" ... done<---\n");
+		}
+	}
+	return 0;
+}
+
+void pcie_remove_bus(void)
+{
+	int i;
+	struct pcie_port *pp;
+	struct qcom_pcie *pcie;
+
+	for (i = 0; i < MAX_RC_NUM; i++) {
+		pcie = pcie_dev_arr[i];
+
+		if (pcie) {
+			pr_notice("---> Removing %d\n", i);
+			if (!pcie->enumerated)
+				continue;
+
+			pp = &(pcie->pci)->pp;
+			pci_stop_root_bus(pp->root_bus);
+			pci_remove_root_bus(pp->root_bus);
+
+			qcom_ep_reset_assert(pcie);
+			phy_power_off(pcie->phy);
+
+			pcie->ops->deinit(pcie);
+			pp->root_bus = NULL;
+			pcie->enumerated = false;
+			pr_notice(" ... done<---\n");
+		}
+	}
+}
+
+static ssize_t rcrescan_store(struct bus_type *bus, const char *buf,
+					size_t count)
+{
+	unsigned long val;
+
+	if (kstrtoul(buf, 0, &val) < 0)
+		return -EINVAL;
+
+	if (gpiod_get_value(mdm2ap_e911))
+		return -EBUSY;
+
+	if (val) {
+		pci_lock_rescan_remove();
+		pcie_rescan();
+		pci_unlock_rescan_remove();
+	}
+	return count;
+}
+static BUS_ATTR_WO(rcrescan);
+
+static ssize_t rcremove_store(struct bus_type *bus, const char *buf,
+					size_t count)
+{
+	unsigned long val;
+
+	if (kstrtoul(buf, 0, &val) < 0)
+		return -EINVAL;
+
+	if (val) {
+		pci_lock_rescan_remove();
+		pcie_remove_bus();
+		pci_unlock_rescan_remove();
+	}
+	return count;
+}
+static BUS_ATTR_WO(rcremove);
+
+static ssize_t slot_rescan_store(struct bus_type *bus, const char *buf,
+		size_t count)
+{
+	unsigned long val;
+	struct pcie_port *pp;
+	struct qcom_pcie *pcie;
+
+	if (kstrtoul(buf, 0, &val) < 0)
+		return -EINVAL;
 
 	pci_lock_rescan_remove();
 
-	if (gpiod_get_value(mdm2ap_e911)) {
-		while ((b = pci_find_next_bus(b)) != NULL)
-		{
-			pci_stop_root_bus(b);
-			pci_remove_root_bus(b);
+	if (val < MAX_RC_NUM) {
+		pcie = pcie_dev_arr[val];
+		if (pcie) {
+			if (pcie->enumerated) {
+				return 0;
+			} else {
+				pp = &(pcie->pci)->pp;
+				pci_create_scan_root_bus(pp);
+				pcie->enumerated = true;
+			}
 		}
-	} else {
-		while ((b = pci_find_next_bus(b)) != NULL)
-			pci_rescan_bus(b);
 	}
+	pci_unlock_rescan_remove();
+
+	return count;
+}
+static BUS_ATTR_WO(slot_rescan);
+
+static ssize_t slot_remove_store(struct bus_type *bus, const char *buf,
+		size_t count)
+{
+	unsigned long val;
+	struct pcie_port *pp;
+	struct qcom_pcie *pcie;
+
+	if (kstrtoul(buf, 0, &val) < 0)
+		return -EINVAL;
+
+	pci_lock_rescan_remove();
+
+	if (val < MAX_RC_NUM) {
+		pcie = pcie_dev_arr[val];
+		if (pcie) {
+			if (!pcie->enumerated) {
+				return 0;
+			}
+			else {
+				pr_notice("---> Removing %ld", val);
+				pp = &(pcie->pci)->pp;
+				pcie->ops->deinit(pcie);
+				pci_stop_root_bus(pp->root_bus);
+				pci_remove_root_bus(pp->root_bus);
+				pp->root_bus = NULL;
+				pcie->enumerated = false;
+				pr_notice(" ... done<---\n");
+			}
+		}
+	}
+	pci_unlock_rescan_remove();
+
+	return count;
+}
+static BUS_ATTR_WO(slot_remove);
+
+static void handle_e911_func(struct work_struct *work)
+{
+	pci_lock_rescan_remove();
+
+	if (gpiod_get_value(mdm2ap_e911))
+		pcie_remove_bus();
+	else
+		pcie_rescan();
 
 	pci_unlock_rescan_remove();
 }
@@ -1915,15 +2108,9 @@ static irqreturn_t handle_mdm2ap_e911_irq(int irq, void *data)
 static int pci_reboot_handler(struct notifier_block *this,
 			      unsigned long event, void *ptr)
 {
-	struct pci_bus *b = NULL;
-
 	pci_lock_rescan_remove();
 
-	while ((b = pci_find_next_bus(b)) != NULL)
-	{
-		pci_stop_root_bus(b);
-		pci_remove_root_bus(b);
-	}
+	pcie_remove_bus();
 
 	pci_unlock_rescan_remove();
 
@@ -1943,6 +2130,7 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 	int i, domain;
 	char irq_name[20];
 	u32 link_retries_count = 0;
+	static int rc_idx;
 
 	pcie = devm_kzalloc(dev, sizeof(*pcie), GFP_KERNEL);
 	if (!pcie)
@@ -2145,6 +2333,20 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 		goto err_pm_runtime_put;
 	}
 
+	platform_set_drvdata(pdev, pcie);
+
+	ret = dw_pcie_host_init(pp);
+
+	if (ret) {
+		dev_err(dev, "cannot initialize host\n");
+		pm_runtime_disable(&pdev->dev);
+		goto err_pm_runtime_put;
+	} else {
+		pcie->enumerated = true;
+		pr_info("PCIe: RC enabled during bootup\n");
+	}
+	pcie_ops_dw = pp->root_bus->ops;
+
 	pcie->wake_irq = platform_get_irq_byname_optional(pdev, "wake_gpio");
 
 	if (pcie->wake_irq >= 0) {
@@ -2160,18 +2362,38 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 		}
 	}
 
-	platform_set_drvdata(pdev, pcie);
+	if (!rc_idx) {
+		ret = bus_create_file(&pci_bus_type, &bus_attr_rcrescan);
+		if (ret != 0) {
+			dev_err(&pdev->dev,
+				"Failed to create sysfs rcrescan file\n");
+			return ret;
+		}
 
-	ret = dw_pcie_host_init(pp);
+		ret = bus_create_file(&pci_bus_type, &bus_attr_rcremove);
+		if (ret != 0) {
+			dev_err(&pdev->dev,
+				"Failed to create sysfs rcremove file\n");
+			return ret;
+		}
 
-	if (ret) {
-		dev_err(dev, "cannot initialize host\n");
-		pm_runtime_disable(&pdev->dev);
-		goto err_pm_runtime_put;
-	} else {
-		pcie->enumerated = true;
-		pr_info("PCIe: RC enabled during bootup\n");
+		ret = bus_create_file(&pci_bus_type, &bus_attr_slot_rescan);
+		if (ret != 0) {
+			dev_err(&pdev->dev,
+					"Failed to create sysfs rcrescan file\n");
+			return ret;
+		}
+
+		ret = bus_create_file(&pci_bus_type, &bus_attr_slot_remove);
+		if (ret != 0) {
+			dev_err(&pdev->dev,
+					"Failed to create sysfs rcremove file\n");
+			return ret;
+		}
 	}
+
+	pcie->rc_idx = rc_idx;
+	pcie_dev_arr[rc_idx++] = pcie;
 
 	return 0;
 
