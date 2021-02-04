@@ -545,8 +545,16 @@
 	};
 };
 &tlmm {
-	pinctrl-0 = <&phy_led_pins>;
+	pinctrl-0 = <&serial_1_pins &phy_led_pins>;
 	pinctrl-names = "default";
+
+	serial_1_pins: serial1-pinmux {
+		pins = "gpio31", "gpio32", "gpio33", "gpio34";
+		function = "blsp1_uart1";
+		drive-strength = <8>;
+		bias-pull-down;
+	};
+
 	mdio1_pins: mdio_pinmux {
 		mux_0 {
 			pins = "gpio36";
@@ -573,8 +581,6 @@
 };
 
 &blsp1_uart1 {
-	pinctrl-0 = <&serial_1_pins>;
-	pinctrl-names = "default";
 	status = "ok";
 };
 

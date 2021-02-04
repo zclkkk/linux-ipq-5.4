@@ -27,7 +27,7 @@
 #define	NAND_DEV0_CFG0			0x20
 #define	NAND_DEV0_CFG1			0x24
 #define	NAND_DEV0_ECC_CFG		0x28
-#define	NAND_DEV1_ECC_CFG		0x2c
+#define	NAND_AUTO_STATUS_EN		0x2c
 #define	NAND_DEV1_CFG0			0x30
 #define	NAND_DEV1_CFG1			0x34
 #define	NAND_READ_ID			0x40
@@ -469,7 +469,6 @@ struct qcom_nand_controller {
 
 	u32 cmd1, vld;
 	const struct qcom_nandc_props *props;
-	u32 hw_version;
 };
 
 /*
@@ -530,13 +529,15 @@ struct qcom_nand_host {
  * @is_qpic - whether NAND CTRL is part of qpic IP
  * @dev_cmd_reg_start - NAND_DEV_CMD_* registers starting offset
  * @is_serial_nand - QSPI nand flag, whether QPIC support serial nand or not
+ * @qpic_v2 - flag to indicate QPIC IP version 2
  */
 struct qcom_nandc_props {
 	u32 ecc_modes;
 	bool is_bam;
 	bool is_qpic;
-	u32 dev_cmd_reg_start;
 	bool is_serial_nand;
+	bool qpic_v2;
+	u32 dev_cmd_reg_start;
 };
 
 /* Frees the BAM transaction memory */
@@ -808,12 +809,12 @@ static void update_rw_regs(struct qcom_nand_host *host, int num_cw, bool read)
 	nandc_set_reg(nandc, NAND_EXEC_CMD, 1);
 
 	if (read) {
-		if (nandc->hw_version >= QPIC_v2_0)
+		if (nandc->props->qpic_v2)
 			nandc_set_read_loc_last(nandc, 0, 0, host->use_ecc ?
-					host->cw_data : host->cw_size, 1);
-
-		nandc_set_read_loc(nandc, 0, 0, host->use_ecc ?
-				   host->cw_data : host->cw_size, 1);
+				host->cw_data : host->cw_size, 1);
+		else
+			nandc_set_read_loc(nandc, 0, 0, host->use_ecc ?
+				host->cw_data : host->cw_size, 1);
 	}
 }
 
@@ -1190,14 +1191,14 @@ static void config_nand_page_read(struct qcom_nand_controller *nandc)
  * before reading each codeword in NAND page.
  */
 static void
-config_nand_cw_read(struct qcom_nand_controller *nandc, bool use_ecc)
+config_nand_cw_read(struct qcom_nand_controller *nandc, bool use_ecc, bool last_cw)
 {
 	if (nandc->props->is_bam) {
-		if (nandc->hw_version >= QPIC_v2_0)
+		if (nandc->props->qpic_v2 && last_cw)
 			write_reg_dma(nandc, NAND_READ_LOCATION_LAST_CW_0,
 					4, NAND_BAM_NEXT_SGL);
-		write_reg_dma(nandc, NAND_READ_LOCATION_0, 4,
-			      NAND_BAM_NEXT_SGL);
+		else	write_reg_dma(nandc, NAND_READ_LOCATION_0, 4,
+				NAND_BAM_NEXT_SGL);
 	}
 
 	write_reg_dma(nandc, NAND_FLASH_CMD, 1, NAND_BAM_NEXT_SGL);
@@ -1218,10 +1219,10 @@ config_nand_cw_read(struct qcom_nand_controller *nandc, bool use_ecc)
  */
 static void
 config_nand_single_cw_page_read(struct qcom_nand_controller *nandc,
-				bool use_ecc)
+				bool use_ecc, bool last_cw)
 {
 	config_nand_page_read(nandc);
-	config_nand_cw_read(nandc, use_ecc);
+	config_nand_cw_read(nandc, use_ecc, last_cw);
 }
 
 /*
@@ -1302,7 +1303,7 @@ static int nandc_param(struct qcom_nand_host *host)
 	nandc->buf_count = 512;
 	memset(nandc->data_buffer, 0xff, nandc->buf_count);
 
-	config_nand_single_cw_page_read(nandc, false);
+	config_nand_single_cw_page_read(nandc, false, false);
 
 	read_data_dma(nandc, FLASH_BUF_ACC, nandc->data_buffer,
 		      nandc->buf_count, 0);
@@ -1739,35 +1740,32 @@ qcom_nandc_read_cw_raw(struct mtd_info *mtd, struct nand_chip *chip,
 	}
 
 	if (nandc->props->is_bam) {
-		if ((nandc->hw_version >= QPIC_v2_0) &&
-			(cw == (ecc->steps - 1)))
+		if ((nandc->props->qpic_v2) && (cw == (ecc->steps - 1))) {
 			nandc_set_read_loc_last(nandc, 0, read_loc, data_size1, 0);
-		else
-			nandc_set_read_loc(nandc, 0, read_loc, data_size1, 0);
-		read_loc += data_size1;
+			read_loc += data_size1;
 
-		if ((nandc->hw_version >= QPIC_v2_0) &&
-			(cw == (ecc->steps - 1)))
 			nandc_set_read_loc_last(nandc, 1, read_loc, oob_size1, 0);
-		else
-			nandc_set_read_loc(nandc, 1, read_loc, oob_size1, 0);
-		read_loc += oob_size1;
+			read_loc += oob_size1;
 
-		if ((nandc->hw_version >= QPIC_v2_0) &&
-			(cw == (ecc->steps - 1)))
 			nandc_set_read_loc_last(nandc, 2, read_loc, data_size2, 0);
-		else
-			nandc_set_read_loc(nandc, 2, read_loc, data_size2, 0);
-		read_loc += data_size2;
+			read_loc += data_size2;
 
-		if ((nandc->hw_version >= QPIC_v2_0) &&
-			(cw == (ecc->steps - 1)))
-			nandc_set_read_loc_last(nandc, 3, read_loc, oob_size2, 0);
-		else
+			nandc_set_read_loc_last(nandc, 3, read_loc, oob_size2, 1);
+		} else {
+			nandc_set_read_loc(nandc, 0, read_loc, data_size1, 0);
+			read_loc += data_size1;
+
+			nandc_set_read_loc(nandc, 1, read_loc, oob_size1, 0);
+			read_loc += oob_size1;
+
+			nandc_set_read_loc(nandc, 2, read_loc, data_size2, 0);
+			read_loc += data_size2;
+
 			nandc_set_read_loc(nandc, 3, read_loc, oob_size2, 1);
+		}
 	}
 
-	config_nand_cw_read(nandc, false);
+	config_nand_cw_read(nandc, false, cw == ecc->steps - 1 ? true : false);
 
 	read_data_dma(nandc, reg_off, data_buf, data_size1, 0);
 	reg_off += data_size1;
@@ -1995,34 +1993,27 @@ static int read_page_ecc(struct qcom_nand_host *host, u8 *data_buf,
 
 		if (nandc->props->is_bam) {
 			if (data_buf && oob_buf) {
-				nandc_set_read_loc(nandc, 0, 0, data_size, 0);
-				nandc_set_read_loc(nandc, 1, data_size,
-						   oob_size, 1);
+				if (nandc->props->qpic_v2 && i == (ecc->steps - 1)) {
+					nandc_set_read_loc_last(nandc, 0, 0, data_size, 0);
+					nandc_set_read_loc_last(nandc, 1, data_size, oob_size, 1);
+				} else {
+					nandc_set_read_loc(nandc, 0, 0, data_size, 0);
+					nandc_set_read_loc(nandc, 1, data_size, oob_size, 1);
+				}
 			} else if (data_buf) {
-				if (nandc->hw_version >= QPIC_v2_0) {
-					if (i == (ecc->steps - 1))
-						nandc_set_read_loc_last(nandc, 0, 0,
-							data_size, 1);
-					else
-						nandc_set_read_loc(nandc, 0, 0,
-							data_size, 1);
-				} else
+				if (nandc->props->qpic_v2 && i == (ecc->steps - 1))
+					nandc_set_read_loc_last(nandc, 0, 0, data_size, 1);
+				else
 					nandc_set_read_loc(nandc, 0, 0, data_size, 1);
 			} else {
-				if (nandc->hw_version >= QPIC_v2_0) {
-					if (i == (ecc->steps - 1))
-						nandc_set_read_loc_last(nandc, 0, data_size,
-							oob_size, 1);
-					else
-						nandc_set_read_loc(nandc, 0, data_size,
-							oob_size, 1);
-				} else
-					nandc_set_read_loc(nandc, 0, data_size,
-							oob_size, 1);
+				if (nandc->props->qpic_v2 && i == (ecc->steps - 1))
+					nandc_set_read_loc_last(nandc, 0, data_size, oob_size, 1);
+				else
+					nandc_set_read_loc(nandc, 0, data_size, oob_size, 1);
 			}
 		}
 
-		config_nand_cw_read(nandc, true);
+		config_nand_cw_read(nandc, true, i == ecc->steps - 1 ? true : false);
 
 		if (data_buf)
 			read_data_dma(nandc, FLASH_BUF_ACC, data_buf,
@@ -2084,7 +2075,7 @@ static int copy_last_cw(struct qcom_nand_host *host, int page)
 	set_address(host, host->cw_size * (ecc->steps - 1), page);
 	update_rw_regs(host, 1, true);
 
-	config_nand_single_cw_page_read(nandc, host->use_ecc);
+	config_nand_single_cw_page_read(nandc, host->use_ecc, true);
 
 	read_data_dma(nandc, FLASH_BUF_ACC, nandc->data_buffer, size, 0);
 
@@ -2630,7 +2621,6 @@ static int qcom_nand_attach_chip(struct nand_chip *chip)
 	int ecc_mode = 1;
 	int num_addr_cycle = 5, dsbl_sts_aftr_write = 0;
 	int wr_rd_bsy_gap = 2, recovery_cycle = 7;
-	u32 version_reg;
 
 	/* controller only supports 512 bytes data steps */
 	ecc->size = NANDC_STEP_SIZE;
@@ -2643,17 +2633,6 @@ static int qcom_nand_attach_chip(struct nand_chip *chip)
 	 */
 	if (chip->base.eccreq.strength >= 8)
 		ecc->strength = 8;
-
-	/* Read QPIC version register */
-	version_reg = (NAND_VERSION + 0x4000);
-	nandc->hw_version = nandc_read(nandc, version_reg);
-	pr_info("QPIC controller hw version Major:%d, Minor:%d\n",
-			((nandc->hw_version & NAND_VERSION_MAJOR_MASK)
-			 >> NAND_VERSION_MAJOR_SHIFT),
-			((nandc->hw_version & NAND_VERSION_MINOR_MASK)
-			 >> NAND_VERSION_MINOR_SHIFT));
-	nandc->hw_version = ((nandc->hw_version & NAND_VERSION_MAJOR_MASK)
-			>> NAND_VERSION_MAJOR_SHIFT);
 	/*
 	 * Each CW has 4 available OOB bytes which will be protected with ECC
 	 * so remaining bytes can be used for ECC.
@@ -3482,8 +3461,9 @@ static const struct qcom_nandc_props ipq8074_nandc_props = {
 static const struct qcom_nandc_props ipq5018_nandc_props = {
 	.ecc_modes = (ECC_BCH_4BIT | ECC_BCH_8BIT),
 	.is_bam = true,
-	.dev_cmd_reg_start = 0x7000,
 	.is_serial_nand = true,
+	.qpic_v2 = true,
+	.dev_cmd_reg_start = 0x7000,
 };
 
 /*
