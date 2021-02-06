@@ -332,7 +332,7 @@ static ssize_t buffer_size_show(struct device *dev,
 {
 	struct tmc_drvdata *drvdata = dev_get_drvdata(dev->parent);
 
-	return sprintf(buf, "%#x\n", drvdata->size);
+	return scnprintf(buf, PAGE_SIZE, "%#x\n", drvdata->size);
 }
 
 static ssize_t buffer_size_store(struct device *dev,
