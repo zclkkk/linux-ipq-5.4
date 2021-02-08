@@ -22,6 +22,7 @@
 void *cnss_ipc_log_context;
 void *cnss_ipc_log_long_context;
 extern void cnss_dump_qmi_history(void);
+struct dentry *cnss_root_dentry;
 
 int log_level = CNSS_LOG_LEVEL_INFO;
 EXPORT_SYMBOL(log_level);
@@ -758,8 +759,6 @@ static int cnss_create_debug_only_node(struct cnss_plat_data *plat_priv)
 
 	debugfs_create_file("dev_boot", 0600, root_dentry, plat_priv,
 			    &cnss_dev_boot_debug_fops);
-	debugfs_create_file("qmi_record", 0600, root_dentry, plat_priv,
-			    &cnss_qmi_record_debug_fops);
 	debugfs_create_file("reg_read", 0600, root_dentry, plat_priv,
 			    &cnss_reg_read_debug_fops);
 	debugfs_create_file("reg_write", 0600, root_dentry, plat_priv,
@@ -778,15 +777,23 @@ static bool debugfs_created;
 int cnss_debugfs_create(struct cnss_plat_data *plat_priv)
 {
 	int ret = 0;
-	struct dentry *root_dentry;
+	struct dentry *root_dentry = NULL;
 
-	/* Temporary WAR till debugfs is properly created and mapped for each
-	 * plat_priv
-	 */
-	if (debugfs_created)
-		return 0;
+	if (!cnss_root_dentry) {
+		cnss_root_dentry = debugfs_create_dir("cnss", 0);
+		if (IS_ERR(cnss_root_dentry)) {
+			ret = PTR_ERR(cnss_root_dentry);
+			cnss_pr_err("Unable to create debugfs %d\n", ret);
+			goto out;
+		}
 
-	root_dentry = debugfs_create_dir("cnss", 0);
+		/* Create qmi_record under /sys/kernel/debug/cnss2/ */
+		debugfs_create_file("qmi_record", 0600, cnss_root_dentry, NULL,
+				    &cnss_qmi_record_debug_fops);
+	}
+
+	root_dentry = debugfs_create_dir((char *)&plat_priv->device_name,
+					 cnss_root_dentry);
 	if (IS_ERR(root_dentry)) {
 		ret = PTR_ERR(root_dentry);
 		cnss_pr_err("Unable to create debugfs %d\n", ret);
@@ -807,7 +814,9 @@ out:
 
 void cnss_debugfs_destroy(struct cnss_plat_data *plat_priv)
 {
-	debugfs_remove_recursive(plat_priv->root_dentry);
+	debugfs_remove_recursive(cnss_root_dentry);
+	cnss_root_dentry = NULL;
+	plat_priv->root_dentry = NULL;
 }
 
 int cnss_debug_init(void)

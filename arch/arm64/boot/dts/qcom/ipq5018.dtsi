@@ -272,7 +272,7 @@
 			reg = <0x1945000 0xE000>;
 		};
 
-	sdhc_1: sdhci@7804000 {
+		sdhc_1: sdhci@7804000 {
 			compatible = "qcom,sdhci-msm-v5";
 			reg = <0x7804000 0x1000>;
 			reg-names = "hc_mem";
@@ -318,6 +318,31 @@
 			qcom,large-address-bus;
 			qcom,disable-aggressive-pm;
 			status = "ok";
+		};
+
+		blsp_dma: dma@7884000 {
+			compatible = "qcom,bam-v1.7.0";
+			reg = <0x07884000 0x1d000>;
+			interrupts = <GIC_SPI 238 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&gcc GCC_BLSP1_AHB_CLK>;
+			clock-names = "bam_clk";
+			#dma-cells = <1>;
+			qcom,ee = <0>;
+		};
+
+		spi_0: spi@78b5000 { /* BLSP1 QUP0 */
+			compatible = "qcom,spi-qup-v2.2.1";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x78b5000 0x600>;
+			interrupts = <GIC_SPI 95 IRQ_TYPE_LEVEL_HIGH>;
+			spi-max-frequency = <50000000>;
+			clocks = <&gcc GCC_BLSP1_QUP1_SPI_APPS_CLK>,
+				<&gcc GCC_BLSP1_AHB_CLK>;
+			clock-names = "core", "iface";
+			dmas = <&blsp_dma 4>, <&blsp_dma 5>;
+			dma-names = "tx", "rx";
+			status = "disabled";
 		};
 
 		qpic_bam: dma@7984000 {
@@ -526,6 +551,14 @@
 				<0x0b001000 0x1000>,  /*GICH*/
 				<0x0b004000 0x1000>;  /*GICV*/
 			interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
+		};
+
+		watchdog@b017000 {
+			compatible = "qcom,kpss-wdt";
+			interrupts = <GIC_SPI 3 IRQ_TYPE_NONE>;
+			reg = <0x0b017000 0x40>;
+			clocks = <&sleep_clk>;
+			max-timeout-sec = <32>;
 		};
 
 		apcs_glb: mailbox@b111000 {
