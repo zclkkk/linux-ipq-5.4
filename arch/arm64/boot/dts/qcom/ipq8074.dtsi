@@ -154,6 +154,13 @@
 			interrupt-controller;
 			#interrupt-cells = <0x3>;
 			reg = <0xb000000 0x1000>, <0xb002000 0x1000>;
+			ranges = <0 0xb00a000 0xffd>;
+
+			v2m0: v2m@0 {
+				compatible = "arm,gic-v2m-frame";
+				msi-controller;
+				reg = <0x0 0xffd>;
+			};
 		};
 
 		timer {
@@ -870,6 +877,8 @@
 				      "axi_m_sticky",
 				      "axi_s_sticky";
 
+			msi-parent = <&v2m0>;
+
 			status = "disabled";
 		};
 
@@ -960,6 +969,8 @@
 				      "axi_s",
 				      "ahb",
 				      "axi_m_sticky";
+
+			msi-parent = <&v2m0>;
 
 			status = "disabled";
 		};
