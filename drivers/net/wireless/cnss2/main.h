@@ -174,7 +174,6 @@ struct subsys_desc {
 
 struct cnss_subsys_info {
 	struct subsys_desc subsys_desc;
-	phandle rproc_handle;
 	struct rproc *subsys_handle;
 	bool subsystem_put_in_progress;
 };
@@ -462,6 +461,7 @@ struct cnss_plat_data {
 	struct list_head vreg_list;
 	struct list_head clk_list;
 	struct cnss_pinctrl_info pinctrl_info;
+	struct rproc *rproc_handle;
 	struct cnss_subsys_info subsys_info;
 	bool recovery_enabled;
 	struct cnss_ramdump_info ramdump_info;
