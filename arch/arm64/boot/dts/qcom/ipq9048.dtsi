@@ -857,3 +857,5 @@
 		};
 	};
 };
+
+#include "ipq9048-coresight.dtsi"
