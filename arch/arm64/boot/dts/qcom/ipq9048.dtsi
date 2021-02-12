@@ -9,6 +9,8 @@
 #include <dt-bindings/clock/qcom,gcc-ipq9048.h>
 #include <dt-bindings/reset/qcom,gcc-ipq9048.h>
 #include "ipq9048-memory.dtsi"
+#include <dt-bindings/clock/qcom,nsscc-ipq9048.h>
+#include <dt-bindings/reset/qcom,nsscc-ipq9048.h>
 
 / {
 	#address-cells = <2>;
@@ -260,6 +262,13 @@
 		tcsr_q6_block: syscon@1945000 {
 			compatible = "syscon";
 			reg = <0x1945000 0xE000>;
+		};
+
+		nsscc: nsscc@39b00000 {
+			compatible = "qcom,nsscc-ipq9048";
+			reg = <0x39b00000 0x80000>;
+			#clock-cells = <0x1>;
+			#reset-cells = <0x1>;
 		};
 
 		tlmm: pinctrl@1000000 {
