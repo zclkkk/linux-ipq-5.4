@@ -537,8 +537,6 @@
 		qcom,iommu-dma = "disabled";
 
 		// mhi bus specific settings
-		mhi,max-channels = <110>;
-		mhi,timeout = <60000>;
 		mhi,ssr-negotiate;
 
 		mhi_devices: mhi_devices {
