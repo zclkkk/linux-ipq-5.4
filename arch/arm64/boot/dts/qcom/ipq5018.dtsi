@@ -1005,4 +1005,10 @@
 			dload_warm_status = <0>;
 		};
 	};
+
+	qcom,test@0 {
+		compatible = "qcom,testmhi";
+		qcom,wlan-ramdump-dynamic = <0x400000>;
+		status = "disabled";
+	};
 };
