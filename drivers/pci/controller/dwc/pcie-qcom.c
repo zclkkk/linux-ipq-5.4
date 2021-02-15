@@ -258,10 +258,6 @@ struct qcom_pcie {
 	struct notifier_block pci_reboot_notifier;
 };
 
-#define MAX_MSI_CTRLS_IPQ8074	4
-int msi_dev_irq[MAX_MSI_CTRLS_IPQ8074];
-char pci_irq_name[2][MAX_MSI_CTRLS_IPQ8074][20];
-
 #define to_qcom_pcie(x)		dev_get_drvdata((x)->dev)
 
 #define MAX_RC_NUM	3
@@ -1813,21 +1809,8 @@ err_deinit:
 	return ret;
 }
 
-static void qcom_pcie_set_num_vectors(struct pcie_port *pp)
-{
-	pp->num_vectors = MAX_MSI_CTRLS_IPQ8074 * MAX_MSI_IRQS_PER_CTRL;
-}
-
-static irqreturn_t qcom_pcie_msi_irq_handler(int irq, void *arg)
-{
-	struct pcie_port *pp = arg;
-
-	return dw_handle_msi_irq(pp);
-}
-
 static const struct dw_pcie_host_ops qcom_pcie_dw_ops = {
 	.host_init = qcom_pcie_host_init,
-	.set_num_vectors = qcom_pcie_set_num_vectors,
 };
 
 /* Qcom IP rev.: 2.1.0	Synopsys IP rev.: 4.01a */
@@ -2127,8 +2110,6 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 	struct qcom_pcie_of_data *data;
 	int soc_version_major;
 	int ret;
-	int i, domain;
-	char irq_name[20];
 	u32 link_retries_count = 0;
 	static int rc_idx;
 
@@ -2299,31 +2280,10 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 	}
 
 	if (IS_ENABLED(CONFIG_PCI_MSI)) {
-		domain = of_get_pci_domain_nr(pdev->dev.of_node);
-		if (domain < 0) {
-			dev_err(dev, "cannot find linux,pci-domain in DT\n");
+		pp->msi_irq = platform_get_irq_byname(pdev, "msi");
+		if (pp->msi_irq < 0) {
+			ret = pp->msi_irq;
 			goto err_pm_runtime_put;
-		}
-		for (i = 0; i < MAX_MSI_CTRLS_IPQ8074; i++) {
-			ret = scnprintf(irq_name, sizeof(irq_name),
-				       "msi_dev%d", i);
-			msi_dev_irq[i] = platform_get_irq_byname(pdev,
-								     irq_name);
-			if (msi_dev_irq[i] < 0) {
-				ret = msi_dev_irq[i];
-				goto err_pm_runtime_put;
-			}
-			ret = scnprintf(pci_irq_name[domain][i],
-					sizeof(pci_irq_name[domain][i]),
-				       "pcie%d-msi%d", domain, i);
-			ret = devm_request_irq(dev, msi_dev_irq[i],
-					      qcom_pcie_msi_irq_handler,
-					      IRQF_SHARED,
-					      pci_irq_name[domain][i], pp);
-			if (ret) {
-				dev_err(dev, "cannot request msi_dev irq\n");
-				goto err_pm_runtime_put;
-			}
 		}
 	}
 

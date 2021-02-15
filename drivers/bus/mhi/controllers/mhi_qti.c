@@ -421,7 +421,7 @@ static struct mhi_event_config mhi_sdx_mhi_events[] = {
 
 static struct mhi_controller_config mhi_sdx_mhi_config = {
 	.max_channels = 128,
-	.timeout_ms = 2000,
+	.timeout_ms = 6000,
 	.use_bounce_buf = false,
 	.buf_len = 0,
 	.num_channels = ARRAY_SIZE(mhi_sdx_mhi_channels),
