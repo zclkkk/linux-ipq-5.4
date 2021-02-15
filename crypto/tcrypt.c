@@ -1544,6 +1544,7 @@ static void test_skcipher_speed(const char *algo, int enc, unsigned int secs,
 				*keysize * 8, *b_size);
 
 			memset(tvmem[0], 0xff, PAGE_SIZE);
+			tvmem[0][0] = 0x01;
 
 			/* set key, plain text and IV */
 			key = tvmem[0];
