@@ -904,6 +904,7 @@ static const struct of_device_id dwc3_qcom_of_match[] = {
 	{ .compatible = "qcom,ipq6018-dwc3" },
 	{ .compatible = "qcom,ipq807x-dwc3" },
 	{ .compatible = "qcom,ipq5018-dwc3" },
+	{ .compatible = "qcom,ipq9048-dwc3" },
 	{ }
 };
 MODULE_DEVICE_TABLE(of, dwc3_qcom_of_match);
