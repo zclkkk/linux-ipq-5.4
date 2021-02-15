@@ -592,6 +592,14 @@
 		timer@b120000 {
 			clock-frequency = <240000>;
 		};
+
+		usb: usb3@8A00000 {
+			status = "ok";
+			dwc_0: dwc3@8A00000 {
+				phys = <>;
+				phy-names = "";
+			};
+		};
 	};
 
 	psci {
