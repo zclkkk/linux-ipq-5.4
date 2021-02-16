@@ -147,10 +147,10 @@ static struct mhi_controller_config mhitest_mhi_config = {
 };
 
 static struct mhitest_msi_config msi_config = {
-	.total_vectors = 128,
+	.total_vectors = 16,
 	.total_users = 1,
 	.users = (struct mhitest_msi_user[]) {
-		{ .name = "MHI-TEST", .num_vectors = 128, .base_vector = 0 },
+		{ .name = "MHI-TEST", .num_vectors = 16, .base_vector = 0 },
 	},
 };
 
@@ -966,11 +966,11 @@ int mhitest_pci_set_mhi_state(struct mhitest_platform *mplat,
 		ret = mhi_prepare_for_power_up(mplat->mhi_ctrl);
 
 		/* Registering dummy interrupt handler for vectors
-		 * 3 to 127 to demonstrate the usage of multiple
-		 * PCI-MSI interrupts
+		 * 3 to 16 to demonstrate the usage of multiple
+		 * GIC-MSI interrupts
 		 */
 		if (!ret && mplat->msi_config->total_vectors > 3) {
-			for (i = 3; i < 128; i++) {
+			for (i = 3; i < mplat->msi_config->total_vectors; i++) {
 				ret = request_irq(mplat->mhi_ctrl->irq[i],
 						  mhitest_msi_handlr,
 						  IRQF_SHARED,
@@ -983,7 +983,7 @@ int mhitest_pci_set_mhi_state(struct mhitest_platform *mplat,
 			}
 
 			/* Updating ret to 0.
-			 * Since vectors 3 t0 127 are unused any failure
+			 * Since vectors 3 t0 16 are unused any failure
 			 * in registering interrupt handler should not
 			 * affect the flow of FBC.
 			 */
