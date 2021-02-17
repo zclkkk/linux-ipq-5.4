@@ -856,6 +856,11 @@
 			#interrupt-cells = <2>;
 		};
 	};
+
+	qti,sps {
+		compatible = "qti,msm-sps-4k";
+		qti,pipe-attr-ee;
+	};
 };
 
 #include "ipq9048-coresight.dtsi"
