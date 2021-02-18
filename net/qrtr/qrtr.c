@@ -1417,6 +1417,8 @@ static int qrtr_sendmsg(struct socket *sock, struct msghdr *msg, size_t len)
 		/* control messages already require the type as 'command' */
 		skb_copy_bits(skb, 0, &qrtr_type, 4);
 	}
+
+	type = le32_to_cpu(qrtr_type);
 	if (addr->sq_port == QRTR_PORT_CTRL && type == QRTR_TYPE_NEW_SERVER) {
 		ipc->state = QRTR_STATE_MULTI;
 
@@ -1432,7 +1434,6 @@ static int qrtr_sendmsg(struct socket *sock, struct msghdr *msg, size_t len)
 		qrtr_node_release(srv_node);
 	}
 
-	type = le32_to_cpu(qrtr_type);
 	rc = enqueue_fn(node, skb, type, &ipc->us, addr, msg->msg_flags);
 	if (rc >= 0)
 		rc = len;
