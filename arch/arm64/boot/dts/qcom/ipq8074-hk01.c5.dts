@@ -502,13 +502,9 @@
 	e911-gpio =  <&tlmm 33 GPIO_ACTIVE_HIGH>;
 
 	interrupts-extended = <&intc GIC_SPI 52 IRQ_TYPE_LEVEL_HIGH>,
-			      <&intc GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>,
-			      <&intc GIC_SPI 56 IRQ_TYPE_LEVEL_HIGH>,
-			      <&intc GIC_SPI 57 IRQ_TYPE_LEVEL_HIGH>,
 			      <&tlmm 59 IRQ_TYPE_LEVEL_HIGH>,
 			      <&tlmm 33 IRQ_TYPE_LEVEL_HIGH>;
-	interrupt-names = "msi_dev0", "msi_dev1", "msi_dev2", "msi_dev3",
-			  "wake_gpio", "mdm2ap_e911";
+	interrupt-names = "msi", "wake_gpio", "mdm2ap_e911";
 
 	link_retries_count = <100>;
 
@@ -537,8 +533,6 @@
 		qcom,iommu-dma = "disabled";
 
 		// mhi bus specific settings
-		mhi,max-channels = <110>;
-		mhi,timeout = <60000>;
 		mhi,ssr-negotiate;
 
 		mhi_devices: mhi_devices {

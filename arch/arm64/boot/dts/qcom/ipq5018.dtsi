@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: ISC
 /*
- * Copyright (c) 2018-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2018-2021, The Linux Foundation. All rights reserved.
  */
 
 #include <dt-bindings/interrupt-controller/arm-gic.h>
@@ -551,6 +551,19 @@
 				<0x0b001000 0x1000>,  /*GICH*/
 				<0x0b004000 0x1000>;  /*GICV*/
 			interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
+			ranges = <0x0 0xb00a000 0x1ffa>;
+
+			v2m0: v2m@0 {
+				compatible = "arm,gic-v2m-frame";
+				msi-controller;
+				reg = <0x0 0xffd>;
+			};
+
+			v2m1: v2m@1000 {
+				compatible = "arm,gic-v2m-frame";
+				msi-controller;
+				reg = <0x1000 0xffd>;
+			};
 		};
 
 		watchdog@b017000 {
@@ -659,12 +672,8 @@
 				  0x82000000 0 0xa0300000 0xa0300000
 				  0 0x10000000>; /* non-prefetchable memory */
 
-			interrupts = <GIC_SPI 52 IRQ_TYPE_LEVEL_HIGH>,
-				     <GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>,
-				     <GIC_SPI 56 IRQ_TYPE_LEVEL_HIGH>,
-				     <GIC_SPI 57 IRQ_TYPE_LEVEL_HIGH>;
-			interrupt-names = "msi_dev0", "msi_dev1", "msi_dev2",
-					  "msi_dev3";
+			interrupts = <GIC_SPI 52 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "msi";
 
 			#interrupt-cells = <1>;
 			interrupt-map-mask = <0 0 0 0x7>;
@@ -709,6 +718,7 @@
 				      "axi_m_sticky",
 				      "axi_s_sticky";
 
+			msi-parent = <&v2m0>;
 			status = "disabled";
 
 			pcie_x2_rp: pcie_x2_rp {
@@ -981,6 +991,12 @@
 			qcom,mirror-enabled;
 			qcom,crypto-enabled;
 			qcom,ipsec-enabled;
+			qcom,wlanredirect-enabled;
+			qcom,gre-redir-enabled;
+			qcom,gre-redir-mark-enabled;
+			qcom,portid-enabled;
+			qcom,wlan-dataplane-offload-enabled;
+			qcom,pvxlan-enabled;
 		};
 
 		scm_restart_reason: scm_restart_reason {
@@ -988,5 +1004,11 @@
 			dload_status = <0>;
 			dload_warm_status = <0>;
 		};
+	};
+
+	qcom,test@0 {
+		compatible = "qcom,testmhi";
+		qcom,wlan-ramdump-dynamic = <0x400000>;
+		status = "disabled";
 	};
 };

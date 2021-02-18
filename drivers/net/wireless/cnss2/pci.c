@@ -3484,6 +3484,8 @@ static int cnss_pci_enable_msi(struct cnss_pci_data *pci_priv)
 		goto free_msi_vector;
 	}
 
+	pci_priv->msi_ep_base_data = msi_desc->msg.data;
+
 	cnss_pr_dbg("MSI base data is %d\n", pci_priv->msi_ep_base_data);
 
 	return 0;

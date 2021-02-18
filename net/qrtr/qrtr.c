@@ -1000,8 +1000,10 @@ void qrtr_endpoint_unregister(struct qrtr_endpoint *ep)
 
 		src.sq_node = iter.index;
 		skb = qrtr_alloc_ctrl_packet(&pkt, GFP_KERNEL);
-		pkt->cmd = cpu_to_le32(QRTR_TYPE_BYE);
-		qrtr_local_enqueue(NULL, skb, QRTR_TYPE_BYE, &src, &dst, 0);
+		if (skb) {
+			pkt->cmd = cpu_to_le32(QRTR_TYPE_BYE);
+			qrtr_local_enqueue(NULL, skb, QRTR_TYPE_BYE, &src, &dst, 0);
+		}
 
 		qrtr_fwd_del_proc(node, iter.index);
 	}
