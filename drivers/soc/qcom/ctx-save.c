@@ -207,13 +207,19 @@ static int mini_dump_open(struct inode *inode, struct file *file) {
 				return -ENOMEM;
 			}
 
-			if ((cur_node->type == CTX_SAVE_LOG_DUMP_TYPE_WLAN_MOD_INFO) ||
-				(cur_node->type == CTX_SAVE_LOG_DUMP_TYPE_WLAN_MMU_INFO) ||
-				(cur_node->type == CTX_SAVE_LOG_DUMP_TYPE_DMESG)) {
-				segment->size = *(unsigned long *)(uintptr_t)
-					((unsigned long)__va(cur_node->size));
-			} else {
-				segment->size = cur_node->size;
+			switch (cur_node->type) {
+				case CTX_SAVE_LOG_DUMP_TYPE_DMESG:
+					segment->size = log_buf_len;
+					break;
+
+				case CTX_SAVE_LOG_DUMP_TYPE_WLAN_MMU_INFO:
+				case CTX_SAVE_LOG_DUMP_TYPE_WLAN_MOD_INFO:
+					segment->size = *(unsigned long *)(uintptr_t)
+						((unsigned long)__va(cur_node->size));
+					break;
+
+				default:
+					segment->size = cur_node->size;
 			}
 
 			segment->addr = cur_node->va;
