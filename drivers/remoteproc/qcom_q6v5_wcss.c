@@ -41,6 +41,7 @@
 #define Q6SS_CGC_OVERRIDE		0x034
 #define Q6SS_BCR_REG			0x6000
 #define Q6SS_BOOT_CORE_START		0x400
+#define Q6SS_BOOT_CMD                   0x404
 #define Q6SS_BOOT_STATUS		0x408
 #define Q6SS_AHB_UPPER			0x104
 #define Q6SS_AHB_LOWER			0x108
@@ -76,9 +77,10 @@
 #define Q6SS_BHS_ON		BIT(24)
 #define Q6SS_CLAMP_WL		BIT(21)
 #define Q6SS_CLAMP_QMC_MEM		BIT(22)
-#define HALT_CHECK_MAX_LOOPS		200
+#define HALT_CHECK_MAX_TIMEOUT         20000000
 #define Q6SS_XO_CBCR		GENMASK(5, 3)
 #define Q6SS_SLEEP_CBCR		GENMASK(5, 2)
+#define Q6SS_CORE_CBCR         BIT(5)
 #define Q6SS_TIMEOUT_US         1000
 
 /* Q6SS config/status registers */
@@ -98,17 +100,24 @@
 
 #define MEM_BANKS		19
 #define TCSR_WCSS_CLK_MASK	0x1F
-#define TCSR_WCSS_CLK_ENABLE	0x14
+#define TCSR_WCSS_CLK_ENABLE	0x15
 
 #define MAX_HALT_REG		4
 
 #define WCNSS_PAS_ID		6
 #define MAX_SEGMENTS		2
+
 static int debug_wcss;
 
 enum {
 	WCSS_IPQ,
 	WCSS_QCS404,
+};
+
+enum {
+	Q6V5,
+	Q6V6,
+	Q6V7,
 };
 
 struct q6v5_wcss {
@@ -164,10 +173,11 @@ struct q6v5_wcss {
 
 	int crash_reason_smem;
 	u32 version;
+	u32 q6_version;
 	bool requires_force_stop;
 	bool need_mem_protection;
 	const char *m3_firmware_name;
-	bool is_q6v6;
+	bool backdoor;
 };
 
 struct wcss_data {
@@ -177,6 +187,7 @@ struct wcss_data {
 	const char *m3_firmware_name;
 	int crash_reason_smem;
 	u32 version;
+	u32 q6_version;
 	u32 reset_cmd_id;
 	bool aon_reset_required;
 	bool wcss_q6_reset_required;
@@ -189,7 +200,6 @@ struct wcss_data {
 	bool requires_force_stop;
 	bool need_mem_protection;
 	bool need_auto_boot;
-	bool is_q6v6;
 };
 
 #ifdef CONFIG_IPQ_SUBSYSTEM_RAMDUMP
@@ -307,6 +317,53 @@ static void ipq5018_clks_prepare_disable(struct q6v5_wcss *wcss)
 	clk_disable_unprepare(wcss->qdsp6ss_abhm_cbcr);
 	clk_disable_unprepare(wcss->ahbs_cbcr);
 	clk_disable_unprepare(wcss->axi_s_clk);
+}
+
+static void q6v7_wcss_reset(struct q6v5_wcss *wcss)
+{
+	int ret;
+	u32 val;
+	int temp = 0;
+
+	/*1. Deassert AON Reset */
+	ret = reset_control_deassert(wcss->wcss_aon_reset);
+	if (ret) {
+		dev_err(wcss->dev, "wcss_aon_reset failed\n");
+		return;
+	}
+
+	/*2. Enable MPM config value*/
+	val = readl(wcss->rmb_base + SSCAON_CONFIG);
+	val |= 0x1;
+	writel(val, wcss->rmb_base + SSCAON_CONFIG);
+
+	/*3. BHS require xo cbcr to be enabled */
+	val = readl(wcss->reg_base + Q6SS_XO_CBCR);
+	val |= 0x1;
+	writel(val, wcss->reg_base + Q6SS_XO_CBCR);
+
+	/*4. Enable core cbcr*/
+	val = readl(wcss->reg_base + Q6SS_CORE_CBCR);
+	val |= 0x1;
+	writel(val, wcss->reg_base + Q6SS_CORE_CBCR);
+
+	/*5. Q6 AHB upper & lower address*/
+	writel(0x00cdc000, wcss->reg_base + Q6SS_AHB_UPPER);
+	writel(0x00ca0000, wcss->reg_base + Q6SS_AHB_LOWER);
+
+	/*6. Boot core start */
+	writel(0x1, wcss->reg_base + Q6SS_BOOT_CORE_START);
+	writel(0x1, wcss->reg_base + Q6SS_BOOT_CMD);
+
+	/*7. Pray god and wait for reset to complete*/
+	while (temp < 20) {
+		val = readl(wcss->reg_base + Q6SS_BOOT_STATUS);
+		if (val & 0x01)
+			break;
+		mdelay(1);
+		temp++;
+	}
+
 }
 
 static void q6v6_wcss_reset(struct q6v5_wcss *wcss)
@@ -448,7 +505,7 @@ static int q6v5_wcss_reset(struct q6v5_wcss *wcss)
 	/* Read CLKOFF bit to go low indicating CLK is enabled */
 	ret = readl_poll_timeout(wcss->reg_base + Q6SS_XO_CBCR,
 				 val, !(val & BIT(31)), 1,
-				 HALT_CHECK_MAX_LOOPS);
+				 HALT_CHECK_MAX_TIMEOUT);
 	if (ret) {
 		dev_err(wcss->dev,
 			"xo cbcr enabling timed out (rc:%d)\n", ret);
@@ -569,8 +626,10 @@ static int q6v5_wcss_start(struct rproc *rproc)
 	/* Write bootaddr to EVB so that Q6WCSS will jump there after reset */
 	writel(rproc->bootaddr >> 4, wcss->reg_base + Q6SS_RST_EVB);
 
-	if (wcss->is_q6v6)
+	if (wcss->q6_version == Q6V6)
 		q6v6_wcss_reset(wcss);
+	else if (wcss->q6_version == Q6V7)
+		q6v7_wcss_reset(wcss);
 	else
 		ret = q6v5_wcss_reset(wcss);
 
@@ -585,7 +644,6 @@ wait_for_reset:
 		else
 			dev_err(wcss->dev, "start timed out\n");
 	}
-
 	/*reset done clear the debug register*/
 	if (debug_wcss)
 		writel(0x0, wcss->reg_base + Q6SS_DBG_CFG);
@@ -659,7 +717,7 @@ static int q6v5_wcss_qcs404_power_on(struct q6v5_wcss *wcss)
 	/* Read CLKOFF bit to go low indicating CLK is enabled */
 	ret = readl_poll_timeout(wcss->reg_base + Q6SS_XO_CBCR,
 				 val, !(val & BIT(31)), 1,
-				 HALT_CHECK_MAX_LOOPS);
+				 HALT_CHECK_MAX_TIMEOUT);
 	if (ret) {
 		dev_err(wcss->dev,
 			"xo cbcr enabling timed out (rc:%d)\n", ret);
@@ -940,12 +998,12 @@ static int q6v5_wcss_powerdown(struct q6v5_wcss *wcss)
 
 	/* 
 	1 - Assert WCSS/Q6 HALTREQ */
-	if (wcss->is_q6v6)
+	if (wcss->q6_version == Q6V6)
 		q6v6_wcss_halt_axi_port(wcss, wcss->halt_map, wcss->halt_wcss);
 	else
 		q6v5_wcss_halt_axi_port(wcss, wcss->halt_map, wcss->halt_wcss);
 
-	if (wcss->is_q6v6) {
+	if (wcss->q6_version == Q6V6) {
 		val = readl(wcss->rmb_base + SSCAON_CONFIG);
 		val &= ~SSCAON_MASK;
 		val |= SSCAON_BUS_EN;
@@ -969,7 +1027,7 @@ static int q6v5_wcss_powerdown(struct q6v5_wcss *wcss)
 	/* 5 - wait for SSCAON_STATUS */
 	ret = readl_poll_timeout(wcss->rmb_base + SSCAON_STATUS,
 				 val, (val & 0xffff) == 0x400, 1000,
-				 HALT_CHECK_MAX_LOOPS);
+				 HALT_CHECK_MAX_TIMEOUT);
 	if (ret) {
 		dev_err(wcss->dev,
 			"can't get SSCAON_STATUS rc:%d)\n", ret);
@@ -981,7 +1039,7 @@ static int q6v5_wcss_powerdown(struct q6v5_wcss *wcss)
 	/* 6 - De-assert WCSS_AON reset */
 	reset_control_assert(wcss->wcss_aon_reset);
 
-	if (wcss->is_q6v6) {
+	if (wcss->q6_version == Q6V6) {
 		val = readl(wcss->rmb_base + SSCAON_CONFIG);
 		val &= ~(1<<1);
 		writel(val, wcss->rmb_base + SSCAON_CONFIG);
@@ -1026,7 +1084,7 @@ static int q6v5_q6_powerdown(struct q6v5_wcss *wcss)
 	int i;
 
 	/* 1 - Halt Q6 bus interface */
-	if (wcss->is_q6v6)
+	if (wcss->q6_version == Q6V6)
 		q6v6_wcss_halt_axi_port(wcss, wcss->halt_map, wcss->halt_q6);
 	else
 		q6v5_wcss_halt_axi_port(wcss, wcss->halt_map, wcss->halt_q6);
@@ -1036,7 +1094,7 @@ static int q6v5_q6_powerdown(struct q6v5_wcss *wcss)
 	val &= ~Q6SS_CLK_ENABLE;
 	writel(val, wcss->reg_base + Q6SS_GFMUX_CTL_REG);
 
-	if (wcss->is_q6v6) {
+	if (wcss->q6_version == Q6V6) {
 		q6v6_q6_powerdown(wcss);
 		goto reset;
 	}
@@ -1079,7 +1137,7 @@ static int q6v5_q6_powerdown(struct q6v5_wcss *wcss)
 	/* 10 - Wait till BHS Reset is done */
 	ret = readl_poll_timeout(wcss->reg_base + Q6SS_BHS_STATUS,
 				 val, !(val & BHS_EN_REST_ACK), 1000,
-				 HALT_CHECK_MAX_LOOPS);
+				 HALT_CHECK_MAX_TIMEOUT);
 	if (ret) {
 		dev_err(wcss->dev, "BHS_STATUS not OFF (rc:%d)\n", ret);
 		return ret;
@@ -1157,6 +1215,9 @@ static int q6v5_wcss_load(struct rproc *rproc, const struct firmware *fw)
 	struct q6v5_wcss *wcss = rproc->priv;
 	const struct firmware *m3_fw;
 	int ret;
+
+	if (wcss->backdoor)
+		return 0;
 
 	if (wcss->m3_firmware_name) {
 		ret = request_firmware(&m3_fw, wcss->m3_firmware_name,
@@ -1581,7 +1642,7 @@ static int q6v5_wcss_probe(struct platform_device *pdev)
 	wcss->need_mem_protection = desc->need_mem_protection;
 	wcss->m3_firmware_name = desc->m3_firmware_name;
 	wcss->reset_cmd_id = desc->reset_cmd_id;
-	wcss->is_q6v6 = desc->is_q6v6;
+	wcss->q6_version = desc->q6_version;
 
 	ret = q6v5_wcss_init_mmio(wcss, pdev);
 	if (ret)
@@ -1607,6 +1668,17 @@ static int q6v5_wcss_probe(struct platform_device *pdev)
 	if (ret)
 		goto free_rproc;
 
+	wcss->backdoor = of_property_read_bool(pdev->dev.of_node,
+					       "qcom,emulation");
+	if (wcss->backdoor) {
+		ret = of_property_read_u32(pdev->dev.of_node, "bootaddr",
+					    &rproc->bootaddr);
+		if (ret) {
+			dev_err(&pdev->dev, "boot addr required for emulation\n");
+			goto free_rproc;
+		}
+	}
+
 	ret = qcom_q6v5_init(&wcss->q6v5, pdev, rproc, desc->crash_reason_smem,
 			     NULL);
 	if (ret)
@@ -1620,6 +1692,7 @@ static int q6v5_wcss_probe(struct platform_device *pdev)
 						      desc->ssctl_id);
 
 	rproc->auto_boot = desc->need_auto_boot;
+	rproc->backdoor = wcss->backdoor;
 	ret = rproc_add(rproc);
 	if (ret)
 		goto free_rproc;
@@ -1658,6 +1731,7 @@ static const struct wcss_data wcss_ipq8074_res_init = {
 	.requires_force_stop = true,
 	.need_mem_protection = true,
 	.need_auto_boot = false,
+	.q6_version = Q6V5,
 };
 
 static const struct wcss_data wcss_ipq6018_res_init = {
@@ -1675,7 +1749,7 @@ static const struct wcss_data wcss_ipq6018_res_init = {
 	.requires_force_stop = true,
 	.need_mem_protection = true,
 	.need_auto_boot = false,
-	.is_q6v6 = false,
+	.q6_version = Q6V5,
 };
 
 static const struct wcss_data wcss_ipq5018_res_init = {
@@ -1693,7 +1767,24 @@ static const struct wcss_data wcss_ipq5018_res_init = {
 	.requires_force_stop = true,
 	.need_mem_protection = true,
 	.need_auto_boot = false,
-	.is_q6v6 = true,
+	.q6_version = Q6V6,
+};
+
+static const struct wcss_data wcss_ipq9048_res_init = {
+	.init_clock = NULL,
+	.q6_firmware_name = "IPQ9048/q6_fw.mdt",
+	.crash_reason_smem = WCSS_CRASH_REASON,
+	.aon_reset_required = true,
+	.wcss_q6_reset_required = true,
+	.bcr_reset_required = false,
+	.ce_reset_required = false,
+	.ssr_name = "q6wcss",
+	.reset_cmd_id = 0x14,
+	.ops = &q6v5_wcss_ipq8074_ops,
+	.requires_force_stop = false,
+	.need_mem_protection = false,
+	.need_auto_boot = false,
+	.q6_version = Q6V7,
 };
 
 static const struct wcss_data wcss_qcs404_res_init = {
@@ -1713,12 +1804,13 @@ static const struct wcss_data wcss_qcs404_res_init = {
 	.requires_force_stop = false,
 	.reset_cmd_id = 0x14,
 	.need_auto_boot = true,
-	.is_q6v6 = false,
+	.q6_version = Q6V5,
 };
 
 static const struct of_device_id q6v5_wcss_of_match[] = {
 	{ .compatible = "qcom,ipq8074-wcss-pil", .data = &wcss_ipq8074_res_init },
 	{ .compatible = "qcom,ipq6018-wcss-pil", .data = &wcss_ipq6018_res_init },
+	{ .compatible = "qcom,ipq9048-wcss-pil", .data = &wcss_ipq9048_res_init },
 	{ .compatible = "qcom,qcs404-wcss-pil", .data = &wcss_qcs404_res_init },
 	{ .compatible = "qcom,qcs5018-wcss-pil", .data = &wcss_ipq5018_res_init },
 

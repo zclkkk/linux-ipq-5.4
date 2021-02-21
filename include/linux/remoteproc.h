@@ -502,6 +502,7 @@ struct rproc_dump_segment {
  * @table_sz: size of @cached_table
  * @has_iommu: flag to indicate if remote processor is behind an MMU
  * @auto_boot: flag to indicate if remote processor should be auto-started
+ * @backdoor: flag to indicate if firmware request can be skipped
  * @dump_segments: list of segments in the firmware
  * @nb_vdev: number of vdev currently handled by rproc
  */
@@ -535,6 +536,7 @@ struct rproc {
 	size_t table_sz;
 	bool has_iommu;
 	bool auto_boot;
+	bool backdoor;
 	struct list_head dump_segments;
 	int nb_vdev;
 	struct blocking_notifier_head nlist;
