@@ -47,7 +47,6 @@
 
 #define MAX_M3_FILE_NAME_LENGTH		15
 #define DEFAULT_M3_FILE_NAME		"qcn9000/m3.bin"
-#define DEFAULT_FW_FILE_NAME		"qcn9000/amss.bin"
 #define FW_V2_FILE_NAME			"amss20.bin"
 #define FW_V2_NUMBER			2
 
@@ -3517,7 +3516,7 @@ int cnss_get_user_msi_assignment(struct device *dev, char *user_name,
 		return -ENODEV;
 
 	if (plat_priv->device_id != QCN9000_DEVICE_ID) {
-		cnss_pr_dbg("MSI not supported on device 0x%x",
+		cnss_pr_dbg("MSI not supported on device 0x%lx",
 			    plat_priv->device_id);
 		return -EINVAL;
 	}
@@ -4274,8 +4273,6 @@ int cnss_pci_probe(struct pci_dev *pci_dev,
 	cnss_set_pci_priv(pci_dev, pci_priv);
 	plat_priv->device_id = pci_dev->device;
 	plat_priv->bus_priv = pci_priv;
-	snprintf(plat_priv->firmware_name, sizeof(plat_priv->firmware_name),
-		 DEFAULT_FW_FILE_NAME);
 
 	ret = cnss_register_ramdump(plat_priv);
 	if (ret)
