@@ -222,17 +222,17 @@
 #define TRAINING_OFFSET	0x0
 #define TOTAL_NUM_PHASE	7
 
-#define nandc_set_read_loc(nandc, reg, offset, size, is_last)	\
+#define nandc_set_read_loc(nandc, reg, cw_offset, read_size, is_last_read_loc)	\
 nandc_set_reg(nandc, NAND_READ_LOCATION_##reg,			\
-	      ((offset) << READ_LOCATION_OFFSET) |		\
-	      ((size) << READ_LOCATION_SIZE) |			\
-	      ((is_last) << READ_LOCATION_LAST))
+	      ((cw_offset) << READ_LOCATION_OFFSET) |		\
+	      ((read_size) << READ_LOCATION_SIZE) |			\
+	      ((is_last_read_loc) << READ_LOCATION_LAST))
 
-#define nandc_set_read_loc_last(nandc, reg, offset, size, is_last)	\
+#define nandc_set_read_loc_last(nandc, reg, cw_offset, read_size, is_last_read_loc)	\
 nandc_set_reg(nandc, NAND_READ_LOCATION_LAST_CW_##reg,			\
-	      ((offset) << READ_LOCATION_OFFSET) |		\
-	      ((size) << READ_LOCATION_SIZE) |			\
-	      ((is_last) << READ_LOCATION_LAST))
+	      ((cw_offset) << READ_LOCATION_OFFSET) |		\
+	      ((read_size) << READ_LOCATION_SIZE) |			\
+	      ((is_last_read_loc) << READ_LOCATION_LAST))
 
 /*
  * Returns the actual register address for all NAND_DEV_ registers
