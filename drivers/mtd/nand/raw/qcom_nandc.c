@@ -1715,6 +1715,12 @@ static int check_flash_errors(struct qcom_nand_host *host, int cw_cnt)
 	return 0;
 }
 
+/* Helper to check the code word, whether it is last cw or not */
+static bool qcom_nandc_is_last_cw(struct nand_ecc_ctrl *ecc, int cw)
+{
+	return cw == (ecc->steps - 1);
+}
+
 /* performs raw read for one codeword */
 static int
 qcom_nandc_read_cw_raw(struct mtd_info *mtd, struct nand_chip *chip,
@@ -1737,7 +1743,7 @@ qcom_nandc_read_cw_raw(struct mtd_info *mtd, struct nand_chip *chip,
 	data_size1 = mtd->writesize - host->cw_size * (ecc->steps - 1);
 	oob_size1 = host->bbm_size;
 
-	if (cw == (ecc->steps - 1)) {
+	if (qcom_nandc_is_last_cw(ecc, cw)) {
 		data_size2 = ecc->size - data_size1 -
 			     ((ecc->steps - 1) * 4);
 		oob_size2 = (ecc->steps * 4) + host->ecc_bytes_hw +
@@ -1748,7 +1754,7 @@ qcom_nandc_read_cw_raw(struct mtd_info *mtd, struct nand_chip *chip,
 	}
 
 	if (nandc->props->is_bam) {
-		if ((nandc->props->qpic_v2) && (cw == (ecc->steps - 1))) {
+		if ((nandc->props->qpic_v2) && qcom_nandc_is_last_cw(ecc, cw)) {
 			nandc_set_read_loc_last(nandc, 0, read_loc, data_size1, 0);
 			read_loc += data_size1;
 
@@ -1831,7 +1837,7 @@ check_for_erased_page(struct qcom_nand_host *host, u8 *data_buf,
 	}
 
 	for_each_set_bit(cw, &uncorrectable_cws, ecc->steps) {
-		if (cw == (ecc->steps - 1)) {
+		if (qcom_nandc_is_last_cw(ecc, cw)) {
 			data_size = ecc->size - ((ecc->steps - 1) * 4);
 			oob_size = (ecc->steps * 4) + host->ecc_bytes_hw;
 		} else {
@@ -1891,7 +1897,7 @@ static int parse_read_errors(struct qcom_nand_host *host, u8 *data_buf,
 		u32 flash, buffer, erased_cw;
 		int data_len, oob_len;
 
-		if (i == (ecc->steps - 1)) {
+		if (qcom_nandc_is_last_cw(ecc, i)) {
 			data_len = ecc->size - ((ecc->steps - 1) << 2);
 			oob_len = ecc->steps << 2;
 		} else {
@@ -1990,7 +1996,7 @@ static int read_page_ecc(struct qcom_nand_host *host, u8 *data_buf,
 	for (i = 0; i < ecc->steps; i++) {
 		int data_size, oob_size;
 
-		if (i == (ecc->steps - 1)) {
+		if (qcom_nandc_is_last_cw(ecc, i)) {
 			data_size = ecc->size - ((ecc->steps - 1) << 2);
 			oob_size = (ecc->steps << 2) + host->ecc_bytes_hw +
 				   host->spare_bytes;
@@ -2001,7 +2007,7 @@ static int read_page_ecc(struct qcom_nand_host *host, u8 *data_buf,
 
 		if (nandc->props->is_bam) {
 			if (data_buf && oob_buf) {
-				if (nandc->props->qpic_v2 && i == (ecc->steps - 1)) {
+				if (nandc->props->qpic_v2 && qcom_nandc_is_last_cw(ecc, i)) {
 					nandc_set_read_loc_last(nandc, 0, 0, data_size, 0);
 					nandc_set_read_loc_last(nandc, 1, data_size, oob_size, 1);
 				} else {
@@ -2009,12 +2015,12 @@ static int read_page_ecc(struct qcom_nand_host *host, u8 *data_buf,
 					nandc_set_read_loc(nandc, 1, data_size, oob_size, 1);
 				}
 			} else if (data_buf) {
-				if (nandc->props->qpic_v2 && i == (ecc->steps - 1))
+				if (nandc->props->qpic_v2 && qcom_nandc_is_last_cw(ecc, i))
 					nandc_set_read_loc_last(nandc, 0, 0, data_size, 1);
 				else
 					nandc_set_read_loc(nandc, 0, 0, data_size, 1);
 			} else {
-				if (nandc->props->qpic_v2 && i == (ecc->steps - 1))
+				if (nandc->props->qpic_v2 && qcom_nandc_is_last_cw(ecc, i))
 					nandc_set_read_loc_last(nandc, 0, data_size, oob_size, 1);
 				else
 					nandc_set_read_loc(nandc, 0, data_size, oob_size, 1);
@@ -2178,7 +2184,7 @@ static int qcom_nandc_write_page(struct nand_chip *chip, const uint8_t *buf,
 	for (i = 0; i < ecc->steps; i++) {
 		int data_size, oob_size;
 
-		if (i == (ecc->steps - 1)) {
+		if (qcom_nandc_is_last_cw(ecc, i)) {
 			data_size = ecc->size - ((ecc->steps - 1) << 2);
 			oob_size = (ecc->steps << 2) + host->ecc_bytes_hw +
 				   host->spare_bytes;
@@ -2198,7 +2204,7 @@ static int qcom_nandc_write_page(struct nand_chip *chip, const uint8_t *buf,
 		 * itself. For the last codeword, we skip the bbm positions and
 		 * write to the free oob area.
 		 */
-		if (i == (ecc->steps - 1)) {
+		if (qcom_nandc_is_last_cw(ecc, i)) {
 			oob_buf += host->bbm_size;
 
 			write_data_dma(nandc, FLASH_BUF_ACC + data_size,
@@ -2253,7 +2259,7 @@ static int qcom_nandc_write_page_raw(struct nand_chip *chip,
 		data_size1 = mtd->writesize - host->cw_size * (ecc->steps - 1);
 		oob_size1 = host->bbm_size;
 
-		if (i == (ecc->steps - 1)) {
+		if (qcom_nandc_is_last_cw(ecc, i)) {
 			data_size2 = ecc->size - data_size1 -
 				     ((ecc->steps - 1) << 2);
 			oob_size2 = (ecc->steps << 2) + host->ecc_bytes_hw +
