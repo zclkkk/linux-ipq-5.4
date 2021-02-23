@@ -26,6 +26,7 @@ dtb-$(CONFIG_ARCH_QCOM) += ipq8074-ac03.dtb
 dtb-$(CONFIG_ARCH_QCOM) += ipq8074-ac04.dtb
 dtb-$(CONFIG_ARCH_QCOM) += ipq8074-hk12.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= ipq9048-emulation.dtb
+dtb-$(CONFIG_ARCH_QCOM)	+= ipq9048-emulation-ssoc.dtb
 dtb-$(CONFIG_ARCH_QCOM) += ipq5018-mp03.1.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= ipq5018-mp03.1-c2.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= ipq5018-mp03.3.dtb
