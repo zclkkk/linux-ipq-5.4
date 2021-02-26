@@ -476,6 +476,7 @@ static void qmi_handle_message(struct qmi_handle *qmi,
 	struct qmi_txn tmp_txn;
 	struct qmi_txn *txn = NULL;
 	int ret;
+	bool complete_req = false;
 
 	if (len < sizeof(*hdr)) {
 		pr_err("ignoring short QMI packet\n");
@@ -498,7 +499,9 @@ static void qmi_handle_message(struct qmi_handle *qmi,
 		mutex_lock(&txn->lock);
 		mutex_unlock(&qmi->txn_lock);
 
-		if (txn->dest && txn->ei) {
+		complete_req  = txn->dest && txn->ei;
+
+		if (complete_req) {
 			ret = qmi_decode_message(buf, len, txn->ei, txn->dest);
 			if (ret < 0)
 				pr_err("failed to decode incoming message\n");
@@ -509,7 +512,7 @@ static void qmi_handle_message(struct qmi_handle *qmi,
 		}
 
 		mutex_unlock(&txn->lock);
-		if (txn->dest && txn->ei)
+		if (complete_req)
 			complete(&txn->completion);
 	} else {
 		/* Create a txn based on the txn_id of the incoming message */
