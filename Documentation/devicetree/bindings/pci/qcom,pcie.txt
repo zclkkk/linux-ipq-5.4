@@ -11,6 +11,7 @@
 			- "qcom,pcie-ipq4019" for ipq4019
 			- "qcom,pcie-ipq8074" for ipq8074 gen2 port
 			- "qcom,pcie-gen3-ipq8074" for ipq8074 gen3 port
+			- "qcom,pcie-ipq9048" for ipq9048 gen3 port
 			- "qcom,pcie-qcs404" for qcs404
 
 - reg:
@@ -46,6 +47,11 @@
 	Usage: required
 	Value type: <prop-encoded-array>
 	Definition: As specified in designware-pcie.txt
+
+- slv-addr-space-sz:
+	Usage: optional
+	Value type: integer
+	Definition: size of pcie address space
 
 - interrupts:
 	Usage: required
