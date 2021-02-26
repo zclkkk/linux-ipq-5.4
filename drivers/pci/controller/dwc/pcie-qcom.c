@@ -249,6 +249,7 @@ struct qcom_pcie {
 	struct gpio_desc *reset;
 	const struct qcom_pcie_ops *ops;
 	u32 max_speed;
+	uint32_t slv_addr_space_sz;
 	struct work_struct handle_wake_work;
 	struct work_struct handle_e911_work;
 	int wake_irq;
@@ -1378,6 +1379,50 @@ static int qcom_pcie_get_resources_2_9_0(struct qcom_pcie *pcie)
 	return 0;
 }
 
+static int qcom_pcie_get_resources_2_9_0_9048(struct qcom_pcie *pcie)
+{
+	struct qcom_pcie_resources_2_9_0 *res = &pcie->res.v2_9_0;
+	struct dw_pcie *pci = pcie->pci;
+	struct device *dev = pci->dev;
+	int i;
+	const char *rst_names[] = { "pipe", "sticky", "axi_s_sticky",
+				    "axi_s", "axi_m_sticky", "axi_m",
+				    "aux", "ahb" };
+
+	res->ahb_clk = devm_clk_get(dev, "ahb");
+	if (IS_ERR(res->ahb_clk))
+		res->ahb_clk = NULL;
+
+	res->aux_clk = devm_clk_get(dev, "aux");
+	if (IS_ERR(res->aux_clk))
+		res->aux_clk = NULL;
+
+	res->axi_m_clk = devm_clk_get(dev, "axi_m");
+	if (IS_ERR(res->axi_m_clk))
+		return PTR_ERR(res->axi_m_clk);
+
+	res->axi_s_clk = devm_clk_get(dev, "axi_s");
+	if (IS_ERR(res->axi_s_clk))
+		return PTR_ERR(res->axi_s_clk);
+
+	res->axi_bridge_clk = devm_clk_get(dev, "axi_bridge");
+	if (IS_ERR(res->axi_bridge_clk))
+		return PTR_ERR(res->axi_bridge_clk);
+
+	res->rchng_clk = devm_clk_get(dev, "rchng");
+	if (IS_ERR(res->rchng_clk))
+		res->rchng_clk = NULL;
+
+	for (i = 0; i < ARRAY_SIZE(rst_names); i++) {
+		res->rst[i] = devm_reset_control_get(dev, rst_names[i]);
+		if (IS_ERR(res->rst[i])) {
+			return PTR_ERR(res->rst[i]);
+		}
+	}
+
+	return 0;
+}
+
 static void qcom_pcie_deinit_2_9_0(struct qcom_pcie *pcie)
 {
 	struct qcom_pcie_resources_2_9_0 *res = &pcie->res.v2_9_0;
@@ -1389,7 +1434,8 @@ static void qcom_pcie_deinit_2_9_0(struct qcom_pcie *pcie)
 		clk_disable_unprepare(res->rchng_clk);
 	clk_disable_unprepare(res->aux_clk);
 	clk_disable_unprepare(res->ahb_clk);
-	clk_disable_unprepare(res->iface);
+	if (res->iface)
+		clk_disable_unprepare(res->iface);
 }
 
 static int qcom_pcie_init_2_9_0_5018(struct qcom_pcie *pcie)
@@ -1610,10 +1656,12 @@ static int qcom_pcie_init_2_9_0(struct qcom_pcie *pcie)
 	 */
 	usleep_range(2000, 2500);
 
-	ret = clk_prepare_enable(res->iface);
-	if (ret) {
-		dev_err(dev, "cannot prepare/enable core clock\n");
-		goto err_clk_iface;
+	if (res->iface) {
+		ret = clk_prepare_enable(res->iface);
+		if (ret) {
+			dev_err(dev, "cannot prepare/enable core clock\n");
+			goto err_clk_iface;
+		}
 	}
 
 	ret = clk_prepare_enable(res->ahb_clk);
@@ -1672,8 +1720,12 @@ static int qcom_pcie_init_2_9_0(struct qcom_pcie *pcie)
 		}
 	}
 
-	writel(SLV_ADDR_SPACE_SZ,
-		pcie->parf + PCIE20_v3_PARF_SLV_ADDR_SPACE_SIZE);
+	if (pcie->slv_addr_space_sz)
+		writel(pcie->slv_addr_space_sz,
+			pcie->parf + PCIE20_v3_PARF_SLV_ADDR_SPACE_SIZE);
+	else
+		writel(SLV_ADDR_SPACE_SZ,
+			pcie->parf + PCIE20_v3_PARF_SLV_ADDR_SPACE_SIZE);
 
 	val = readl(pcie->parf + PCIE20_PARF_PHY_CTRL);
 	val &= ~BIT(0);
@@ -1742,7 +1794,8 @@ err_clk_aux:
 err_clk_ahb:
 	clk_disable_unprepare(res->ahb_clk);
 err_clk_iface:
-	clk_disable_unprepare(res->iface);
+	if (res->iface)
+		clk_disable_unprepare(res->iface);
 	/*
 	 * Not checking for failure, will anyway return
 	 * the original failure in 'ret'.
@@ -1897,6 +1950,14 @@ static const struct qcom_pcie_ops ops_2_9_0_ipq5018 = {
 	.ltssm_enable = qcom_pcie_2_3_2_ltssm_enable,
 };
 
+/* Qcom IP rev.: 2.9.0	Synopsys IP rev.: 5.00a */
+static const struct qcom_pcie_ops ops_2_9_0_ipq9048 = {
+	.get_resources = qcom_pcie_get_resources_2_9_0_9048,
+	.init = qcom_pcie_init_2_9_0,
+	.deinit = qcom_pcie_deinit_2_9_0,
+	.ltssm_enable = qcom_pcie_2_3_2_ltssm_enable,
+};
+
 static const struct qcom_pcie_of_data qcom_pcie_2_9_0 = {
 	.ops = &ops_2_9_0,
 	.version = 0x500A,
@@ -1904,6 +1965,11 @@ static const struct qcom_pcie_of_data qcom_pcie_2_9_0 = {
 
 static const struct qcom_pcie_of_data qcom_pcie_2_9_0_ipq5018 = {
 	.ops = &ops_2_9_0_ipq5018,
+	.version = 0x500A,
+};
+
+static const struct qcom_pcie_of_data qcom_pcie_2_9_0_ipq9048 = {
+	.ops = &ops_2_9_0_ipq9048,
 	.version = 0x500A,
 };
 
@@ -2111,6 +2177,7 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 	int soc_version_major;
 	int ret;
 	u32 link_retries_count = 0;
+	uint32_t slv_addr_space_sz = 0;
 	static int rc_idx;
 
 	pcie = devm_kzalloc(dev, sizeof(*pcie), GFP_KERNEL);
@@ -2152,6 +2219,10 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 	of_property_read_u32(pdev->dev.of_node, "link_retries_count",
 			     &link_retries_count);
 	pci->link_retries_count = link_retries_count;
+
+	of_property_read_u32(pdev->dev.of_node, "slv-addr-space-sz",
+			     &slv_addr_space_sz);
+	pcie->slv_addr_space_sz = slv_addr_space_sz;
 
 	if (of_device_is_compatible(pdev->dev.of_node,
 					"qcom,pcie-gen3-ipq8074")) {
@@ -2375,6 +2446,7 @@ static const struct of_device_id qcom_pcie_match[] = {
 	{ .compatible = "qcom,pcie-ipq4019", .data = &qcom_pcie_2_4_0 },
 	{ .compatible = "qcom,pcie-qcs404", .data = &qcom_pcie_2_4_0 },
 	{ .compatible = "qcom,pcie-ipq5018", .data = &qcom_pcie_2_9_0_ipq5018 },
+	{ .compatible = "qcom,pcie-ipq9048", .data = &qcom_pcie_2_9_0_ipq9048 },
 	{ }
 };
 
