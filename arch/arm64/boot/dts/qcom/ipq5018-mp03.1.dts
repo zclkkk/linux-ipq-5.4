@@ -448,15 +448,6 @@
 			};
 		};
 
-		wifi0: wifi@c000000 {
-			qcom,bdf-addr = <0x4BA00000 0x4BA00000 0x4BA00000
-						0x0 0x0>;
-			qcom,caldb-addr = <0x4CA00000 0x4CA00000 0x4CA00000
-						0x0 0x0>;
-			qcom,caldb-size = <0x200000>;
-			status = "ok";
-		};
-
 		ess-uniphy@98000 {
 			status = "disabled";
 		};
@@ -706,5 +697,78 @@
 &wifi0 {
 	/* IPQ5018 */
 	qcom,board_id = <0x24>;
+
+	qcom,bdf-addr = <0x4BA00000 0x4BA00000 0x4BA00000
+		0x0 0x0>;
+	qcom,caldb-addr = <0x4CA00000 0x4CA00000 0x0 0x0 0x0>;
+	qcom,caldb-size = <0x200000>;
 	status = "ok";
+};
+
+&wifi3 {
+        /* QCN9000 5G */
+        board_id = <0xa0>;
+#ifdef __IPQ_MEM_PROFILE_256_MB__
+	/* QCN9000 tgt-mem-mode=2 layout - 17MB
+	 * +=========+==============+=========+
+	 * |  Region | Start Offset |   Size  |
+	 * +---------+--------------+---------+
+	 * | HREMOTE |  0x4C900000  |   15MB  |
+	 * +---------+--------------+---------+
+	 * | M3 Dump |  0x4D800000  |   1MB   |
+	 * +---------+--------------+---------+
+	 * |   ETR   |  0x4D900000  |   1MB   |
+	 * +==================================+
+	 */
+	base-addr = <0x4C900000>;
+	m3-dump-addr = <0x4D800000>;
+	etr-addr = <0x4D900000>;
+	caldb-addr = <0>;
+	caldb-size = <0>;
+	hremote-size = <0xF00000>;
+	tgt-mem-mode = <0x2>;
+#elif __IPQ_MEM_PROFILE_512_MB__
+	/* QCN9000 tgt-mem-mode=1 layout - 30MB
+	 * +=========+==============+=========+
+	 * |  Region | Start Offset |   Size  |
+	 * +---------+--------------+---------+
+	 * | HREMOTE |  0x4CC00000  |   20MB  |
+	 * +---------+--------------+---------+
+	 * | M3 Dump |  0x4E000000  |   1MB   |
+	 * +---------+--------------+---------+
+	 * |   ETR   |  0x4E100000  |   1MB   |
+	 * +---------+--------------+---------+
+	 * |  Caldb  |  0x4E200000  |   8MB   |
+	 * +==================================+
+	 */
+	base-addr = <0x4CC00000>;
+	m3-dump-addr = <0x4E000000>;
+	etr-addr = <0x4E100000>;
+	caldb-addr = <0x4E200000>;
+	caldb-size = <0x800000>;
+	hremote-size = <0x1400000>;
+	tgt-mem-mode = <0x1>;
+#else
+	/* QCN9000 tgt-mem-mode=0 layout - 45MB
+	 * +=========+==============+=========+
+	 * |  Region | Start Offset |   Size  |
+	 * +---------+--------------+---------+
+	 * | HREMOTE |  0x4CC00000  |   35MB  |
+	 * +---------+--------------+---------+
+	 * | M3 Dump |  0x4EF00000  |   1MB   |
+	 * +---------+--------------+---------+
+	 * |   ETR   |  0x4F000000  |   1MB   |
+	 * +---------+--------------+---------+
+	 * |  Caldb  |  0x4F100000  |   8MB   |
+	 * +==================================+
+	 */
+	base-addr = <0x4CC00000>;
+	m3-dump-addr = <0x4EF00000>;
+	etr-addr = <0x4F000000>;
+	caldb-addr = <0x4F100000>;
+	hremote-size = <0x2300000>;
+	caldb-size = <0x800000>;
+	tgt-mem-mode = <0x0>;
+#endif
+        status = "ok";
 };
