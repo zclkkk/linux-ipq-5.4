@@ -160,6 +160,12 @@ config IPQ_GCC_9048
 	  i2c, USB, SD/eMMC, etc. Select this for the root clock
 	  of ipq9048.
 
+config IPQ_NSSCC_9048
+	tristate "IPQ9048 NSS Clock Controller"
+	depends on IPQ_GCC_9048
+	help
+	  Support for NSS clock controller on ipq9048 devices.
+
 config IPQ_GCC_5018
 	tristate "IPQ5018 Global Clock Controller"
 	help
