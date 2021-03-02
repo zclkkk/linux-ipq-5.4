@@ -29,6 +29,7 @@ struct uci_buf {
 	void *data;
 	size_t len;
 	struct list_head node;
+	bool done;
 };
 
 struct mhi_uci_drv {
@@ -81,6 +82,7 @@ static int mhi_queue_inbound(struct uci_dev *uci_dev)
 
 		uci_buf = buf + actual_mtu;
 		uci_buf->data = buf;
+		uci_buf->done = 1;
 
 		dev_dbg(dev, "Allocated buf %d of %d size %zu\n", i, nr_trbs,
 			actual_mtu);
@@ -112,6 +114,7 @@ static int mhi_uci_release(struct inode *inode, struct file *file)
 
 		/* clean inbound channel */
 		uci_chan = &uci_dev->dl_chan;
+		spin_lock_bh(&uci_chan->lock);
 		list_for_each_entry_safe(itr, tmp, &uci_chan->pending, node) {
 			list_del(&itr->node);
 			kfree(itr->data);
@@ -120,6 +123,7 @@ static int mhi_uci_release(struct inode *inode, struct file *file)
 			kfree(uci_chan->cur_buf->data);
 
 		uci_chan->cur_buf = NULL;
+		spin_unlock_bh(&uci_chan->lock);
 
 		if (!uci_dev->enabled) {
 			mutex_unlock(&uci_dev->mutex);
@@ -322,6 +326,8 @@ static ssize_t mhi_uci_read(struct file *file,
 		}
 
 		list_del(&uci_buf->node);
+
+		uci_buf->done = 1;
 		uci_chan->cur_buf = uci_buf;
 		uci_chan->rx_size = uci_buf->len;
 		dev_dbg(dev, "Got pkt of size:%zu\n", uci_chan->rx_size);
@@ -332,6 +338,9 @@ static ssize_t mhi_uci_read(struct file *file,
 	/* Copy the buffer to user space */
 	to_copy = min_t(size_t, count, uci_chan->rx_size);
 	ptr = uci_buf->data + (uci_buf->len - uci_chan->rx_size);
+	uci_chan->rx_size -= to_copy;
+	if (!uci_chan->rx_size)
+		uci_chan->cur_buf = NULL;
 	spin_unlock_bh(&uci_chan->lock);
 
 	ret = copy_to_user(buf, ptr, to_copy);
@@ -341,11 +350,9 @@ static ssize_t mhi_uci_read(struct file *file,
 	spin_lock_bh(&uci_chan->lock);
 
 	dev_dbg(dev, "Copied %zu of %zu bytes\n", to_copy, uci_chan->rx_size);
-	uci_chan->rx_size -= to_copy;
 
 	/* we finished with this buffer, queue it back to hardware */
 	if (!uci_chan->rx_size) {
-		uci_chan->cur_buf = NULL;
 
 		if (uci_dev->enabled)
 			ret = mhi_queue_buf(mhi_dev, DMA_FROM_DEVICE,
@@ -431,10 +438,12 @@ static int mhi_uci_open(struct inode *inode, struct file *filp)
 error_rx_queue:
 	dl_chan = &uci_dev->dl_chan;
 	mhi_unprepare_from_transfer(uci_dev->mhi_dev);
+	spin_lock_bh(&dl_chan->lock);
 	list_for_each_entry_safe(buf_itr, tmp, &dl_chan->pending, node) {
 		list_del(&buf_itr->node);
 		kfree(buf_itr->data);
 	}
+	spin_unlock_bh(&dl_chan->lock);
 
 error_open_chan:
 	mutex_unlock(&uci_dev->mutex);
@@ -481,16 +490,24 @@ static void mhi_dl_xfer_cb(struct mhi_device *mhi_dev,
 	dev_dbg(dev, "status:%d receive_len:%zu\n",
 		mhi_result->transaction_status, mhi_result->bytes_xferd);
 
-	if (mhi_result->transaction_status == -ENOTCONN) {
-		kfree(mhi_result->buf_addr);
+	spin_lock_irqsave(&uci_chan->lock, flags);
+	buf = mhi_result->buf_addr + uci_dev->actual_mtu;
+	if (!buf->done) {
+		WARN_ONCE(1, "Receiving stale buff from client, dropping it\n");
+		spin_unlock_irqrestore(&uci_chan->lock, flags);
 		return;
 	}
 
-	spin_lock_irqsave(&uci_chan->lock, flags);
-	buf = mhi_result->buf_addr + uci_dev->actual_mtu;
+	if (mhi_result->transaction_status == -ENOTCONN) {
+		kfree(mhi_result->buf_addr);
+		spin_unlock_irqrestore(&uci_chan->lock, flags);
+		return;
+	}
+
 	buf->data = mhi_result->buf_addr;
 	buf->len = mhi_result->bytes_xferd;
 	list_add_tail(&buf->node, &uci_chan->pending);
+	buf->done = 0;
 	spin_unlock_irqrestore(&uci_chan->lock, flags);
 
 	wake_up(&uci_chan->wq);
