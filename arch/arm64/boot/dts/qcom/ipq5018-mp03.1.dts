@@ -456,10 +456,6 @@
 			status = "ok";
 		};
 
-		qcom,usbbam@8B04000 {
-			status = "ok";
-		};
-
 		qcom,diag@0 {
 			status = "ok";
 		};
@@ -653,10 +649,6 @@
 		qca,auto-restart;
 		qca,int_radio;
 	};
-};
-
-&dbm_1p5 {
-	status = "ok";
 };
 
 &blsp1_uart1 {
