@@ -18,7 +18,7 @@
 #include "../../pci.h"
 #include "pcie-designware.h"
 
-static struct pci_ops dw_pcie_ops;
+struct pci_ops dw_pcie_ops;
 
 static int dw_pcie_rd_own_conf(struct pcie_port *pp, int where, int size,
 			       u32 *val)
@@ -637,7 +637,7 @@ static int dw_pcie_wr_conf(struct pci_bus *bus, u32 devfn,
 	return dw_pcie_wr_other_conf(pp, bus, devfn, where, size, val);
 }
 
-static struct pci_ops dw_pcie_ops = {
+struct pci_ops dw_pcie_ops = {
 	.read = dw_pcie_rd_conf,
 	.write = dw_pcie_wr_conf,
 };
