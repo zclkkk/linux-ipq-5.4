@@ -501,10 +501,9 @@
 	pinctrl-names = "default";
 	e911-gpio =  <&tlmm 33 GPIO_ACTIVE_HIGH>;
 
-	interrupts-extended = <&intc GIC_SPI 52 IRQ_TYPE_LEVEL_HIGH>,
-			      <&tlmm 59 IRQ_TYPE_LEVEL_HIGH>,
+	interrupts-extended = <&tlmm 59 IRQ_TYPE_LEVEL_HIGH>,
 			      <&tlmm 33 IRQ_TYPE_LEVEL_HIGH>;
-	interrupt-names = "msi", "wake_gpio", "mdm2ap_e911";
+	interrupt-names = "wake_gpio", "mdm2ap_e911";
 
 	link_retries_count = <100>;
 
