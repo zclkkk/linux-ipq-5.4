@@ -143,6 +143,7 @@ properties:
               - qcom,ipq5018-ap-mp03.1-c2
               - qcom,ipq5018-ap-mp03.1-c3
               - qcom,ipq5018-ap-mp03.3
+              - qcom,ipq5018-ap-mp03.3-c2
           - const: qcom,ipq5018
 
       - items:
