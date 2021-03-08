@@ -529,6 +529,7 @@ static int mhi_init_pci_dev(struct mhi_controller *mhi_cntrl)
 	 * Alloc one MSI vector for BHI + one vector per event ring, ideally...
 	 */
 	mhi_cntrl->nr_irqs = mhi_sdx_mhi_config.num_events + 1;
+	mhi_cntrl->nr_irqs = 1U << get_count_order(mhi_cntrl->nr_irqs);
 
 	nr_vectors = pci_alloc_irq_vectors(pci_dev, 1, mhi_cntrl->nr_irqs,
 				    PCI_IRQ_MSI);

@@ -29,6 +29,7 @@ dtb-$(CONFIG_ARCH_QCOM)	+= ipq9048-emulation.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= ipq9048-emulation-ssoc.dtb
 dtb-$(CONFIG_ARCH_QCOM) += ipq5018-mp03.1.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= ipq5018-mp03.1-c2.dtb
+dtb-$(CONFIG_ARCH_QCOM)	+= ipq5018-mp03.1-c3.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= ipq5018-mp03.3.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= msm8916-mtp.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= msm8916-longcheer-l8150.dtb

@@ -263,7 +263,7 @@ struct qcom_pcie {
 
 #define MAX_RC_NUM	3
 static struct qcom_pcie *pcie_dev_arr[MAX_RC_NUM];
-struct pci_ops* pcie_ops_dw;
+extern struct pci_ops dw_pcie_ops;
 struct gpio_desc *mdm2ap_e911;
 
 static void qcom_ep_reset_assert(struct qcom_pcie *pcie)
@@ -314,7 +314,7 @@ int pci_create_scan_root_bus(struct pcie_port *pp)
 
 	pp->root_bus_nr = pp->busn->start;
 	pp->root_bus = pci_scan_root_bus(dev,
-			pp->root_bus_nr, pcie_ops_dw, pp, &res);
+			pp->root_bus_nr, &dw_pcie_ops, pp, &res);
 
 	if (!pp->root_bus) {
 		dev_err(pci->dev, "root_bus is not created\n");
@@ -1973,7 +1973,7 @@ static const struct qcom_pcie_of_data qcom_pcie_2_9_0_ipq9048 = {
 	.version = 0x500A,
 };
 
-static const struct dw_pcie_ops dw_pcie_ops = {
+static const struct dw_pcie_ops qti_dw_pcie_ops = {
 	.link_up = qcom_pcie_link_up,
 };
 
@@ -2196,7 +2196,7 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 	}
 
 	pci->dev = dev;
-	pci->ops = &dw_pcie_ops;
+	pci->ops = &qti_dw_pcie_ops;
 	pp = &pci->pp;
 
 	pcie->pci = pci;
@@ -2368,17 +2368,21 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 
 	ret = dw_pcie_host_init(pp);
 
+	pcie->wake_irq = platform_get_irq_byname_optional(pdev, "wake_gpio");
+
 	if (ret) {
-		dev_err(dev, "cannot initialize host\n");
-		pm_runtime_disable(&pdev->dev);
-		goto err_pm_runtime_put;
+		if (pcie->wake_irq < 0) {
+			dev_err(dev, "cannot initialize host\n");
+			pm_runtime_disable(&pdev->dev);
+			goto err_pm_runtime_put;
+		}
+		pr_info("PCIe: RC%d is not enabled during bootup: "
+			"It will be enumerated upon client request\n", rc_idx);
+
 	} else {
 		pcie->enumerated = true;
 		pr_info("PCIe: RC enabled during bootup\n");
 	}
-	pcie_ops_dw = pp->root_bus->ops;
-
-	pcie->wake_irq = platform_get_irq_byname_optional(pdev, "wake_gpio");
 
 	if (pcie->wake_irq >= 0) {
 		INIT_WORK(&pcie->handle_wake_work, handle_wake_func);
