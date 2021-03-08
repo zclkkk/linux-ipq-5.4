@@ -557,7 +557,7 @@ static int mhi_uci_probe(struct mhi_device *mhi_dev,
 	}
 
 	uci_dev->mtu = min_t(size_t, id->driver_data, MHI_MAX_MTU);
-	uci_dev->actual_mtu = uci_dev->mtu -  sizeof(struct uci_buf);
+	uci_dev->actual_mtu = uci_dev->mtu - sizeof(struct uci_buf);
 	dev_set_drvdata(&mhi_dev->dev, uci_dev);
 	uci_dev->enabled = true;
 
@@ -613,9 +613,9 @@ static void mhi_uci_remove(struct mhi_device *mhi_dev)
 
 /* .driver_data stores max mtu */
 static const struct mhi_device_id mhi_uci_match_table[] = {
-	{ .chan = "LOOPBACK", .driver_data = 0x1000 },
-	{ .chan = "QMI0", .driver_data = 0x1000 },
-	{ .chan = "QMI1", .driver_data = 0x1000 },
+	{ .chan = "LOOPBACK", .driver_data = 0x1100 },
+	{ .chan = "QMI0", .driver_data = 0x1100 },
+	{ .chan = "QMI1", .driver_data = 0x1100 },
 	{},
 };
 MODULE_DEVICE_TABLE(mhi, mhi_uci_match_table);
