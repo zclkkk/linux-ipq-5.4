@@ -66,6 +66,18 @@ struct mhitest_platform *get_mhitest_mplat(int id)
 	return mplat_g[id];
 }
 
+struct mhitest_platform *get_mhitest_mplat_by_pcidev(struct pci_dev *pci_dev)
+{
+	int i;
+
+	for (i = 0; i < MHI_MAX_DEVICE; i++) {
+		if (mplat_g[i]->pci_dev == pci_dev)
+			return mplat_g[i];
+	}
+
+	return NULL;
+}
+
 char *mhitest_recov_reason_to_str(enum mhitest_recovery_reason reason)
 {
 	switch (reason) {

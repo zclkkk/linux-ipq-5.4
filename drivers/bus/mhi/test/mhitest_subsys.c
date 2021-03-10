@@ -26,7 +26,7 @@ int mhitest_ss_powerup(struct rproc *subsys_desc)
 
 	MHITEST_LOG("Enter\n");
 
-	temp = dev_get_drvdata(subsys_desc->dev.parent);
+	temp = subsys_desc->priv;
 	if (!temp) {
 		MHITEST_ERR("Error not dev data\n");
 		return -EINVAL;
@@ -64,7 +64,7 @@ int mhitest_ss_shutdown(struct rproc *subsys_desc)
 
 	MHITEST_VERB("Going for shutdown\n");
 
-	mplat = dev_get_drvdata(subsys_desc->dev.parent);
+	mplat = subsys_desc->priv;
 
 	mhitest_pci_set_mhi_state(mplat, MHI_POWER_OFF);
 	mhitest_pci_set_mhi_state(mplat, MHI_DEINIT);
@@ -154,6 +154,7 @@ int mhitest_subsystem_register(struct mhitest_platform *mplat)
 		return -EINVAL;
 	}
 
+	mplat->subsys_handle->priv = mplat;
 	mplat->subsys_handle->auto_boot = false;
 
 	MHITEST_VERB("Doing rproc add..\n");
