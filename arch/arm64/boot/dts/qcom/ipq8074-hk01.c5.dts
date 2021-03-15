@@ -34,6 +34,7 @@
 					drive-strength = <8>;
 					bias-pull-down;
 				};
+
 				sdx_pon_gpio {
 					pins = "gpio30";
 					function = "gpio";
@@ -41,20 +42,20 @@
 					bias-pull-up;
 					output-high;
 				};
-			};
 
-			ap2mdm_status: ap2mdm_status {
-				pins = "gpio26";
-				function = "gpio";
-				drive-strength = <8>;
-				bias-pull-up;
-				output-high;
-			};
+				ap2mdm_status {
+					pins = "gpio26";
+					function = "gpio";
+					drive-strength = <8>;
+					bias-pull-up;
+					output-high;
+				};
 
-			mdm2ap_e911_status: mdm2ap_e911_status {
-				pins = "gpio33";
-				drive-strength = <8>;
-				bias-pull-down;
+				mdm2ap_e911_status {
+					pins = "gpio33";
+					drive-strength = <8>;
+					bias-pull-down;
+				};
 			};
 
 			pcie_wake_pins: pcie0_wake_gpio {
@@ -497,14 +498,13 @@
 };
 
 &pcie0 {
-	pinctrl-0 = <&pcie_sdx_pins>, <&pcie_wake_pins>, <&mdm2ap_e911_status>;
+	pinctrl-0 = <&pcie_sdx_pins>, <&pcie_wake_pins>;
 	pinctrl-names = "default";
 	e911-gpio =  <&tlmm 33 GPIO_ACTIVE_HIGH>;
 
-	interrupts-extended = <&intc GIC_SPI 52 IRQ_TYPE_LEVEL_HIGH>,
-			      <&tlmm 59 IRQ_TYPE_LEVEL_HIGH>,
+	interrupts-extended = <&tlmm 59 IRQ_TYPE_LEVEL_HIGH>,
 			      <&tlmm 33 IRQ_TYPE_LEVEL_HIGH>;
-	interrupt-names = "msi", "wake_gpio", "mdm2ap_e911";
+	interrupt-names = "wake_gpio", "mdm2ap_e911";
 
 	link_retries_count = <100>;
 

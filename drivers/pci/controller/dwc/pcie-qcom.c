@@ -1840,9 +1840,6 @@ static int qcom_pcie_host_init(struct pcie_port *pp)
 
 	dw_pcie_setup_rc(pp);
 
-	if (IS_ENABLED(CONFIG_PCI_MSI))
-		dw_pcie_msi_init(pp);
-
 	qcom_ep_reset_deassert(pcie);
 
 	ret = qcom_pcie_establish_link(pcie);
@@ -2347,14 +2344,6 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 			pr_warn("%s: Failed to register notifier (%d)\n",
 				__func__, ret);
 			return ret;
-		}
-	}
-
-	if (IS_ENABLED(CONFIG_PCI_MSI)) {
-		pp->msi_irq = platform_get_irq_byname(pdev, "msi");
-		if (pp->msi_irq < 0) {
-			ret = pp->msi_irq;
-			goto err_pm_runtime_put;
 		}
 	}
 
