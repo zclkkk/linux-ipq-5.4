@@ -627,9 +627,6 @@
 				  0x82000000 0 0xa0300000 0xa0300000
 				  0 0x10000000>; /* non-prefetchable memory */
 
-			interrupts = <GIC_SPI 52 IRQ_TYPE_LEVEL_HIGH>;
-			interrupt-names = "msi";
-
 			#interrupt-cells = <1>;
 			interrupt-map-mask = <0 0 0 0x7>;
 			interrupt-map = <0 0 0 1 &intc 0 75
