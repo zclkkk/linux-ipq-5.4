@@ -4040,8 +4040,8 @@ static void cnss_mhi_notify_status(struct mhi_controller *mhi_ctrl,
 	plat_priv = pci_priv->plat_priv;
 
 	if (reason != MHI_CB_IDLE)
-		cnss_pr_dbg("MHI status cb is called with reason %s(%d)\n",
-			    cnss_mhi_notify_status_to_str(reason), reason);
+		cnss_pr_info("MHI status cb is called with reason %s(%d)\n",
+			     cnss_mhi_notify_status_to_str(reason), reason);
 
 	if (reason == MHI_CB_FATAL_ERROR || reason == MHI_CB_SYS_ERROR ||
 	    (reason == MHI_CB_EE_RDDM && !plat_priv->target_asserted)) {
