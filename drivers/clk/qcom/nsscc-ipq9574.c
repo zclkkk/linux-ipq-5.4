@@ -12,8 +12,8 @@
 #include <linux/of.h>
 #include <linux/regmap.h>
 
-#include <dt-bindings/clock/qcom,nsscc-ipq9048.h>
-#include <dt-bindings/reset/qcom,nsscc-ipq9048.h>
+#include <dt-bindings/clock/qcom,nsscc-ipq9574.h>
+#include <dt-bindings/reset/qcom,nsscc-ipq9574.h>
 
 #include "common.h"
 #include "clk-regmap.h"
@@ -83,7 +83,7 @@ static const struct clk_ops clk_dummy_ops = {
 	},							\
 })
 
-static struct clk_regmap *nss_cc_ipq9048_dummy_clocks[] = {
+static struct clk_regmap *nss_cc_ipq9574_dummy_clocks[] = {
 	[NSS_CC_CE_APB_CLK] = DEFINE_DUMMY_CLK(nss_cc_ce_apb_clk),
 	[NSS_CC_CE_AXI_CLK] = DEFINE_DUMMY_CLK(nss_cc_ce_axi_clk),
 	[NSS_CC_CE_CLK_SRC] = DEFINE_DUMMY_CLK(nss_cc_ce_clk_src),
@@ -237,7 +237,7 @@ static struct clk_regmap *nss_cc_ipq9048_dummy_clocks[] = {
 	[UBI32_PLL] = DEFINE_DUMMY_CLK(ubi32_pll),
 };
 
-static const struct qcom_reset_map nss_cc_ipq9048_resets[] = {
+static const struct qcom_reset_map nss_cc_ipq9574_resets[] = {
 	[NSS_CC_CE_BCR] = { 0x28400, 0 },
 	[NSS_CC_CLC_BCR] = { 0x28600, 0 },
 	[NSS_CC_EIP197_BCR] = { 0x16004, 0 },
@@ -347,7 +347,7 @@ static const struct qcom_reset_map nss_cc_ipq9048_resets[] = {
 	[PORT6_TX_ARES] = { 0x28A24, 0 },
 };
 
-static const struct regmap_config nss_cc_ipq9048_regmap_config = {
+static const struct regmap_config nss_cc_ipq9574_regmap_config = {
 	.reg_bits = 32,
 	.reg_stride = 4,
 	.val_bits = 32,
@@ -355,31 +355,31 @@ static const struct regmap_config nss_cc_ipq9048_regmap_config = {
 	.fast_io = true,
 };
 
-static const struct qcom_cc_desc nss_cc_ipq9048_dummy_desc = {
-	.config = &nss_cc_ipq9048_regmap_config,
-	.clks = nss_cc_ipq9048_dummy_clocks,
-	.num_clks = ARRAY_SIZE(nss_cc_ipq9048_dummy_clocks),
-	.resets = nss_cc_ipq9048_resets,
-	.num_resets = ARRAY_SIZE(nss_cc_ipq9048_resets),
+static const struct qcom_cc_desc nss_cc_ipq9574_dummy_desc = {
+	.config = &nss_cc_ipq9574_regmap_config,
+	.clks = nss_cc_ipq9574_dummy_clocks,
+	.num_clks = ARRAY_SIZE(nss_cc_ipq9574_dummy_clocks),
+	.resets = nss_cc_ipq9574_resets,
+	.num_resets = ARRAY_SIZE(nss_cc_ipq9574_resets),
 };
 
-static const struct of_device_id nss_cc_ipq9048_match_table[] = {
-	{ .compatible = "qcom,nsscc-ipq9048" },
+static const struct of_device_id nss_cc_ipq9574_match_table[] = {
+	{ .compatible = "qcom,nsscc-ipq9574" },
 	{ }
 };
-MODULE_DEVICE_TABLE(of, nss_cc_ipq9048_match_table);
+MODULE_DEVICE_TABLE(of, nss_cc_ipq9574_match_table);
 
-static int nss_cc_ipq9048_probe(struct platform_device *pdev)
+static int nss_cc_ipq9574_probe(struct platform_device *pdev)
 {
 	int ret;
 	struct regmap *regmap;
-	struct qcom_cc_desc nsscc_ipq9048_desc = nss_cc_ipq9048_dummy_desc;
+	struct qcom_cc_desc nsscc_ipq9574_desc = nss_cc_ipq9574_dummy_desc;
 
-	regmap = qcom_cc_map(pdev, &nsscc_ipq9048_desc);
+	regmap = qcom_cc_map(pdev, &nsscc_ipq9574_desc);
 	if (IS_ERR(regmap))
 		return PTR_ERR(regmap);
 
-	ret = qcom_cc_really_probe(pdev, &nsscc_ipq9048_desc, regmap);
+	ret = qcom_cc_really_probe(pdev, &nsscc_ipq9574_desc, regmap);
 	if (ret) {
 		dev_err(&pdev->dev, "Failed to register NSS CC clocks\n");
 		return ret;
@@ -390,32 +390,32 @@ static int nss_cc_ipq9048_probe(struct platform_device *pdev)
 	return ret;
 }
 
-static int nss_cc_ipq9048_remove(struct platform_device *pdev)
+static int nss_cc_ipq9574_remove(struct platform_device *pdev)
 {
 	return 0;
 }
 
-static struct platform_driver nss_cc_ipq9048_driver = {
-	.probe = nss_cc_ipq9048_probe,
-	.remove = nss_cc_ipq9048_remove,
+static struct platform_driver nss_cc_ipq9574_driver = {
+	.probe = nss_cc_ipq9574_probe,
+	.remove = nss_cc_ipq9574_remove,
 	.driver = {
-		.name = "qcom,nsscc-ipq9048",
+		.name = "qcom,nsscc-ipq9574",
 		.owner  = THIS_MODULE,
-		.of_match_table = nss_cc_ipq9048_match_table,
+		.of_match_table = nss_cc_ipq9574_match_table,
 	},
 };
 
-static int __init nss_cc_ipq9048_init(void)
+static int __init nss_cc_ipq9574_init(void)
 {
-	return platform_driver_register(&nss_cc_ipq9048_driver);
+	return platform_driver_register(&nss_cc_ipq9574_driver);
 }
-subsys_initcall(nss_cc_ipq9048_init);
+subsys_initcall(nss_cc_ipq9574_init);
 
-static void __exit nss_cc_ipq9048_exit(void)
+static void __exit nss_cc_ipq9574_exit(void)
 {
-	platform_driver_unregister(&nss_cc_ipq9048_driver);
+	platform_driver_unregister(&nss_cc_ipq9574_driver);
 }
-module_exit(nss_cc_ipq9048_exit);
+module_exit(nss_cc_ipq9574_exit);
 
-MODULE_DESCRIPTION("QTI NSS_CC IPQ9048 Driver");
+MODULE_DESCRIPTION("QTI NSS_CC IPQ9574 Driver");
 MODULE_LICENSE("GPL v2");

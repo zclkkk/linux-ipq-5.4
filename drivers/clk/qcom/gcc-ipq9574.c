@@ -13,8 +13,8 @@
 #include <linux/regmap.h>
 
 #include <linux/reset-controller.h>
-#include <dt-bindings/clock/qcom,gcc-ipq9048.h>
-#include <dt-bindings/reset/qcom,gcc-ipq9048.h>
+#include <dt-bindings/clock/qcom,gcc-ipq9574.h>
+#include <dt-bindings/reset/qcom,gcc-ipq9574.h>
 
 #include "common.h"
 #include "clk-regmap.h"
@@ -5540,7 +5540,7 @@ static struct clk_branch gcc_mem_noc_qosgen_extref_clk = {
 	},
 };
 
-static struct clk_hw *gcc_ipq9048_hws[] = {
+static struct clk_hw *gcc_ipq9574_hws[] = {
 	&gpll0_out_main_div2.hw,
 	&gcc_xo_div4_clk_src.hw,
 	&qdss_dap_sync_clk_src.hw,
@@ -5617,7 +5617,7 @@ static const struct clk_ops clk_dummy_ops = {
 	},							\
 })
 
-static struct clk_regmap *gcc_ipq9048_clks[] = {
+static struct clk_regmap *gcc_ipq9574_clks[] = {
 	[GPLL0_MAIN] = &gpll0_main.clkr,
 	[GPLL0] = &gpll0.clkr,
 	[GPLL6_MAIN] = &gpll6_main.clkr,
@@ -5929,7 +5929,7 @@ static struct clk_regmap *gcc_ipq9048_clks[] = {
 	[GCC_CMN_12GPLL_SYS_CLK] = &gcc_cmn_12gpll_sys_clk.clkr,
 };
 
-static struct clk_regmap *gcc_ipq9048_dummy_clks[] = {
+static struct clk_regmap *gcc_ipq9574_dummy_clks[] = {
 	[GPLL0_MAIN] = DEFINE_DUMMY_CLK(gpll0_main),
 	[GPLL0] = DEFINE_DUMMY_CLK(gpll0),
 	[GPLL6_MAIN] = DEFINE_DUMMY_CLK(gpll6_main),
@@ -6241,7 +6241,7 @@ static struct clk_regmap *gcc_ipq9048_dummy_clks[] = {
 	[GCC_CMN_12GPLL_SYS_CLK] = DEFINE_DUMMY_CLK(gcc_cmn_12gpll_sys_clk),
 };
 
-static const struct qcom_reset_map gcc_ipq9048_resets[] = {
+static const struct qcom_reset_map gcc_ipq9574_resets[] = {
 	[GCC_ADSS_BCR] = { 0x1c000, 0 },
 	[GCC_ANOC0_TBU_BCR] = { 0x1203C, 0 },
 	[GCC_ANOC1_TBU_BCR] = { 0x1204C, 0 },
@@ -6399,13 +6399,13 @@ static const struct qcom_reset_map gcc_ipq9048_resets[] = {
 	[GCC_WCSS_Q6_TBU_BCR] = { 0x12054, 0 },
 };
 
-static const struct of_device_id gcc_ipq9048_match_table[] = {
-	{ .compatible = "qcom,gcc-ipq9048" },
+static const struct of_device_id gcc_ipq9574_match_table[] = {
+	{ .compatible = "qcom,gcc-ipq9574" },
 	{ }
 };
-MODULE_DEVICE_TABLE(of, gcc_ipq9048_match_table);
+MODULE_DEVICE_TABLE(of, gcc_ipq9574_match_table);
 
-static const struct regmap_config gcc_ipq9048_regmap_config = {
+static const struct regmap_config gcc_ipq9574_regmap_config = {
 	.reg_bits       = 32,
 	.reg_stride     = 4,
 	.val_bits       = 32,
@@ -6413,42 +6413,42 @@ static const struct regmap_config gcc_ipq9048_regmap_config = {
 	.fast_io	= true,
 };
 
-static const struct qcom_cc_desc gcc_ipq9048_desc = {
-	.config = &gcc_ipq9048_regmap_config,
-	.clks = gcc_ipq9048_clks,
-	.num_clks = ARRAY_SIZE(gcc_ipq9048_clks),
-	.resets = gcc_ipq9048_resets,
-	.num_resets = ARRAY_SIZE(gcc_ipq9048_resets),
-	.clk_hws = gcc_ipq9048_hws,
-	.num_clk_hws = ARRAY_SIZE(gcc_ipq9048_hws),
+static const struct qcom_cc_desc gcc_ipq9574_desc = {
+	.config = &gcc_ipq9574_regmap_config,
+	.clks = gcc_ipq9574_clks,
+	.num_clks = ARRAY_SIZE(gcc_ipq9574_clks),
+	.resets = gcc_ipq9574_resets,
+	.num_resets = ARRAY_SIZE(gcc_ipq9574_resets),
+	.clk_hws = gcc_ipq9574_hws,
+	.num_clk_hws = ARRAY_SIZE(gcc_ipq9574_hws),
 };
 
-static const struct qcom_cc_desc gcc_ipq9048_dummy_desc = {
-	.config = &gcc_ipq9048_regmap_config,
-	.clks = gcc_ipq9048_dummy_clks,
-	.num_clks = ARRAY_SIZE(gcc_ipq9048_dummy_clks),
-	.resets = gcc_ipq9048_resets,
-	.num_resets = ARRAY_SIZE(gcc_ipq9048_resets),
+static const struct qcom_cc_desc gcc_ipq9574_dummy_desc = {
+	.config = &gcc_ipq9574_regmap_config,
+	.clks = gcc_ipq9574_dummy_clks,
+	.num_clks = ARRAY_SIZE(gcc_ipq9574_dummy_clks),
+	.resets = gcc_ipq9574_resets,
+	.num_resets = ARRAY_SIZE(gcc_ipq9574_resets),
 };
 
-static int gcc_ipq9048_probe(struct platform_device *pdev)
+static int gcc_ipq9574_probe(struct platform_device *pdev)
 {
 	int i, ret;
 	struct regmap *regmap;
 	struct clk *clk;
 	struct device *dev = &pdev->dev;
-	struct qcom_cc_desc ipq9048_desc = gcc_ipq9048_desc;
+	struct qcom_cc_desc ipq9574_desc = gcc_ipq9574_desc;
 	struct device_node *np = (&pdev->dev)->of_node;
 
 	if (of_property_read_bool(np, "gcc-use-dummy"))
-		ipq9048_desc = gcc_ipq9048_dummy_desc;
+		ipq9574_desc = gcc_ipq9574_dummy_desc;
 
-	regmap = qcom_cc_map(pdev, &ipq9048_desc);
+	regmap = qcom_cc_map(pdev, &ipq9574_desc);
 	if (IS_ERR(regmap))
 		return PTR_ERR(regmap);
 
-	for (i = 0; i < ARRAY_SIZE(gcc_ipq9048_hws); i++) {
-		clk = devm_clk_register(&pdev->dev, gcc_ipq9048_hws[i]);
+	for (i = 0; i < ARRAY_SIZE(gcc_ipq9574_hws); i++) {
+		clk = devm_clk_register(&pdev->dev, gcc_ipq9574_hws[i]);
 		if (IS_ERR(clk))
 			return PTR_ERR(clk);
 	}
@@ -6462,39 +6462,39 @@ static int gcc_ipq9048_probe(struct platform_device *pdev)
 	clk_register_fixed_rate(dev, "pcie30_phy3_pipe_clk", NULL, 0,
 							250000000);
 
-	ret = qcom_cc_really_probe(pdev, &ipq9048_desc, regmap);
+	ret = qcom_cc_really_probe(pdev, &ipq9574_desc, regmap);
 
-	dev_dbg(&pdev->dev, "Registered ipq9048 dummy clock provider");
+	dev_dbg(&pdev->dev, "Registered ipq9574 dummy clock provider");
 
 	return ret;
 }
 
-static int gcc_ipq9048_remove(struct platform_device *pdev)
+static int gcc_ipq9574_remove(struct platform_device *pdev)
 {
 	return 0;
 }
 
-static struct platform_driver gcc_ipq9048_driver = {
-	.probe = gcc_ipq9048_probe,
-	.remove = gcc_ipq9048_remove,
+static struct platform_driver gcc_ipq9574_driver = {
+	.probe = gcc_ipq9574_probe,
+	.remove = gcc_ipq9574_remove,
 	.driver = {
-		.name   = "qcom,gcc-ipq9048",
+		.name   = "qcom,gcc-ipq9574",
 		.owner  = THIS_MODULE,
-		.of_match_table = gcc_ipq9048_match_table,
+		.of_match_table = gcc_ipq9574_match_table,
 	},
 };
 
-static int __init gcc_ipq9048_init(void)
+static int __init gcc_ipq9574_init(void)
 {
-	return platform_driver_register(&gcc_ipq9048_driver);
+	return platform_driver_register(&gcc_ipq9574_driver);
 }
-core_initcall(gcc_ipq9048_init);
+core_initcall(gcc_ipq9574_init);
 
-static void __exit gcc_ipq9048_exit(void)
+static void __exit gcc_ipq9574_exit(void)
 {
-	platform_driver_unregister(&gcc_ipq9048_driver);
+	platform_driver_unregister(&gcc_ipq9574_driver);
 }
-module_exit(gcc_ipq9048_exit);
+module_exit(gcc_ipq9574_exit);
 
-MODULE_DESCRIPTION("Qualcomm Technologies, Inc. GCC IPQ9048 Driver");
+MODULE_DESCRIPTION("Qualcomm Technologies, Inc. GCC IPQ9574 Driver");
 MODULE_LICENSE("GPL v2");

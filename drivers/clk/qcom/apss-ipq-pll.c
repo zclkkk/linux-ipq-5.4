@@ -50,7 +50,7 @@ static const struct alpha_pll_config ipq6018_pll_config = {
 	.test_ctl_hi_val = 0x4000,
 };
 
-static const struct alpha_pll_config ipq9048_pll_config = {
+static const struct alpha_pll_config ipq9574_pll_config = {
 	.l = 0x37,
 	.config_ctl_val = 0x240D4828,
 	.config_ctl_hi_val = 0x6,
@@ -72,7 +72,7 @@ static const struct regmap_config ipq_pll_regmap_config = {
 
 static const struct of_device_id apss_ipq_pll_match_table[] = {
 	{ .compatible = "qcom,ipq6018-a53pll", .data = &ipq6018_pll_config, },
-	{ .compatible = "qcom,ipq9048-a53pll", .data = &ipq9048_pll_config, },
+	{ .compatible = "qcom,ipq9574-a53pll", .data = &ipq9574_pll_config, },
 	{ }
 };
 

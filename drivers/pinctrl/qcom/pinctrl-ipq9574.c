@@ -57,7 +57,7 @@
 		.intr_detection_width = 2,	\
 	}
 
-static const struct pinctrl_pin_desc ipq9048_pins[] = {
+static const struct pinctrl_pin_desc ipq9574_pins[] = {
 	PINCTRL_PIN(0, "GPIO_0"),
 	PINCTRL_PIN(1, "GPIO_1"),
 	PINCTRL_PIN(2, "GPIO_2"),
@@ -193,7 +193,7 @@ DECLARE_MSM_GPIO_PINS(62);
 DECLARE_MSM_GPIO_PINS(63);
 DECLARE_MSM_GPIO_PINS(64);
 
-enum ipq9048_functions {
+enum ipq9574_functions {
 	msm_mux_atest_char,
 	msm_mux_atest_char0,
 	msm_mux_atest_char1,
@@ -671,7 +671,7 @@ static const char * const tsens_max_groups[] = {
 	"gpio64",
 };
 
-static const struct msm_function ipq9048_functions[] = {
+static const struct msm_function ipq9574_functions[] = {
 	FUNCTION(atest_char),
 	FUNCTION(atest_char0),
 	FUNCTION(atest_char1),
@@ -789,7 +789,7 @@ static const struct msm_function ipq9048_functions[] = {
 	FUNCTION(wsa_swrm),
 };
 
-static const struct msm_pingroup ipq9048_groups[] = {
+static const struct msm_pingroup ipq9574_groups[] = {
 	PINGROUP(0, sdc7, qspi3, qdss_traceclk_b, _, _, _, _, _, _),
 	PINGROUP(1, sdc6, qspi2, qdss_tracectl_b, _, _, _, _, _, _),
 	PINGROUP(2, sdc5, qspi1, qdss_tracedata_b, _, _, _, _, _, _),
@@ -892,48 +892,48 @@ static const struct msm_pingroup ipq9048_groups[] = {
 	PINGROUP(64, blsp1_spi, audio_pdm1, tsens_max, _, _, _, _, _, _),
 };
 
-static const struct msm_pinctrl_soc_data ipq9048_pinctrl = {
-	.pins = ipq9048_pins,
-	.npins = ARRAY_SIZE(ipq9048_pins),
-	.functions = ipq9048_functions,
-	.nfunctions = ARRAY_SIZE(ipq9048_functions),
-	.groups = ipq9048_groups,
-	.ngroups = ARRAY_SIZE(ipq9048_groups),
+static const struct msm_pinctrl_soc_data ipq9574_pinctrl = {
+	.pins = ipq9574_pins,
+	.npins = ARRAY_SIZE(ipq9574_pins),
+	.functions = ipq9574_functions,
+	.nfunctions = ARRAY_SIZE(ipq9574_functions),
+	.groups = ipq9574_groups,
+	.ngroups = ARRAY_SIZE(ipq9574_groups),
 	.ngpios = 65,
 };
 
-static int ipq9048_pinctrl_probe(struct platform_device *pdev)
+static int ipq9574_pinctrl_probe(struct platform_device *pdev)
 {
-	return msm_pinctrl_probe(pdev, &ipq9048_pinctrl);
+	return msm_pinctrl_probe(pdev, &ipq9574_pinctrl);
 }
 
-static const struct of_device_id ipq9048_pinctrl_of_match[] = {
-	{ .compatible = "qcom,ipq9048-pinctrl", },
+static const struct of_device_id ipq9574_pinctrl_of_match[] = {
+	{ .compatible = "qcom,ipq9574-pinctrl", },
 	{ },
 };
 
-static struct platform_driver ipq9048_pinctrl_driver = {
+static struct platform_driver ipq9574_pinctrl_driver = {
 	.driver = {
-		.name = "ipq9048-pinctrl",
+		.name = "ipq9574-pinctrl",
 		.owner = THIS_MODULE,
-		.of_match_table = ipq9048_pinctrl_of_match,
+		.of_match_table = ipq9574_pinctrl_of_match,
 	},
-	.probe = ipq9048_pinctrl_probe,
+	.probe = ipq9574_pinctrl_probe,
 	.remove = msm_pinctrl_remove,
 };
 
-static int __init ipq9048_pinctrl_init(void)
+static int __init ipq9574_pinctrl_init(void)
 {
-	return platform_driver_register(&ipq9048_pinctrl_driver);
+	return platform_driver_register(&ipq9574_pinctrl_driver);
 }
-arch_initcall(ipq9048_pinctrl_init);
+arch_initcall(ipq9574_pinctrl_init);
 
-static void __exit ipq9048_pinctrl_exit(void)
+static void __exit ipq9574_pinctrl_exit(void)
 {
-	platform_driver_unregister(&ipq9048_pinctrl_driver);
+	platform_driver_unregister(&ipq9574_pinctrl_driver);
 }
-module_exit(ipq9048_pinctrl_exit);
+module_exit(ipq9574_pinctrl_exit);
 
-MODULE_DESCRIPTION("QTI ipq9048 pinctrl driver");
+MODULE_DESCRIPTION("QTI ipq9574 pinctrl driver");
 MODULE_LICENSE("GPL v2");
-MODULE_DEVICE_TABLE(of, ipq9048_pinctrl_of_match);
+MODULE_DEVICE_TABLE(of, ipq9574_pinctrl_of_match);

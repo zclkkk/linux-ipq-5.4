@@ -1770,9 +1770,9 @@ static const struct wcss_data wcss_ipq5018_res_init = {
 	.q6_version = Q6V6,
 };
 
-static const struct wcss_data wcss_ipq9048_res_init = {
+static const struct wcss_data wcss_ipq9574_res_init = {
 	.init_clock = NULL,
-	.q6_firmware_name = "IPQ9048/q6_fw.mdt",
+	.q6_firmware_name = "IPQ9574/q6_fw.mdt",
 	.crash_reason_smem = WCSS_CRASH_REASON,
 	.aon_reset_required = true,
 	.wcss_q6_reset_required = true,
@@ -1810,7 +1810,7 @@ static const struct wcss_data wcss_qcs404_res_init = {
 static const struct of_device_id q6v5_wcss_of_match[] = {
 	{ .compatible = "qcom,ipq8074-wcss-pil", .data = &wcss_ipq8074_res_init },
 	{ .compatible = "qcom,ipq6018-wcss-pil", .data = &wcss_ipq6018_res_init },
-	{ .compatible = "qcom,ipq9048-wcss-pil", .data = &wcss_ipq9048_res_init },
+	{ .compatible = "qcom,ipq9574-wcss-pil", .data = &wcss_ipq9574_res_init },
 	{ .compatible = "qcom,qcs404-wcss-pil", .data = &wcss_qcs404_res_init },
 	{ .compatible = "qcom,qcs5018-wcss-pil", .data = &wcss_ipq5018_res_init },
 

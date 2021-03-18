@@ -1379,7 +1379,7 @@ static int qcom_pcie_get_resources_2_9_0(struct qcom_pcie *pcie)
 	return 0;
 }
 
-static int qcom_pcie_get_resources_2_9_0_9048(struct qcom_pcie *pcie)
+static int qcom_pcie_get_resources_2_9_0_9574(struct qcom_pcie *pcie)
 {
 	struct qcom_pcie_resources_2_9_0 *res = &pcie->res.v2_9_0;
 	struct dw_pcie *pci = pcie->pci;
@@ -1948,8 +1948,8 @@ static const struct qcom_pcie_ops ops_2_9_0_ipq5018 = {
 };
 
 /* Qcom IP rev.: 2.9.0	Synopsys IP rev.: 5.00a */
-static const struct qcom_pcie_ops ops_2_9_0_ipq9048 = {
-	.get_resources = qcom_pcie_get_resources_2_9_0_9048,
+static const struct qcom_pcie_ops ops_2_9_0_ipq9574 = {
+	.get_resources = qcom_pcie_get_resources_2_9_0_9574,
 	.init = qcom_pcie_init_2_9_0,
 	.deinit = qcom_pcie_deinit_2_9_0,
 	.ltssm_enable = qcom_pcie_2_3_2_ltssm_enable,
@@ -1965,8 +1965,8 @@ static const struct qcom_pcie_of_data qcom_pcie_2_9_0_ipq5018 = {
 	.version = 0x500A,
 };
 
-static const struct qcom_pcie_of_data qcom_pcie_2_9_0_ipq9048 = {
-	.ops = &ops_2_9_0_ipq9048,
+static const struct qcom_pcie_of_data qcom_pcie_2_9_0_ipq9574 = {
+	.ops = &ops_2_9_0_ipq9574,
 	.version = 0x500A,
 };
 
@@ -2439,7 +2439,7 @@ static const struct of_device_id qcom_pcie_match[] = {
 	{ .compatible = "qcom,pcie-ipq4019", .data = &qcom_pcie_2_4_0 },
 	{ .compatible = "qcom,pcie-qcs404", .data = &qcom_pcie_2_4_0 },
 	{ .compatible = "qcom,pcie-ipq5018", .data = &qcom_pcie_2_9_0_ipq5018 },
-	{ .compatible = "qcom,pcie-ipq9048", .data = &qcom_pcie_2_9_0_ipq9048 },
+	{ .compatible = "qcom,pcie-ipq9574", .data = &qcom_pcie_2_9_0_ipq9574 },
 	{ }
 };
 
