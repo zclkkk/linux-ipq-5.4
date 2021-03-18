@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause)
 /*
- * IPQ9048 SoC device tree source
+ * IPQ9574 SoC device tree source
  *
  * Copyright (c) 2020-2021 The Linux Foundation. All rights reserved.
  */
 
 #include <dt-bindings/interrupt-controller/arm-gic.h>
-#include <dt-bindings/clock/qcom,gcc-ipq9048.h>
-#include <dt-bindings/reset/qcom,gcc-ipq9048.h>
-#include "ipq9048-memory.dtsi"
-#include <dt-bindings/clock/qcom,nsscc-ipq9048.h>
-#include <dt-bindings/reset/qcom,nsscc-ipq9048.h>
+#include <dt-bindings/clock/qcom,gcc-ipq9574.h>
+#include <dt-bindings/reset/qcom,gcc-ipq9574.h>
+#include "ipq9574-memory.dtsi"
+#include <dt-bindings/clock/qcom,nsscc-ipq9574.h>
+#include <dt-bindings/reset/qcom,nsscc-ipq9574.h>
 
 / {
 	#address-cells = <2>;
@@ -115,7 +115,7 @@
 		compatible = "simple-bus";
 
 		apcs_glb: mailbox@b111000 {
-			compatible = "qcom,ipq9048-apcs-apps-global";
+			compatible = "qcom,ipq9574-apcs-apps-global";
 			reg = <0x0b111000 0x6000>;
 
 			#mbox-cells = <1>;
@@ -265,7 +265,7 @@
 		};
 
 		gcc: gcc@1800000 {
-			compatible = "qcom,gcc-ipq9048";
+			compatible = "qcom,gcc-ipq9574";
 			reg = <0x1800000 0x80000>;
 			clocks = <&xo>, <&sleep_clk>;
 			clock-names = "xo", "sleep_clk";
@@ -284,14 +284,14 @@
 		};
 
 		nsscc: nsscc@39b00000 {
-			compatible = "qcom,nsscc-ipq9048";
+			compatible = "qcom,nsscc-ipq9574";
 			reg = <0x39b00000 0x80000>;
 			#clock-cells = <0x1>;
 			#reset-cells = <0x1>;
 		};
 
 		tlmm: pinctrl@1000000 {
-			compatible = "qcom,ipq9048-pinctrl";
+			compatible = "qcom,ipq9574-pinctrl";
 			reg = <0x01000000 0x300000>;
 			interrupts = <GIC_SPI 208 IRQ_TYPE_LEVEL_HIGH>;
 			gpio-controller;
@@ -707,7 +707,7 @@
 		};
 
 		ssphy_0: ssphy@78000 {
-			compatible = "qcom,ipq9048-qmp-usb3-phy";
+			compatible = "qcom,ipq9574-qmp-usb3-phy";
 			reg = <0x78000 0x1C4>;
 			#clock-cells = <1>;
 			#address-cells = <1>;
@@ -736,7 +736,7 @@
 		};
 
 		qusb_phy_0: qusb@79000 {
-		    compatible = "qcom,ipq9048-qusb2-phy";
+		    compatible = "qcom,ipq9574-qusb2-phy";
 		    reg = <0x079000 0x180>;
 		    #phy-cells = <0>;
 
@@ -749,7 +749,7 @@
 		};
 
 		usb3: usb3@8A00000 {
-			compatible = "qcom,ipq9048-dwc3", "qcom,dwc3";
+			compatible = "qcom,ipq9574-dwc3", "qcom,dwc3";
 			reg = <0x8AF8800 0x400>;
 			#address-cells = <1>;
 			#size-cells = <1>;
@@ -792,7 +792,7 @@
 		};
 
 		q6v5_wcss: remoteproc@cd00000 {
-			compatible = "qcom,ipq9048-wcss-pil";
+			compatible = "qcom,ipq9574-wcss-pil";
 			reg = <0x0cd00000 0x4040>,
 				<0x004ab000 0x20>;
 			reg-names = "qdsp6",
@@ -854,7 +854,7 @@
 		};
 
 		pcie1_x1: pci@28000000 {
-			compatible = "qcom,pcie-ipq9048";
+			compatible = "qcom,pcie-ipq9574";
 			reg =  <0x28000000 0xf1d>,
 			       <0x28000F20 0xa8>,
 			       <0x28001000 0x1000>,
@@ -925,7 +925,7 @@
 		};
 
 		pcie2_x2: pci@20000000 {
-			compatible = "qcom,pcie-ipq9048";
+			compatible = "qcom,pcie-ipq9574";
 			reg =  <0x20000000 0xf1d>,
 			       <0x20000F20 0xa8>,
 			       <0x20001000 0x1000>,
@@ -996,7 +996,7 @@
 		};
 
 		pcie3_x2: pci@18000000 {
-			compatible = "qcom,pcie-ipq9048";
+			compatible = "qcom,pcie-ipq9574";
 			reg =  <0x18000000 0xf1d>,
 			       <0x18000F20 0xa8>,
 			       <0x18001000 0x1000>,
@@ -1067,7 +1067,7 @@
 		};
 
 		pcie4_x1: pci@10000000 {
-			compatible = "qcom,pcie-ipq9048";
+			compatible = "qcom,pcie-ipq9574";
 			reg =  <0x10000000 0xf1d>,
 			       <0x10000F20 0xa8>,
 			       <0x10001000 0x1000>,
@@ -1174,4 +1174,4 @@
 	};
 };
 
-#include "ipq9048-coresight.dtsi"
+#include "ipq9574-coresight.dtsi"
