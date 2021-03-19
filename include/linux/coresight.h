@@ -315,7 +315,7 @@ static inline int coresight_claim_device(void __iomem *base)
 
 static inline void coresight_disclaim_device(void __iomem *base) {}
 static inline void coresight_disclaim_device_unlocked(void __iomem *base) {}
-
+static inline void coresight_abort(void) {}
 #endif
 
 extern int coresight_get_cpu(struct device *dev);
