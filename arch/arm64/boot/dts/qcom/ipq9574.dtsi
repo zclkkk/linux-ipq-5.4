@@ -1172,6 +1172,18 @@
 		compatible = "qti,msm-sps-4k";
 		qti,pipe-attr-ee;
 	};
+
+	rpm-glink {
+		compatible = "qcom,glink-rpm";
+		interrupts = <GIC_SPI 168 IRQ_TYPE_EDGE_RISING>;
+		qcom,rpm-msg-ram = <&rpm_msg_ram>;
+		mboxes = <&apcs_glb 0>;
+
+		rpm_requests: glink-channel {
+			compatible = "qcom,rpm-ipq9574";
+			qcom,glink-channels = "rpm_requests";
+		};
+	};
 };
 
 #include "ipq9574-coresight.dtsi"
