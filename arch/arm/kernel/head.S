@@ -48,8 +48,9 @@
 	.globl	swapper_pg_dir
 	.equ	swapper_pg_dir, KERNEL_RAM_VADDR - PG_DIR_SIZE
 
-	.macro	pgtbl, rd, phys
-	add	\rd, \phys, #TEXT_OFFSET
+	.macro	pgtbl, rd, phys, scratch
+	ldr     \scratch, =TEXT_OFFSET
+	add	\rd, \phys, \scratch
 	sub	\rd, \rd, #PG_DIR_SIZE
 	.endm
 
@@ -175,7 +176,7 @@ ENDPROC(stext)
  *  r4 = physical page table address
  */
 __create_page_tables:
-	pgtbl	r4, r8				@ page table address
+	pgtbl	r4, r8, r0				@ page table address
 
 	/*
 	 * Clear the swapper page table
