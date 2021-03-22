@@ -178,11 +178,12 @@
 		dma-ranges;
 		compatible = "simple-bus";
 
-		prng: qrng@e1000 {
-			compatible = "qcom,prng-ee";
+		prng: qrng@e3000 {
+			compatible = "qcom,msm-rng";
 			reg = <0xe3000 0x1000>;
 			clocks = <&gcc GCC_PRNG_AHB_CLK>;
-			clock-names = "core";
+			clock-names = "km_clk_src";
+			qcom,no-qrng-config;
 		};
 
 		cryptobam: dma@704000 {
