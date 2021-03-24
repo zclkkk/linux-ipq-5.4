@@ -333,7 +333,6 @@ int do_minidump(void) {
     struct minidump_metadata_list *cur_node;
     struct list_head *pos;
     unsigned long flags;
-    struct qcom_wdt_scm_tlv_msg *scm_tlv_msg;
 #endif
 
     minidump.hdr.total_size = 0;
@@ -348,8 +347,7 @@ int do_minidump(void) {
         pr_err("Minidump: Error dumping modules: %d", ret);
 
 #ifdef CONFIG_QCA_MINIDUMP_DEBUG
-    scm_tlv_msg = &tlv_msg;
-    pr_err("\n Minidump: Size of Metadata file = %ld",mod_log_len);
+    pr_err("\n Minidump: Size of Metadata file = %ld", minidump_meta_info.mod_log_len);
     pr_err("\n Minidump: Printing out contents of Metadata list");
 
     spin_lock_irqsave(&tlv_msg.spinlock, flags);
