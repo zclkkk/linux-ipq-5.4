@@ -195,6 +195,7 @@ void mhitest_pci_unregister(void);
 void mhitest_subsystem_unregister(struct mhitest_platform *);
 int mhitest_pci_enable_bus(struct mhitest_platform *);
 struct mhitest_platform *get_mhitest_mplat(int);
+struct mhitest_platform *get_mhitest_mplat_by_pcidev(struct pci_dev *pci_dev);
 int mhitest_pci_en_msi(struct mhitest_platform *);
 int mhitest_pci_register_mhi(struct mhitest_platform *);
 int mhitest_pci_get_mhi_msi(struct mhitest_platform *);

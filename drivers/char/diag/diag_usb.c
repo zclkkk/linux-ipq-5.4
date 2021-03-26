@@ -400,8 +400,12 @@ static void diag_usb_notifier(void *priv, unsigned int event,
 		usb_info->read_ptr = d_req;
 		spin_unlock_irqrestore(&usb_info->lock, flags);
 		atomic_set(&usb_info->read_pending, 0);
-		queue_work(usb_info->usb_wq,
-			   &usb_info->read_done_work);
+		if (d_req->status != -ECONNRESET)
+			queue_work(usb_info->usb_wq,
+				   &usb_info->read_done_work);
+		else
+			queue_work(usb_info->usb_wq,
+				   &usb_info->read_work);
 		break;
 	case USB_DIAG_WRITE_DONE:
 		diag_usb_write_done(usb_info, d_req);
