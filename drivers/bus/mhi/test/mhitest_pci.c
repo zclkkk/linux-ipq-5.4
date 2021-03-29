@@ -1175,15 +1175,16 @@ fail_probe:
 void mhitest_pci_remove(struct pci_dev *pci_dev)
 {
 	struct mhitest_platform *mplat;
-	static int index = 0;
 
 	MHITEST_LOG("mhitest PCI removing\n");
 
-	mplat = get_mhitest_mplat(index++);
-	mhitest_subsystem_unregister(mplat);
-	mhitest_event_work_deinit(mplat);
-	pci_load_and_free_saved_state(pci_dev, &mplat->pci_dev_default_state);
-	mhitest_free_mplat(mplat);
+	mplat = get_mhitest_mplat_by_pcidev(pci_dev);
+	if (mplat) {
+		mhitest_subsystem_unregister(mplat);
+		mhitest_event_work_deinit(mplat);
+		pci_load_and_free_saved_state(pci_dev, &mplat->pci_dev_default_state);
+		mhitest_free_mplat(mplat);
+	}
 }
 
 static const struct pci_device_id mhitest_pci_id_table[] = {
