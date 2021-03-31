@@ -2089,13 +2089,13 @@ asmlinkage __visible int printk(const char *fmt, ...)
 }
 EXPORT_SYMBOL(printk);
 
-#ifdef CONFIG_QTI_CTXT_SAVE
+#ifdef CONFIG_QCA_MINIDUMP
 void minidump_get_log_buf_info(uint64_t *plog_buf, uint64_t *plog_buf_len)
 {
 	*plog_buf = (uint64_t)(uintptr_t)log_buf;
 	*plog_buf_len = (uint64_t)__pa(&log_buf_len);
 }
-#endif /* CONFIG_QTI_CTXT_SAVE */
+#endif /* CONFIG_QCA_MINIDUMP */
 
 #else /* CONFIG_PRINTK */
 
