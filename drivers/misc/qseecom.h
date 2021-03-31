@@ -75,8 +75,6 @@
 #define KEY_BLOB_SIZE		(56 * sizeof(uint8_t))
 #define KEY_SIZE		(32 * sizeof(uint8_t))
 #define MAX_FUSE_WRITE_VALUE	0xffffffffffffff
-#define MAX_FUSE_FEC_VALUE	0x7f
-
 #define RSA_KEY_SIZE_MAX	((528) * sizeof(uint8_t))
 #define RSA_IV_LENGTH		(16 * sizeof(uint8_t))
 #define RSA_HMAC_LENGTH		(32 * sizeof(uint8_t))
@@ -340,7 +338,6 @@ struct qti_storage_service_fuse_blow_req {
 	uint64_t addr;
 	uint64_t value;
 	uint64_t is_fec_enable;
-	uint64_t fec_value;
 };
 
 enum qti_storage_service_rsa_operation_id {
@@ -404,7 +401,6 @@ static uint64_t rsa_hashidx;
 static uint64_t rsa_padding_type;
 static uint64_t fuse_addr;
 static uint64_t fuse_value;
-static uint64_t fuse_fec_value;
 static uint64_t is_fec_enable;
 
 
@@ -694,9 +690,6 @@ static ssize_t store_addr_fuse_write_qtiapp(struct device *dev,
 static ssize_t store_value_fuse_write_qtiapp(struct device *dev,
 					struct device_attribute *attr,
 					const char *buf, size_t count);
-static ssize_t store_fec_value_fuse_write_qtiapp(struct device *dev,
-					struct device_attribute *attr,
-					const char *buf, size_t count);
 static ssize_t store_fec_enable_fuse_write_qtiapp(struct device *dev,
 					struct device_attribute *attr,
 					const char *buf, size_t count);
@@ -736,7 +729,6 @@ static DEVICE_ATTR(padding_type, 0644, NULL, store_padding_type_rsa_data_qtiapp)
 
 static DEVICE_ATTR(addr, 0644, NULL, store_addr_fuse_write_qtiapp);
 static DEVICE_ATTR(value, 0644, NULL, store_value_fuse_write_qtiapp);
-static DEVICE_ATTR(fec_value, 0644, NULL, store_fec_value_fuse_write_qtiapp);
 static DEVICE_ATTR(fec_enable, 0644, NULL, store_fec_enable_fuse_write_qtiapp);
 static DEVICE_ATTR(blow, 0644, NULL, store_blow_fuse_write_qtiapp);
 
@@ -796,7 +788,6 @@ static struct attribute *qtiapp_aes_attrs[] = {
 static struct attribute *qtiapp_fuse_write_attrs[] = {
 	&dev_attr_addr.attr,
 	&dev_attr_value.attr,
-	&dev_attr_fec_value.attr,
 	&dev_attr_fec_enable.attr,
 	&dev_attr_blow.attr,
 	NULL,
