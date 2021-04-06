@@ -34,6 +34,7 @@ typedef struct ctx_save_tlv_msg {
 	bool is_panic;
 } ctx_save_tlv_msg_t;
 
+#ifdef CONFIG_QCA_MINIDUMP
 struct minidump_tlv_info {
 	uint64_t start;
 	uint64_t size;
@@ -61,11 +62,16 @@ struct minidump_metadata_list {
 	char *name;  /* Name associated with the TLV */
 #endif
 };
+#endif /* CONFIG_QCA_MINIDUMP */
+
 struct ctx_save_props {
 	unsigned int tlv_msg_offset;
 	unsigned int crashdump_page_size;
 };
 
+ctx_save_tlv_msg_t tlv_msg;
+
+#ifdef CONFIG_QCA_MINIDUMP
 struct minidump_metadata {
 	char mod_log[METADATA_FILE_SZ];
 	unsigned long mod_log_len;
@@ -75,7 +81,6 @@ struct minidump_metadata {
 	unsigned long cur_mmuinfo_offset;
 };
 
-ctx_save_tlv_msg_t tlv_msg;
 struct minidump_metadata_list metadata_list;
 struct minidump_metadata minidump_meta_info;
 
@@ -333,7 +338,6 @@ int do_minidump(void) {
     struct minidump_metadata_list *cur_node;
     struct list_head *pos;
     unsigned long flags;
-    struct qcom_wdt_scm_tlv_msg *scm_tlv_msg;
 #endif
 
     minidump.hdr.total_size = 0;
@@ -348,8 +352,7 @@ int do_minidump(void) {
         pr_err("Minidump: Error dumping modules: %d", ret);
 
 #ifdef CONFIG_QCA_MINIDUMP_DEBUG
-    scm_tlv_msg = &tlv_msg;
-    pr_err("\n Minidump: Size of Metadata file = %ld",mod_log_len);
+    pr_err("\n Minidump: Size of Metadata file = %ld", minidump_meta_info.mod_log_len);
     pr_err("\n Minidump: Printing out contents of Metadata list");
 
     spin_lock_irqsave(&tlv_msg.spinlock, flags);
@@ -429,6 +432,7 @@ static struct sysrq_key_op sysrq_minidump_op = {
     .help_msg   = "minidump(y)",
     .action_msg = "MINIDUMP",
 };
+#endif /* CONFIG_QCA_MINIDUMP */
 
 /*
 * Function: ctx_save_replace_tlv
@@ -526,6 +530,7 @@ int ctx_save_add_tlv(unsigned char type, unsigned int size, const char *data)
 *
 * Return: 0
 */
+#ifdef CONFIG_QCA_MINIDUMP
 int minidump_remove_segments(const uint64_t virt_addr)
 {
 	struct minidump_metadata_list *cur_node;
@@ -1076,6 +1081,8 @@ int minidump_store_module_info(const char *name ,const unsigned long va,
 	kfree(mod_name);
 	return 0;
 }
+#endif /* CONFIG_QCA_MINIDUMP */
+
 /*
 * Function: ctx_save_fill_log_dump_tlv
 * Description: Add 'static' dump segments - uname, demsg,
@@ -1089,6 +1096,8 @@ static int ctx_save_fill_log_dump_tlv(void)
 {
 	struct new_utsname *uname;
 	int ret_val;
+
+#ifdef CONFIG_QCA_MINIDUMP
 	struct minidump_tlv_info pagetable_tlv_info;
 	struct minidump_tlv_info log_buf_info;
 	struct minidump_tlv_info linux_banner_info;
@@ -1097,10 +1106,9 @@ static int ctx_save_fill_log_dump_tlv(void)
 	minidump_meta_info.cur_modinfo_offset = (uintptr_t)minidump_meta_info.mod_log;
 	minidump_meta_info.mmu_log_len = 0;
 	minidump_meta_info.cur_mmuinfo_offset = (uintptr_t)minidump_meta_info.mmu_log;
-
-	uname = utsname();
-
 	INIT_LIST_HEAD(&metadata_list.list);
+#endif /* CONFIG_QCA_MINIDUMP */
+	uname = utsname();
 
 	ret_val = ctx_save_add_tlv(CTX_SAVE_LOG_DUMP_TYPE_UNAME,
 			    sizeof(*uname),
@@ -1108,6 +1116,7 @@ static int ctx_save_fill_log_dump_tlv(void)
 	if (ret_val)
 		return ret_val;
 
+#ifdef CONFIG_QCA_MINIDUMP
 	minidump_get_log_buf_info(&log_buf_info.start, &log_buf_info.size);
 	ret_val = minidump_fill_segments(log_buf_info.start, log_buf_info.size,
 						CTX_SAVE_LOG_DUMP_TYPE_DMESG, "DMESG");
@@ -1145,7 +1154,7 @@ static int ctx_save_fill_log_dump_tlv(void)
 		pr_err("Minidump: Crashdump buffer is full %d \n", ret_val);
 		return ret_val;
 	}
-
+#endif /* CONFIG_QCA_MINIDUMP */
 	if (tlv_msg.cur_msg_buffer_pos >=
 		tlv_msg.msg_buffer + tlv_msg.len)
 	return -ENOBUFS;
@@ -1169,6 +1178,7 @@ static int ctx_save_fill_log_dump_tlv(void)
 *
 * Return: NOTIFY_DONE on success, -ENOMEM on failure
 */
+#ifdef CONFIG_QCA_MINIDUMP
 int minidump_dump_wlan_modules(void){
 
 	struct module *mod;
@@ -1219,7 +1229,7 @@ int minidump_dump_wlan_modules(void){
 			}
 
 			module_tlv_info.start = (unsigned long)mod->sect_attrs;
-			module_tlv_info.size = SZ_2K;
+			module_tlv_info.size = (unsigned long)(sizeof(struct module_sect_attrs) + ((sizeof(struct module_sect_attr))*(mod->sect_attrs->nsections)));
 			ret_val = minidump_fill_segments(module_tlv_info.start,
 				module_tlv_info.size, CTX_SAVE_LOG_DUMP_TYPE_WLAN_MOD, NULL);
 			if (ret_val) {
@@ -1227,7 +1237,7 @@ int minidump_dump_wlan_modules(void){
 				return ret_val;
 			}
 
-			for (i = 0; i <= mod->sect_attrs->nsections; i++) {
+			for (i = 0; i < mod->sect_attrs->nsections; i++) {
 				if ((!strcmp(".bss", mod->sect_attrs->attrs[i].battr.attr.name))) {
 					module_tlv_info.start = (unsigned long)
 					mod->sect_attrs->attrs[i].address;
@@ -1333,7 +1343,7 @@ static int wlan_module_notify_exit(struct notifier_block *self, unsigned long va
 			if (!strcmp(minidump_module_list[minidump_module_list_index], mod->name)) {
 			/* For specific modules, additionally remove bss and sect attribute TLVs*/
 				minidump_remove_segments((const uint64_t)(uintptr_t)mod->sect_attrs);
-				for (i = 0; i <= mod->sect_attrs->nsections; i++) {
+				for (i = 0; i < mod->sect_attrs->nsections; i++) {
 					if ((!strcmp(".bss", mod->sect_attrs->attrs[i].battr.attr.name))) {
 						minidump_remove_segments((const uint64_t)
 						(uintptr_t)mod->sect_attrs->attrs[i].address);
@@ -1360,6 +1370,7 @@ struct notifier_block wlan_module_exit_nb = {
 static struct notifier_block wlan_panic_nb = {
 	.notifier_call  = wlan_modinfo_panic_handler,
 };
+#endif /* CONFIG_QCA_MINIDUMP */
 
 static int ctx_save_panic_handler(struct notifier_block *nb,
 				  unsigned long event, void *ptr)
@@ -1418,6 +1429,7 @@ static int ctx_save_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev,
 			"Failed to register panic notifier\n");
 
+#ifdef CONFIG_QCA_MINIDUMP
 	ret = register_module_notifier(&wlan_module_exit_nb);
     if (ret)
         dev_err(&pdev->dev, "Failed to register WLAN  module exit notifier\n");
@@ -1428,7 +1440,7 @@ static int ctx_save_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev,
 			"Failed to register panic notifier for WLAN module info\n");
 	register_sysrq_key('y', &sysrq_minidump_op);
-
+#endif /* CONFIG_QCA_MINIDUMP */
 	return ret;
 }
 
