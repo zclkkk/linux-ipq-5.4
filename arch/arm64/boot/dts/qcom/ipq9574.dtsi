@@ -183,7 +183,7 @@
 
 		ess-instance {
 			ess-switch@3a000000 {
-				compatible = "qcom,ess-switch-ipq90xx";
+				compatible = "qcom,ess-switch-ipq95xx";
 				switch_access_mode = "local bus";
 				reg = <0x3a000000 0x1000000>;
 			};
