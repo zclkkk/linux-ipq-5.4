@@ -108,6 +108,17 @@
 			};
 		};
 
+		i2c_1: i2c@78b6000 {
+			pinctrl-0 = <&i2c_1_pins>;
+			pinctrl-names = "default";
+			status = "ok";
+
+			eeprom: eeprom@50 {
+				compatible = "atmel,24c32";
+				reg = <0x51>;
+			};
+		};
+
 		sdhci@7804000 {
 			status = "ok";
 			qcom,emulation;

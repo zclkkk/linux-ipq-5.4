@@ -300,6 +300,13 @@
 			interrupt-controller;
 			#interrupt-cells = <2>;
 
+			i2c_1_pins: i2c-1-pinmux {
+				pins = "gpio36", "gpio37";
+				function = "blsp1_i2c";
+				drive-strength = <8>;
+				bias-disable;
+			};
+
 			serial_0_pins: serial0-pinmux {
 				pins = "gpio13", "gpio14";
 				function = "blsp0_uart";
@@ -413,79 +420,80 @@
 			status = "disabled";
 		};
 
-                i2c_1: i2c@78b6000 {
-                        compatible = "qcom,i2c-qup-v2.2.1";
-                        #address-cells = <1>;
-                        #size-cells = <0>;
-                        reg = <0x78b6000 0x600>;
-                        interrupts = <GIC_SPI 96 IRQ_TYPE_LEVEL_HIGH>;
-                        clocks = <&gcc GCC_BLSP1_AHB_CLK>,
-                                <&gcc GCC_BLSP1_QUP2_I2C_APPS_CLK>;                                                                                            clock-names = "iface", "core";
-                        clock-frequency  = <400000>;
-                        dmas = <&blsp_dma 15>, <&blsp_dma 14>;
-                        dma-names = "rx", "tx";
-                        status = "disabled";
-                };
+		i2c_1: i2c@78b6000 {
+			compatible = "qcom,i2c-qup-v2.2.1";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x78b6000 0x600>;
+			interrupts = <GIC_SPI 96 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&gcc GCC_BLSP1_AHB_CLK>,
+				<&gcc GCC_BLSP1_QUP2_I2C_APPS_CLK>;
+			clock-names = "iface", "core";
+			clock-frequency  = <400000>;
+			dmas = <&blsp_dma 15>, <&blsp_dma 14>;
+			dma-names = "rx", "tx";
+			status = "disabled";
+		};
 
-                i2c_2: i2c@78b7000 {
-                        compatible = "qcom,i2c-qup-v2.2.1";
-                        #address-cells = <1>;
-                        #size-cells = <0>;
-                        reg = <0x78b7000 0x600>;
-                        interrupts = <GIC_SPI 97 IRQ_TYPE_LEVEL_HIGH>;
-                        clocks = <&gcc GCC_BLSP1_AHB_CLK>,
-                                <&gcc GCC_BLSP1_QUP3_I2C_APPS_CLK>;
-                        clock-names = "iface", "core";
-                        clock-frequency  = <400000>;
-                        dmas = <&blsp_dma 17>, <&blsp_dma 16>;
-                        dma-names = "rx", "tx";
-                        status = "disabled";
-                };
+		i2c_2: i2c@78b7000 {
+			compatible = "qcom,i2c-qup-v2.2.1";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x78b7000 0x600>;
+			interrupts = <GIC_SPI 97 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&gcc GCC_BLSP1_AHB_CLK>,
+				<&gcc GCC_BLSP1_QUP3_I2C_APPS_CLK>;
+			clock-names = "iface", "core";
+			clock-frequency  = <400000>;
+			dmas = <&blsp_dma 17>, <&blsp_dma 16>;
+			dma-names = "rx", "tx";
+			status = "disabled";
+		};
 
-                i2c_3: i2c@78b8000 {
-                        compatible = "qcom,i2c-qup-v2.2.1";
-                        #address-cells = <1>;
-                        #size-cells = <0>;
-                        reg = <0x78b8000 0x600>;
-                        interrupts = <GIC_SPI 98 IRQ_TYPE_LEVEL_HIGH>;
-                        clocks = <&gcc GCC_BLSP1_AHB_CLK>,
-                                <&gcc GCC_BLSP1_QUP4_I2C_APPS_CLK>;
-                        clock-names = "iface", "core";
-                        clock-frequency  = <400000>;
-                        dmas = <&blsp_dma 19>, <&blsp_dma 18>;
-                        dma-names = "rx", "tx";
-                        status = "disabled";
-                };
+		i2c_3: i2c@78b8000 {
+			compatible = "qcom,i2c-qup-v2.2.1";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x78b8000 0x600>;
+			interrupts = <GIC_SPI 98 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&gcc GCC_BLSP1_AHB_CLK>,
+				<&gcc GCC_BLSP1_QUP4_I2C_APPS_CLK>;
+			clock-names = "iface", "core";
+			clock-frequency  = <400000>;
+			dmas = <&blsp_dma 19>, <&blsp_dma 18>;
+			dma-names = "rx", "tx";
+			status = "disabled";
+		};
 
-                i2c_4: i2c@78b9000 {
-                        compatible = "qcom,i2c-qup-v2.2.1";
-                        #address-cells = <1>;
-                        #size-cells = <0>;
-                        reg = <0x78b9000 0x600>;
-                        interrupts = <GIC_SPI 299 IRQ_TYPE_LEVEL_HIGH>;
-                        clocks = <&gcc GCC_BLSP1_AHB_CLK>,
-                                <&gcc GCC_BLSP1_QUP5_I2C_APPS_CLK>;
-                        clock-names = "iface", "core";
-                        clock-frequency  = <400000>;
-                        dmas = <&blsp_dma 21>, <&blsp_dma 20>;
-                        dma-names = "rx", "tx";
-                        status = "disabled";
-                };
+		i2c_4: i2c@78b9000 {
+			compatible = "qcom,i2c-qup-v2.2.1";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x78b9000 0x600>;
+			interrupts = <GIC_SPI 299 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&gcc GCC_BLSP1_AHB_CLK>,
+				<&gcc GCC_BLSP1_QUP5_I2C_APPS_CLK>;
+			clock-names = "iface", "core";
+			clock-frequency  = <400000>;
+			dmas = <&blsp_dma 21>, <&blsp_dma 20>;
+			dma-names = "rx", "tx";
+			status = "disabled";
+		};
 
-                i2c_5: i2c@78bA000 {
-                        compatible = "qcom,i2c-qup-v2.2.1";
-                        #address-cells = <1>;
-                        #size-cells = <0>;
-                        reg = <0x78bA000 0x600>;
-                        interrupts = <GIC_SPI 300 IRQ_TYPE_LEVEL_HIGH>;
-                        clocks = <&gcc GCC_BLSP1_AHB_CLK>,
-                                <&gcc GCC_BLSP1_QUP6_I2C_APPS_CLK>;
-                        clock-names = "iface", "core";
-                        clock-frequency  = <400000>;
-                        dmas = <&blsp_dma 23>, <&blsp_dma 22>;
-                        dma-names = "rx", "tx";
-                        status = "disabled";
-                };
+		i2c_5: i2c@78bA000 {
+			compatible = "qcom,i2c-qup-v2.2.1";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x78bA000 0x600>;
+			interrupts = <GIC_SPI 300 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&gcc GCC_BLSP1_AHB_CLK>,
+				<&gcc GCC_BLSP1_QUP6_I2C_APPS_CLK>;
+			clock-names = "iface", "core";
+			clock-frequency  = <400000>;
+			dmas = <&blsp_dma 23>, <&blsp_dma 22>;
+			dma-names = "rx", "tx";
+			status = "disabled";
+		};
 
 		spi_0: spi@78b5000 {
 			compatible = "qcom,spi-qup-v2.2.1";
@@ -816,7 +824,7 @@
 				      "wcss_reset",
 				      "wcss_q6_reset";
 
-                        clocks = <&gcc GCC_WCSS_AHB_S_CLK>,
+			clocks = <&gcc GCC_WCSS_AHB_S_CLK>,
 				 <&gcc GCC_WCSS_ECAHB_CLK>,
 				 <&gcc GCC_WCSS_ACMT_CLK>,
 				 <&gcc GCC_WCSS_AXI_M_CLK>,
@@ -824,7 +832,7 @@
 				 <&gcc GCC_Q6_AXIM2_CLK>,
 				 <&gcc GCC_Q6_AHB_CLK>,
 				 <&gcc GCC_Q6_AHB_S_CLK>;
-                        clock-names = "gcc_wcss_ahb_s_clk",
+			clock-names = "gcc_wcss_ahb_s_clk",
 				      "gcc_wcss_ecahb_clk",
 				      "gcc_wcss_acmt_clk",
 				      "gcc_wcss_axi_m_clk",
