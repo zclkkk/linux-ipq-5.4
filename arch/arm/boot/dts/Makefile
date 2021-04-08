@@ -878,6 +878,7 @@ dtb-$(CONFIG_ARCH_QCOM) += \
 	ipq8074-ac04.dtb\
 	ipq8074-hk12.dtb \
 	ipq9574-emulation.dtb \
+	ipq9574-emulation-fbc.dtb \
 	ipq9574-emulation-ssoc.dtb \
 	qcom-msm8660-surf.dtb \
 	qcom-msm8960-cdp.dtb \
