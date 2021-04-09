@@ -47,6 +47,11 @@
 #define CPU_IPQ0509 504
 #define CPU_IPQ0518 505
 
+#define CPU_IPQ9514 510
+#define CPU_IPQ9554 512
+#define CPU_IPQ9570 513
+#define CPU_IPQ9574 514
+
 static inline int read_ipq_soc_version_major(void)
 {
 	const int *prop;
@@ -306,6 +311,42 @@ static inline int cpu_is_ipq0518(void)
 #endif
 }
 
+static inline int cpu_is_ipq9514(void)
+{
+#ifdef CONFIG_ARCH_QCOM
+	return read_ipq_cpu_type() == CPU_IPQ9514;
+#else
+	return 0;
+#endif
+}
+
+static inline int cpu_is_ipq9554(void)
+{
+#ifdef CONFIG_ARCH_QCOM
+	return read_ipq_cpu_type() == CPU_IPQ9554;
+#else
+	return 0;
+#endif
+}
+
+static inline int cpu_is_ipq9570(void)
+{
+#ifdef CONFIG_ARCH_QCOM
+	return read_ipq_cpu_type() == CPU_IPQ9570;
+#else
+	return 0;
+#endif
+}
+
+static inline int cpu_is_ipq9574(void)
+{
+#ifdef CONFIG_ARCH_QCOM
+	return read_ipq_cpu_type() == CPU_IPQ9574;
+#else
+	return 0;
+#endif
+}
+
 static inline int cpu_is_ipq807x(void)
 {
 #ifdef CONFIG_ARCH_QCOM
@@ -339,6 +380,34 @@ static inline int cpu_is_ipq50xx(void)
 	return  cpu_is_ipq5010() || cpu_is_ipq5018() ||
 		cpu_is_ipq5028() || cpu_is_ipq5000() ||
 		cpu_is_ipq0509() || cpu_is_ipq0518();
+#else
+	return 0;
+#endif
+}
+
+static inline int cpu_is_ipq95xx(void)
+{
+#ifdef CONFIG_ARCH_QCOM
+	return  cpu_is_ipq9514() || cpu_is_ipq9554() ||
+		cpu_is_ipq9570() || cpu_is_ipq9574();
+#else
+	return 0;
+#endif
+}
+
+static inline int cpu_is_nss_crypto_enabled(void)
+{
+#ifdef CONFIG_ARCH_QCOM
+	return (!cpu_is_ipq9514());
+#else
+	return 0;
+#endif
+}
+
+static inline int cpu_is_internal_wifi_enabled(void)
+{
+#ifdef CONFIG_ARCH_QCOM
+	return (!cpu_is_ipq9570());
 #else
 	return 0;
 #endif
