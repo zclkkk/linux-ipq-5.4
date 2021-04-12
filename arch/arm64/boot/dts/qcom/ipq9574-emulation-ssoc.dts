@@ -105,4 +105,8 @@
 	psci {
 		status = "disabled";
 	};
+
+	qti,scm_restart_reason {
+		status = "disabled";
+	};
 };

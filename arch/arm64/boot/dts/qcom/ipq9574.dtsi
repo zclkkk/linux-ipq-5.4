@@ -85,6 +85,12 @@
 		};
 	};
 
+	firmware {
+		scm {
+			compatible = "qcom,scm";
+		};
+	};
+
 	tcsr_mutex: hwlock {
 		compatible = "qcom,tcsr-mutex";
 		syscon = <&tcsr_mutex_regs 0 0x80>;
@@ -1191,6 +1197,10 @@
 			compatible = "qcom,rpm-ipq9574";
 			qcom,glink-channels = "rpm_requests";
 		};
+	};
+
+	qti,scm_restart_reason {
+		compatible = "qti,scm_restart_reason";
 	};
 };
 
