@@ -536,6 +536,7 @@ struct qcom_nandc_props {
 	bool is_qpic;
 	bool is_serial_nand;
 	bool qpic_v2;
+	bool is_serial_training;
 	u32 dev_cmd_reg_start;
 };
 
@@ -3249,7 +3250,7 @@ static int qcom_nand_host_init_and_register(struct qcom_nand_controller *nandc,
 	 * Rx clock should be adjusted according to delays so that Rx Data
 	 * can be captured correctly.
 	 */
-	if (nandc->props->is_serial_nand)
+	if (nandc->props->is_serial_nand && nandc->props->is_serial_training)
 		qspi_execute_training(nandc, host, mtd);
 
 	ret = mtd_device_register(mtd, NULL, 0);
@@ -3464,6 +3465,7 @@ static const struct qcom_nandc_props ipq5018_nandc_props = {
 	.is_bam = true,
 	.is_serial_nand = true,
 	.qpic_v2 = true,
+	.is_serial_training = true,
 	.dev_cmd_reg_start = 0x7000,
 };
 
@@ -3472,6 +3474,7 @@ static const struct qcom_nandc_props ipq9574_nandc_props = {
 	.is_bam = true,
 	.is_serial_nand = true,
 	.qpic_v2 = true,
+	.is_serial_training = false,
 	.dev_cmd_reg_start = 0x7000,
 };
 
