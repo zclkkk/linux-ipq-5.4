@@ -20,7 +20,7 @@
 	#address-cells = <0x2>;
 	#size-cells = <0x2>;
 	model = "Qualcomm Technologies, Inc. IPQ5018/AP-MP03.6-C1";
-	compatible = "qcom,ipq5018-mp03.6-c1", "qcom,ipq5018";
+	compatible = "qcom,ipq5018-ap-mp03.6-c1", "qcom,ipq5018-mp03.6-c1", "qcom,ipq5018";
 	interrupt-parent = <&intc>;
 
 	aliases {
@@ -31,9 +31,9 @@
 	chosen {
 		bootargs = "console=ttyMSM0,115200,n8 rw init=/init";
 	#ifdef __IPQ_MEM_PROFILE_256_MB__
-		bootargs-append = " swiotlb=1";
+		bootargs-append = " swiotlb=1 clk_ignore_unused";
 	#else
-		bootargs-append = " swiotlb=1 coherent_pool=2M";
+		bootargs-append = " swiotlb=1 coherent_pool=2M clk_ignore_unused";
 	#endif
 		stdout-path = "serial0";
 		ethernet0 = "/soc/dp1";

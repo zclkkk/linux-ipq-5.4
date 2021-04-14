@@ -223,7 +223,7 @@ static void crashdump_init(struct rproc *rproc, struct rproc_dump_segment *segme
 		goto free_device;
 	}
 
-	np = of_find_node_by_name(NULL, "q6v5_wcss");
+	np = rproc->dev.parent->of_node;
 	while (index < MAX_SEGMENTS) {
 		node = of_parse_phandle(np, "memory-region", index);
 		if (!node)
