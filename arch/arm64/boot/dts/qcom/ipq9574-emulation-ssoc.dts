@@ -55,6 +55,10 @@
 		};
 	};
 
+	ctx_save: ctx-save {
+		status = "disabled";
+	};
+
 	soc {
 		serial@78af000 {
 			pinctrl-0 = <&serial_0_pins>;

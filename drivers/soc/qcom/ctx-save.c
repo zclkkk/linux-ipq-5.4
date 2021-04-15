@@ -1555,6 +1555,10 @@ static const struct of_device_id ctx_save_of_table[] = {
 		.compatible = "qti,ctxt-save-ipq8074",
 		.data = (void *)&ctx_save_props_ipq807x,
 	},
+	{
+		.compatible = "qti,ctxt-save-ipq9574",
+		.data = (void *)&ctx_save_props_ipq6018,
+	},
 	{}
 };
 
