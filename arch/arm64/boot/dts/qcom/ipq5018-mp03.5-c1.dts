@@ -597,3 +597,125 @@
 	status = "ok";
 };
 
+&q6v5_wcss {
+	compatible = "qcom,ipq5018-q6-mpd";
+	#address-cells = <1>;
+	#size-cells = <1>;
+	ranges;
+	firmware = "IPQ5018/q6_fw.mdt";
+	reg = <0x0cd00000 0x4040>,
+		<0x1938000 0x8>,
+		<0x193d204 0x4>;
+	reg-names = "qdsp6",
+			"tcsr-msip",
+			"tcsr-q6";
+	resets = <&gcc GCC_WCSSAON_RESET>,
+			<&gcc GCC_WCSS_Q6_BCR>;
+
+	reset-names = "wcss_aon_reset",
+			"wcss_q6_reset";
+
+	clocks = <&gcc GCC_Q6_AXIS_CLK>,
+		<&gcc GCC_WCSS_ECAHB_CLK>,
+		<&gcc GCC_Q6_AXIM_CLK>,
+		<&gcc GCC_Q6_AXIM2_CLK>,
+		<&gcc GCC_Q6_AHB_CLK>,
+		<&gcc GCC_Q6_AHB_S_CLK>,
+		<&gcc GCC_WCSS_AXI_S_CLK>;
+	clock-names = "gcc_q6_axis_clk",
+		"gcc_wcss_ecahb_clk",
+		"gcc_q6_axim_clk",
+		"gcc_q6_axim2_clk",
+		"gcc_q6_ahb_clk",
+		"gcc_q6_ahb_s_clk",
+		"gcc_wcss_axi_s_clk";
+
+	#ifdef __IPQ_MEM_PROFILE_256_MB__
+		memory-region = <&q6_mem_regions>, <&q6_etr_region>;
+	#else
+		memory-region = <&q6_mem_regions>, <&q6_etr_region>,
+				<&q6_caldb_region>;
+	#endif
+
+	qcom,rproc = <&q6v5_wcss>;
+	status = "ok";
+	q6_wcss_pd1 {
+		compatible = "qcom,ipq5018-wcss-ahb-mpd";
+		reg = <0x4ab000 0x20>;
+		reg-names = "rmb";
+		firmware = "IPQ5018/q6_fw.mdt";
+		m3_firmware = "IPQ5018/m3_fw.mdt";
+		interrupts-extended = <&wcss_smp2p_in 8 0>,
+					<&wcss_smp2p_in 9 0>,
+					<&wcss_smp2p_in 12 0>,
+					<&wcss_smp2p_in 11 0>;
+		interrupt-names = "fatal",
+					"ready",
+					"spawn-ack",
+					"stop-ack";
+
+		resets = <&gcc GCC_WCSSAON_RESET>,
+				<&gcc GCC_WCSS_BCR>,
+				<&gcc GCC_CE_BCR>;
+		reset-names = "wcss_aon_reset",
+				"wcss_reset",
+				"ce_reset";
+
+		clocks = <&gcc GCC_WCSS_AHB_S_CLK>,
+				<&gcc GCC_WCSS_ACMT_CLK>,
+				<&gcc GCC_WCSS_AXI_M_CLK>;
+		clock-names = "gcc_wcss_ahb_s_clk",
+					"gcc_wcss_acmt_clk",
+					"gcc_wcss_axi_m_clk";
+
+		qcom,halt-regs = <&tcsr_q6_block 0xa000 0xd000 0x0>;
+
+		qcom,smem-states = <&wcss_smp2p_out 8>,
+					<&wcss_smp2p_out 9>,
+					<&wcss_smp2p_out 10>;
+		qcom,smem-state-names = "shutdown",
+					"stop",
+					"spawn";
+	};
+
+	q6_wcss_pd2 {
+		compatible = "qcom,ipq5018-wcss-pcie-mpd";
+		firmware = "IPQ5018/q6_fw.mdt";
+		m3_firmware = "qcn6122/m3_fw.mdt";
+		interrupts-extended = <&wcss_smp2p_in 16 0>,
+					<&wcss_smp2p_in 17 0>,
+					<&wcss_smp2p_in 20 0>,
+					<&wcss_smp2p_in 19 0>;
+		interrupt-names = "fatal",
+					"ready",
+					"spawn-ack",
+					"stop-ack";
+
+		qcom,smem-states = <&wcss_smp2p_out 16>,
+					<&wcss_smp2p_out 17>,
+					<&wcss_smp2p_out 18>;
+		qcom,smem-state-names = "shutdown",
+					"stop",
+					"spawn";
+	};
+
+	q6_wcss_pd3 {
+		compatible = "qcom,ipq5018-wcss-pcie-mpd";
+		firmware = "IPQ5018/q6_fw.mdt";
+		interrupts-extended = <&wcss_smp2p_in 24 0>,
+					<&wcss_smp2p_in 25 0>,
+					<&wcss_smp2p_in 28 0>,
+					<&wcss_smp2p_in 27 0>;
+		interrupt-names = "fatal",
+					"ready",
+					"spawn-ack",
+					"stop-ack";
+
+		qcom,smem-states = <&wcss_smp2p_out 24>,
+					<&wcss_smp2p_out 25>,
+					<&wcss_smp2p_out 26>;
+		qcom,smem-state-names = "shutdown",
+					"stop",
+					"spawn";
+	};
+};
