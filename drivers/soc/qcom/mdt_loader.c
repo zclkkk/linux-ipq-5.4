@@ -16,6 +16,10 @@
 #include <linux/sizes.h>
 #include <linux/slab.h>
 #include <linux/soc/qcom/mdt_loader.h>
+#include <linux/dma-mapping.h>
+
+#include "../../remoteproc/qcom_common.h"
+#define PDSEG_PAS_ID	0xD
 
 static bool mdt_phdr_valid(const struct elf32_phdr *phdr)
 {
@@ -126,6 +130,230 @@ void *qcom_mdt_read_metadata(const struct firmware *fw, size_t *data_len)
 }
 EXPORT_SYMBOL_GPL(qcom_mdt_read_metadata);
 
+struct region {
+	u64 addr;
+	unsigned blk_size;
+};
+
+struct pdseg_dma_mem_info {
+	struct region *tz_addr;
+	int blocks;
+	dma_addr_t tz_dma;
+	dma_addr_t dma_blk_arr_addr_phys;
+	u64 *dma_blk_arr_addr;
+	void **pt;
+};
+
+static int allocate_dma_mem(struct device *dev,
+				struct pdseg_dma_mem_info *pd_dma,
+				int max_size)
+{
+	dma_addr_t dma_tmp = 0;
+	int i;
+
+	pd_dma->blocks = DIV_ROUND_UP(max_size, PAGE_SIZE);
+
+	pd_dma->tz_addr = dma_alloc_coherent(dev, sizeof(struct region),
+			&pd_dma->tz_dma, GFP_DMA);
+	if (!pd_dma->tz_addr) {
+		pr_err("Error in dma alloc\n");
+		return -ENOMEM;
+	}
+
+	pd_dma->dma_blk_arr_addr = dma_alloc_coherent(dev,
+			(pd_dma->blocks * sizeof(u64)),
+			&pd_dma->dma_blk_arr_addr_phys, GFP_DMA);
+	if (!pd_dma->dma_blk_arr_addr) {
+		pr_err("Error in dma alloc\n");
+		goto free_tz_dma_alloc;
+	}
+	memcpy(&pd_dma->tz_addr->addr, &pd_dma->dma_blk_arr_addr_phys,
+			sizeof(dma_addr_t));
+
+	pd_dma->pt = kzalloc(pd_dma->blocks * sizeof(void *), GFP_KERNEL);
+	if (!pd_dma->pt) {
+		pr_err("Error in memory alloc\n");
+		goto free_dma_blk_arr_alloc;
+	}
+
+	for (i = 0; i < pd_dma->blocks; i++) {
+		pd_dma->pt[i] = dma_alloc_coherent(dev, PAGE_SIZE,
+				&dma_tmp, GFP_DMA);
+		if (!pd_dma->pt[i]) {
+			pr_err("Error in dma alloc i:%d - blocks:%d\n", i,
+							pd_dma->blocks);
+			goto free_mem_alloc;
+		}
+		memcpy(&pd_dma->dma_blk_arr_addr[i], &dma_tmp,
+						sizeof(dma_addr_t));
+	}
+	pd_dma->tz_addr->blk_size = PAGE_SIZE;
+	return 0;
+
+free_mem_alloc:
+	i = 0;
+	while (i < pd_dma->blocks && pd_dma->pt[i]) {
+		memcpy(&dma_tmp, &pd_dma->dma_blk_arr_addr[i],
+						sizeof(dma_addr_t));
+		dma_free_coherent(dev, PAGE_SIZE, pd_dma->pt[i], dma_tmp);
+		i++;
+	}
+	kfree(pd_dma->pt);
+free_dma_blk_arr_alloc:
+	dma_free_coherent(dev, (pd_dma->blocks * sizeof(u64)),
+				pd_dma->dma_blk_arr_addr,
+				pd_dma->dma_blk_arr_addr_phys);
+free_tz_dma_alloc:
+	dma_free_coherent(dev, sizeof(struct region), pd_dma->tz_addr,
+							pd_dma->tz_dma);
+
+	return -ENOMEM;
+}
+
+static void free_dma_mem(struct device *dev, struct pdseg_dma_mem_info *pd_dma)
+{
+	int i;
+	dma_addr_t dma_tmp = 0;
+
+	for (i = 0; i < pd_dma->blocks; i++) {
+		memcpy(&dma_tmp, &pd_dma->dma_blk_arr_addr[i],
+				sizeof(dma_addr_t));
+		dma_free_coherent(dev, PAGE_SIZE, pd_dma->pt[i],
+				dma_tmp);
+	}
+
+	dma_free_coherent(dev, (pd_dma->blocks * sizeof(u64)),
+					pd_dma->dma_blk_arr_addr,
+					pd_dma->dma_blk_arr_addr_phys);
+
+	dma_free_coherent(dev, sizeof(struct region), pd_dma->tz_addr,
+			pd_dma->tz_dma);
+	kfree(pd_dma->pt);
+}
+
+static int memcpy_pdseg_to_dma_blk(const char *fw_name, struct device *dev,
+		int ph_no, struct pdseg_dma_mem_info *pd_dma, size_t filesz)
+{
+	const struct firmware *seg_fw;
+	int ret, offset_tmp = 0, tmp = 0;
+	size_t size = 0;
+
+	ret = request_firmware(&seg_fw, fw_name, dev);
+	if (ret) {
+		dev_err(dev, "failed to load %s\n", fw_name);
+		return ret;
+	}
+	size = seg_fw->size < PAGE_SIZE ?
+		seg_fw->size : PAGE_SIZE;
+	while (tmp < pd_dma->blocks && size) {
+		memset_io(pd_dma->pt[tmp], 0,
+				PAGE_SIZE);
+		memcpy_toio(pd_dma->pt[tmp],
+				seg_fw->data + offset_tmp,
+				size);
+		tmp++;
+		offset_tmp += size;
+		if ((seg_fw->size - offset_tmp) < PAGE_SIZE)
+			size = seg_fw->size - offset_tmp;
+	}
+	release_firmware(seg_fw);
+	ret = qti_scm_pdseg_memcpy_v2(PDSEG_PAS_ID, ph_no, pd_dma->tz_dma,
+									tmp);
+	if (ret) {
+		dev_err(dev, "pd seg memcpy scm failed\n");
+		return ret;
+	}
+	return ret;
+}
+
+int get_pd_fw_info(struct device *dev, const struct firmware *fw,
+			phys_addr_t mem_phys, size_t mem_size, u8 pd_asid,
+			struct qcom_pd_fw_info *fw_info)
+{
+	const struct elf32_phdr *phdrs;
+	const struct elf32_phdr *phdr;
+	const struct elf32_hdr *ehdr;
+	phys_addr_t mem_reloc;
+	phys_addr_t min_addr = PHYS_ADDR_MAX;
+	phys_addr_t max_addr = 0;
+	ssize_t offset;
+	bool relocate = false;
+	int ret = 0, i;
+
+	if (!fw || !mem_phys || !mem_size)
+		return -EINVAL;
+
+	ehdr = (struct elf32_hdr *)fw->data;
+	phdrs = (struct elf32_phdr *)(ehdr + 1);
+
+	for (i = 0; i < ehdr->e_phnum; i++) {
+		phdr = &phdrs[i];
+
+		if (!mdt_phdr_valid(phdr))
+			continue;
+
+		/*
+		 * While doing PD specific reloading, load only that PD
+		 * specific writeable entries. Skip others
+		 */
+		if (pd_asid && ((QCOM_MDT_PF_ASID(phdr->p_flags) != pd_asid) ||
+					((phdr->p_flags & PF_W) == 0)))
+			continue;
+
+		if (phdr->p_flags & QCOM_MDT_RELOCATABLE)
+			relocate = true;
+
+		if (phdr->p_paddr < min_addr)
+			min_addr = phdr->p_paddr;
+
+		if (phdr->p_paddr + phdr->p_memsz > max_addr)
+			max_addr = ALIGN(phdr->p_paddr + phdr->p_memsz, SZ_4K);
+
+	}
+
+	if (relocate) {
+		/*
+		 * The image is relocatable, so offset each segment based on
+		 * the lowest segment address.
+		 */
+		mem_reloc = min_addr;
+	} else {
+		/*
+		 * Image is not relocatable, so offset each segment based on
+		 * the allocated physical chunk of memory.
+		 */
+		mem_reloc = mem_phys;
+	}
+
+	for (i = 0; i < ehdr->e_phnum; i++) {
+		phdr = &phdrs[i];
+
+		if (!mdt_phdr_valid(phdr))
+			continue;
+
+		/*
+		 * While doing PD specific reloading, load only that PD
+		 * specific writeable entries. Skip others
+		 */
+		if (pd_asid && ((QCOM_MDT_PF_ASID(phdr->p_flags) != pd_asid) ||
+					((phdr->p_flags & PF_W) == 0)))
+			continue;
+
+		offset = phdr->p_paddr - mem_reloc;
+		if (offset < 0 || offset + phdr->p_memsz > mem_size) {
+			dev_err(dev, "segment outside memory range\n");
+			ret = -EINVAL;
+			break;
+		}
+
+		if (!fw_info->paddr)
+			fw_info->paddr = mem_phys + offset;
+		fw_info->size += phdr->p_memsz;
+	}
+	return ret;
+}
+EXPORT_SYMBOL(get_pd_fw_info);
+
 static int __qcom_mdt_load(struct device *dev, const struct firmware *fw,
 			   const char *firmware, int pas_id, void *mem_region,
 			   phys_addr_t mem_phys, size_t mem_size,
@@ -147,9 +375,15 @@ static int __qcom_mdt_load(struct device *dev, const struct firmware *fw,
 	void *ptr;
 	int ret = 0;
 	int i;
+	u8 pd_asid;
+	int max_size = 0;
+	struct pdseg_dma_mem_info pd_dma = {0};
 
 	if (!fw || !mem_region || !mem_phys || !mem_size)
 		return -EINVAL;
+
+
+	q6_wcss_get_pd_asid(dev, &pd_asid);
 
 	ehdr = (struct elf32_hdr *)fw->data;
 	phdrs = (struct elf32_phdr *)(ehdr + 1);
@@ -162,7 +396,7 @@ static int __qcom_mdt_load(struct device *dev, const struct firmware *fw,
 	if (!fw_name)
 		return -ENOMEM;
 
-	if (pas_init) {
+	if (pas_init && !pd_asid) {
 		metadata = qcom_mdt_read_metadata(fw, &metadata_len);
 		if (IS_ERR(metadata)) {
 			ret = PTR_ERR(metadata);
@@ -170,7 +404,6 @@ static int __qcom_mdt_load(struct device *dev, const struct firmware *fw,
 		}
 
 		ret = qcom_scm_pas_init_image(pas_id, metadata, metadata_len);
-
 		kfree(metadata);
 		if (ret) {
 			dev_err(dev, "invalid firmware metadata\n");
@@ -184,6 +417,14 @@ static int __qcom_mdt_load(struct device *dev, const struct firmware *fw,
 		if (!mdt_phdr_valid(phdr))
 			continue;
 
+		/*
+		 * While doing PD specific reloading, load only that PD
+		 * specific writeable entries. Skip others
+		 */
+		if (pd_asid && ((QCOM_MDT_PF_ASID(phdr->p_flags) != pd_asid) ||
+				((phdr->p_flags & PF_W) == 0)))
+			continue;
+
 		if (phdr->p_flags & QCOM_MDT_RELOCATABLE)
 			relocate = true;
 
@@ -192,6 +433,16 @@ static int __qcom_mdt_load(struct device *dev, const struct firmware *fw,
 
 		if (phdr->p_paddr + phdr->p_memsz > max_addr)
 			max_addr = ALIGN(phdr->p_paddr + phdr->p_memsz, SZ_4K);
+
+		if (pd_asid && (max_size < phdr->p_memsz))
+			max_size = phdr->p_memsz;
+
+	}
+
+	if (pas_init && pd_asid) {
+		ret = allocate_dma_mem(dev, &pd_dma, max_size);
+		if (ret)
+			goto out;
 	}
 
 	if (relocate) {
@@ -223,6 +474,14 @@ static int __qcom_mdt_load(struct device *dev, const struct firmware *fw,
 		if (!mdt_phdr_valid(phdr))
 			continue;
 
+		/*
+		 * While doing PD specific reloading, load only that PD
+		 * specific writeable entries. Skip others
+		 */
+		if (pd_asid && ((QCOM_MDT_PF_ASID(phdr->p_flags) != pd_asid) ||
+				((phdr->p_flags & PF_W) == 0)))
+			continue;
+
 		offset = phdr->p_paddr - mem_reloc;
 		if (offset < 0 || offset + phdr->p_memsz > mem_size) {
 			dev_err(dev, "segment outside memory range\n");
@@ -230,7 +489,8 @@ static int __qcom_mdt_load(struct device *dev, const struct firmware *fw,
 			break;
 		}
 
-		ptr = mem_region + offset;
+		if (!(pas_init && pd_asid))
+			ptr = mem_region + offset;
 
 		if (phdr->p_filesz && phdr->p_offset < fw->size) {
 			/* Firmware is large enough to be non-split */
@@ -241,11 +501,19 @@ static int __qcom_mdt_load(struct device *dev, const struct firmware *fw,
 				ret = -EINVAL;
 				break;
 			}
-
 			memcpy(ptr, fw->data + phdr->p_offset, phdr->p_filesz);
 		} else if (phdr->p_filesz) {
 			/* Firmware not large enough, load split-out segments */
 			sprintf(fw_name + fw_name_len - 3, "b%02d", i);
+
+			if (pas_init && pd_asid) {
+				ret = memcpy_pdseg_to_dma_blk(fw_name, dev, i,
+						&pd_dma, phdr->p_filesz);
+				if (ret)
+					goto free_dma;
+				continue;
+			}
+
 			ret = request_firmware_into_buf(&seg_fw, fw_name, dev,
 							ptr, phdr->p_filesz);
 			if (ret) {
@@ -256,9 +524,13 @@ static int __qcom_mdt_load(struct device *dev, const struct firmware *fw,
 			release_firmware(seg_fw);
 		}
 
-		if (phdr->p_memsz > phdr->p_filesz)
+		if (phdr->p_memsz > phdr->p_filesz && !pd_asid)
 			memset(ptr + phdr->p_filesz, 0, phdr->p_memsz - phdr->p_filesz);
 	}
+
+free_dma:
+	if (pas_init && pd_asid)
+		free_dma_mem(dev, &pd_dma);
 
 	if (reloc_base)
 		*reloc_base = mem_reloc;
