@@ -2972,6 +2972,7 @@ enum nl80211_attrs {
 	NL80211_ATTR_HE_6GHZ_CAPABILITY,
 	NL80211_ATTR_SAE_PWE,
 
+	NL80211_ATTR_EHT_CAPABILITY,
 	/* add attributes here, update the policy in nl80211.c */
 
 	__NL80211_ATTR_AFTER_LAST,
@@ -3025,6 +3026,9 @@ enum nl80211_attrs {
 #define NL80211_HE_MAX_CAPABILITY_LEN           54
 #define NL80211_MAX_NR_CIPHER_SUITES		5
 #define NL80211_MAX_NR_AKM_SUITES		2
+
+#define NL80211_EHT_MIN_CAPABILITY_LEN           16
+#define NL80211_EHT_MAX_CAPABILITY_LEN           54
 
 #define NL80211_MIN_REMAIN_ON_CHANNEL_TIME	10
 
@@ -3548,6 +3552,12 @@ enum nl80211_mpath_info {
  *     capabilities IE
  * @NL80211_BAND_IFTYPE_ATTR_HE_CAP_PPE: HE PPE thresholds information as
  *     defined in HE capabilities IE
+ * @NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MAC: EHT MAC capabilities as in EHT
+ *     capabilities IE
+ * @NL80211_BAND_IFTYPE_ATTR_EHT_CAP_PHY: EHT PHY capabilities as in EHT
+ *     capabilities IE
+ * @NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MCS_SET: EHT supported NSS/MCS as in EHT
+ *     capabilities IE
  * @NL80211_BAND_IFTYPE_ATTR_MAX: highest band HE capability attribute currently
  *     defined
  * @__NL80211_BAND_IFTYPE_ATTR_AFTER_LAST: internal use
@@ -3560,6 +3570,9 @@ enum nl80211_band_iftype_attr {
 	NL80211_BAND_IFTYPE_ATTR_HE_CAP_PHY,
 	NL80211_BAND_IFTYPE_ATTR_HE_CAP_MCS_SET,
 	NL80211_BAND_IFTYPE_ATTR_HE_CAP_PPE,
+	NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MAC,
+	NL80211_BAND_IFTYPE_ATTR_EHT_CAP_PHY,
+	NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MCS_SET,
 
 	/* keep last */
 	__NL80211_BAND_IFTYPE_ATTR_AFTER_LAST,

@@ -630,6 +630,8 @@ const struct nla_policy nl80211_policy[NUM_NL80211_ATTR] = {
 	[NL80211_ATTR_HE_OBSS_PD] = NLA_POLICY_NESTED(he_obss_pd_policy),
 	[NL80211_ATTR_VLAN_ID] = NLA_POLICY_RANGE(NLA_U16, 1, VLAN_N_VID - 2),
 	[NL80211_ATTR_SAE_PWE] = NLA_POLICY_RANGE(NLA_U16, 0, 2),
+	[NL80211_ATTR_EHT_CAPABILITY] = { .type = NLA_BINARY,
+					 .len = NL80211_EHT_MAX_CAPABILITY_LEN },
 };
 
 /* policy for the key attributes */
@@ -1551,6 +1553,7 @@ nl80211_send_iftype_data(struct sk_buff *msg,
 			 const struct ieee80211_sband_iftype_data *iftdata)
 {
 	const struct ieee80211_sta_he_cap *he_cap = &iftdata->he_cap;
+	const struct ieee80211_sta_eht_cap *eht_cap = &iftdata->eht_cap;
 
 	if (nl80211_put_iftypes(msg, NL80211_BAND_IFTYPE_ATTR_IFTYPES,
 				iftdata->types_mask))
@@ -1568,6 +1571,19 @@ nl80211_send_iftype_data(struct sk_buff *msg,
 			    &he_cap->he_mcs_nss_supp) ||
 		    nla_put(msg, NL80211_BAND_IFTYPE_ATTR_HE_CAP_PPE,
 			    sizeof(he_cap->ppe_thres), he_cap->ppe_thres))
+			return -ENOBUFS;
+	}
+
+	if (eht_cap->has_eht) {
+		if (nla_put(msg, NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MAC,
+					sizeof(eht_cap->eht_cap_elem.mac_cap_info),
+					eht_cap->eht_cap_elem.mac_cap_info) ||
+				nla_put(msg, NL80211_BAND_IFTYPE_ATTR_EHT_CAP_PHY,
+					sizeof(eht_cap->eht_cap_elem.phy_cap_info),
+					eht_cap->eht_cap_elem.phy_cap_info) ||
+				nla_put(msg, NL80211_BAND_IFTYPE_ATTR_EHT_CAP_MCS_SET,
+					sizeof(eht_cap->eht_mcs_nss_supp),
+					&eht_cap->eht_mcs_nss_supp))
 			return -ENOBUFS;
 	}
 
@@ -5074,7 +5090,6 @@ bool nl80211_put_sta_rate(struct sk_buff *msg, struct rate_info *info, int attr)
 			       info->he_ru_alloc))
 			return false;
 	}
-
 	nla_nest_end(msg, rate);
 	return true;
 }
@@ -5702,6 +5717,13 @@ static int nl80211_set_station_tdls(struct genl_info *info,
 			return -EINVAL;
 	}
 
+	if (info->attrs[NL80211_ATTR_EHT_CAPABILITY]) {
+		params->eht_capa =
+			nla_data(info->attrs[NL80211_ATTR_EHT_CAPABILITY]);
+		params->eht_capa_len =
+			nla_len(info->attrs[NL80211_ATTR_EHT_CAPABILITY]);
+	}
+
 	err = nl80211_parse_sta_channel_info(info, params);
 	if (err)
 		return err;
@@ -5958,6 +5980,13 @@ static int nl80211_new_station(struct sk_buff *skb, struct genl_info *info)
 		/* max len is validated in nla policy */
 		if (params.he_capa_len < NL80211_HE_MIN_CAPABILITY_LEN)
 			return -EINVAL;
+	}
+
+	if (info->attrs[NL80211_ATTR_EHT_CAPABILITY]) {
+		params.eht_capa =
+			nla_data(info->attrs[NL80211_ATTR_EHT_CAPABILITY]);
+		params.eht_capa_len =
+			nla_len(info->attrs[NL80211_ATTR_EHT_CAPABILITY]);
 	}
 
 	if (info->attrs[NL80211_ATTR_OPMODE_NOTIF]) {

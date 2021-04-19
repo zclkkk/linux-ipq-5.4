@@ -316,6 +316,22 @@ struct ieee80211_sta_he_cap {
 };
 
 /**
+ * struct ieee80211_sta_eht_cap - STA's EHT capabilities
+ *
+ * This structure describes most essential parameters needed
+ * to describe 802.11be EHT capabilities for a STA.
+ *
+ * @has_eht: true if EHT data is valid.
+ * @eht_cap_elem: Fixed portion of the EHTcapabilities element.
+ * @eht_mcs_nss_supp: The supported NSS/MCS combinations.
+ */
+struct ieee80211_sta_eht_cap {
+	bool has_eht;
+	struct ieee80211_eht_cap_elem eht_cap_elem;
+	struct ieee80211_eht_mcs_nss_supp eht_mcs_nss_supp;
+};
+
+/**
  * struct ieee80211_sband_iftype_data
  *
  * This structure encapsulates sband data that is relevant for the
@@ -324,10 +340,12 @@ struct ieee80211_sta_he_cap {
  *
  * @types_mask: interface types mask
  * @he_cap: holds the HE capabilities
+ * @eht_cap: holds the EHT capabilities.
  */
 struct ieee80211_sband_iftype_data {
 	u16 types_mask;
 	struct ieee80211_sta_he_cap he_cap;
+	struct ieee80211_sta_eht_cap eht_cap;
 };
 
 /**
@@ -445,6 +463,38 @@ ieee80211_get_sband_iftype_data(const struct ieee80211_supported_band *sband,
 	}
 
 	return NULL;
+}
+
+/**
+ * ieee80211_get_eht_iftype_cap - return EHT capabilities for an sband's iftype
+ * @sband: the sband to search for the iftype on
+ * @iftype: enum nl80211_iftype
+ *
+ * Return: pointer to the struct ieee80211_sta_eht_cap, or NULL is none found
+ */
+static inline const struct ieee80211_sta_eht_cap *
+ieee80211_get_eht_iftype_cap(const struct ieee80211_supported_band *sband,
+		u8 iftype)
+{
+	const struct ieee80211_sband_iftype_data *data =
+		ieee80211_get_sband_iftype_data(sband, iftype);
+
+	if (data && data->eht_cap.has_eht)
+		return &data->eht_cap;
+
+	return NULL;
+}
+
+/**
+ * ieee80211_get_eht_sta_cap - return EHT capabilities for an sband's   STA
+ * @sband: the sband to search for the STA on
+ *
+ * Return: pointer to the struct ieee80211_sta_eht_cap, or NULL is none found
+ */
+static inline const struct ieee80211_sta_eht_cap *
+ieee80211_get_eht_sta_cap(const struct ieee80211_supported_band *sband)
+{
+	return ieee80211_get_eht_iftype_cap(sband, NL80211_IFTYPE_STATION);
 }
 
 /**
@@ -1207,6 +1257,8 @@ struct station_parameters {
 	u8 he_capa_len;
 	u16 airtime_weight;
 	struct sta_txpwr txpwr;
+	const struct ieee80211_eht_cap_elem *eht_capa;
+	u8 eht_capa_len;
 };
 
 /**
@@ -1283,6 +1335,7 @@ int cfg80211_check_station_change(struct wiphy *wiphy,
  * @RATE_INFO_FLAGS_DMG: 60GHz MCS
  * @RATE_INFO_FLAGS_HE_MCS: HE MCS information
  * @RATE_INFO_FLAGS_EDMG: 60GHz MCS in EDMG mode
+ * @RATE_INFO_FLAGS_EHT_MCS: EHT MCS information
  */
 enum rate_info_flags {
 	RATE_INFO_FLAGS_MCS			= BIT(0),
@@ -1291,6 +1344,7 @@ enum rate_info_flags {
 	RATE_INFO_FLAGS_DMG			= BIT(3),
 	RATE_INFO_FLAGS_HE_MCS			= BIT(4),
 	RATE_INFO_FLAGS_EDMG			= BIT(5),
+	RATE_INFO_FLAGS_EHT_MCS			= BIT(6),
 };
 
 /**
