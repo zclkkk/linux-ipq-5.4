@@ -60,4 +60,14 @@ static inline void qcom_remove_sysmon_subdev(struct qcom_sysmon *sysmon)
 }
 #endif
 
+#if IS_ENABLED(CONFIG_QCOM_Q6V5_MPD)
+int q6_wcss_get_pd_asid(struct device *dev, u8 *pd_asid);
+#else
+static inline int q6_wcss_get_pd_asid(struct device *dev, u8 *pd_asid)
+{
+	*pd_asid = 0;
+	return 0;
+}
+#endif
+
 #endif
