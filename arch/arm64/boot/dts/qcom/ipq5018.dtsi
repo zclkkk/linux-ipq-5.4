@@ -69,6 +69,10 @@
 		scm {
 			compatible = "qcom,scm";
 		};
+
+		qfprom_sec {
+			compatible = "qcom,qfprom-sec";
+		};
 	};
 
 	tcsr_mutex: hwlock {
