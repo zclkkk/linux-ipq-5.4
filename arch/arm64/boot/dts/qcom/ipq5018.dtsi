@@ -946,4 +946,8 @@
 		qcom,wlan-ramdump-dynamic = <0x400000>;
 		status = "disabled";
 	};
+
+	ctx_save: ctx-save {
+		compatible = "qti,ctxt-save-ipq5018";
+	};
 };
