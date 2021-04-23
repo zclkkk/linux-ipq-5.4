@@ -87,6 +87,14 @@
 		hwlocks = <&tcsr_mutex 0>;
 	};
 
+	qti,tzlog {
+		compatible = "qti,tzlog";
+		interrupts = <GIC_SPI 267 IRQ_TYPE_EDGE_RISING>;
+		qti,tz-diag-buf-size = <0x2000>;
+		qti,tz-ring-off = <7>;
+		qti,tz-log-pos-info-off = <455>;
+	};
+
 	soc: soc {
 		#address-cells = <1>;
 		#size-cells = <1>;
