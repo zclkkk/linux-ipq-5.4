@@ -69,6 +69,10 @@
 		scm {
 			compatible = "qcom,scm";
 		};
+
+		qfprom_sec {
+			compatible = "qcom,qfprom-sec";
+		};
 	};
 
 	tcsr_mutex: hwlock {
@@ -81,6 +85,14 @@
 		compatible = "qcom,smem";
 		memory-region = <&smem_region>;
 		hwlocks = <&tcsr_mutex 0>;
+	};
+
+	qti,tzlog {
+		compatible = "qti,tzlog";
+		interrupts = <GIC_SPI 267 IRQ_TYPE_EDGE_RISING>;
+		qti,tz-diag-buf-size = <0x2000>;
+		qti,tz-ring-off = <7>;
+		qti,tz-log-pos-info-off = <455>;
 	};
 
 	soc: soc {
@@ -945,5 +957,9 @@
 		compatible = "qcom,testmhi";
 		qcom,wlan-ramdump-dynamic = <0x400000>;
 		status = "disabled";
+	};
+
+	ctx_save: ctx-save {
+		compatible = "qti,ctxt-save-ipq5018";
 	};
 };

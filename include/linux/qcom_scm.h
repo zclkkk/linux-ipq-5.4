@@ -331,4 +331,10 @@ extern int qti_scm_tcsr_reg_write(u32 reg_addr, u32 value)
 }
 #endif
 extern int qti_scm_wcss_boot(u32 svc_id, u32 cmd_id, void *cmd_buf);
+extern int qti_scm_pdseg_memcpy_v2(u32 peripheral, int phno, dma_addr_t dma,
+								int seg_cnt);
+extern int qti_scm_pdseg_memcpy(u32 peripheral, int phno, dma_addr_t dma,
+								size_t size);
+extern int qti_scm_int_radio_powerup(u32 peripheral);
+extern int qti_scm_int_radio_powerdown(u32 peripheral);
 #endif

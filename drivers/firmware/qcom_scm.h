@@ -212,11 +212,29 @@ extern int __qti_fuseipq_scm_call(struct device *dev, u32 svc_id, u32 cmd_id,
 #define DLOAD_MODE_ENABLE_WARMRESET		0x20ull
 #define TCSR_Q6SS_BOOT_TRIG_REG			0x193d204ull
 
+#define PD_LOAD_SVC_ID          0x2
+#define PD_LOAD_CMD_ID          0x16
+#define PD_LOAD_V2_CMD_ID       0x19
+#define INT_RAD_PWR_UP_CMD_ID   0x17
+#define INT_RAD_PWR_DN_CMD_ID   0x18
 extern int __qti_scm_wcss_boot(struct device *, u32 svc_id, u32 cmd_id,
 				void *cmd_buf);
 extern int qti_scm_wcss_boot(u32 svc_id, u32 cmd_id, void *cmd_buf);
 extern int __qti_scm_dload(struct device *dev, u32 svc_id, u32 cmd_id,
 				void *cmd_buf);
+extern int __qti_scm_pdseg_memcpy_v2(struct device *dev, u32 peripheral,
+				int phno, dma_addr_t dma, int seg_cnt);
+extern int qti_scm_pdseg_memcpy_v2(u32 peripheral, int phno, dma_addr_t dma,
+							int seg_cnt);
+extern int __qti_scm_pdseg_memcpy(struct device *dev, u32 peripheral,
+				int phno, dma_addr_t dma, size_t size);
+extern int qti_scm_pdseg_memcpy(u32 peripheral, int phno, dma_addr_t dma,
+								size_t size);
+extern int __qti_scm_int_radio_powerup(struct device *dev, u32 peripheral);
+extern int qti_scm_int_radio_powerup(u32 peripheral);
+extern int __qti_scm_int_radio_powerdown(struct device *dev, u32 peripheral);
+extern int qti_scm_int_radio_powerdown(u32 peripheral);
+
 extern int __qti_scm_sdi(struct device *dev, u32 svc_id, u32 cmd_id);
 extern int __qti_scm_tz_hvc_log(struct device *dev, u32 svc_id, u32 cmd_id,
 				void *ker_buf, u32 buf_len);
