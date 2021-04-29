@@ -21,6 +21,8 @@
 #define BDF_TYPE_GOLDEN 0
 #define BDF_TYPE_CALDATA 2
 #define BDF_TYPE_EEPROM 3
+#define BDF_TYPE_REGDB 4
+#define BDF_TYPE_HDS 6
 #define CALDATA_OFFSET(addr) (addr + (128 * 1024))
 #define Q6_QDSS_ETR_SIZE_QCN9000 0x100000
 #define Q6_M3_DUMP_SIZE_QCN9000 0x100000
@@ -33,6 +35,9 @@
 /* node_id for QCN9000 */
 #define QCN9000_0	0x20
 #define QCN9000_1	0x21
+
+#define QCN9224_0	0x31
+#define QCN9224_1	0x32
 
 /*NODE_ID_BASE is derived by qrtr_node_id in DTS + FW base node id 7 */
 #define NODE_ID_BASE 0x27
