@@ -218,7 +218,6 @@
 #define QPIC_v2_0	0x2
 #define FEEDBACK_CLK_EN	(1 << 4)
 #define MAX_TRAINING_BLK	8
-#define TRAINING_OFFSET	0x0
 #define TOTAL_NUM_PHASE	7
 
 #define nandc_set_read_loc(nandc, reg, offset, size, is_last)	\
@@ -3039,12 +3038,9 @@ static int qspi_execute_training(struct qcom_nand_controller *nandc,
 	u32 pages_per_block = 0, page = 0;
 	int ret = 0, bb_cnt = 0, i, phase_failed = 0;
 	int phase_cnt, phase;
-	u32 training_offset = TRAINING_OFFSET;
+	u32 training_offset = 0;
 	u8 *training_data = NULL, trained_phase[TOTAL_NUM_PHASE] = {'\0'};
 	struct nand_chip *chip = &host->chip;
-
-	pages_per_block = 1 << (chip->phys_erase_shift - chip->page_shift);
-	page = (training_offset >> chip->page_shift) & chip->pagemask;
 
 	/* Set feedback clk enable bit to do auto adjustment of phase
 	 * at lower frequency
@@ -3052,6 +3048,17 @@ static int qspi_execute_training(struct qcom_nand_controller *nandc,
 	qspi_write_reg_bam(nandc, (nandc_read(nandc,
 			NAND_QSPI_MSTR_CONFIG) | FEEDBACK_CLK_EN),
 			NAND_QSPI_MSTR_CONFIG);
+
+	/* Read the training offset patched from u-boot */
+	if (of_property_read_u32(nandc->dev->of_node, "qcom,training_offset",
+				&training_offset)) {
+		dev_err(nandc->dev, "Serial training partition not found");
+		ret = -EINVAL;
+		goto trng_err;
+	}
+
+	pages_per_block = 1 << (chip->phys_erase_shift - chip->page_shift);
+	page = (training_offset >> chip->page_shift) & chip->pagemask;
 
 	/* check for bad block in allocated training blocks
 	 * The training blocks should be continuous good block or
