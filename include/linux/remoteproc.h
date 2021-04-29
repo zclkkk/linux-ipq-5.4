@@ -643,6 +643,8 @@ int rproc_coredump_add_custom_segment(struct rproc *rproc,
 						     struct rproc_dump_segment *segment,
 						     void *dest),
 				      void *priv);
+int rproc_start(struct rproc *rproc, const struct firmware *fw);
+int rproc_stop(struct rproc *rproc, bool crashed);
 
 static inline struct rproc_vdev *vdev_to_rvdev(struct virtio_device *vdev)
 {
