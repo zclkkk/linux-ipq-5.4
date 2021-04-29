@@ -1191,8 +1191,10 @@ static void config_nand_page_read(struct qcom_nand_controller *nandc)
  * before reading each codeword in NAND page.
  */
 static void
-config_nand_cw_read(struct qcom_nand_controller *nandc, bool use_ecc, bool last_cw)
+config_nand_cw_read(struct nand_chip *chip, bool use_ecc, bool last_cw)
 {
+	struct qcom_nand_controller *nandc = get_qcom_nand_controller(chip);
+
 	if (nandc->props->is_bam) {
 		if (nandc->props->qpic_v2 && last_cw)
 			write_reg_dma(nandc, NAND_READ_LOCATION_LAST_CW_0,
@@ -1218,19 +1220,23 @@ config_nand_cw_read(struct qcom_nand_controller *nandc, bool use_ecc, bool last_
  * single codeword in page
  */
 static void
-config_nand_single_cw_page_read(struct qcom_nand_controller *nandc,
+config_nand_single_cw_page_read(struct nand_chip *chip,
 				bool use_ecc, bool last_cw)
 {
+	struct qcom_nand_controller *nandc = get_qcom_nand_controller(chip);
+
 	config_nand_page_read(nandc);
-	config_nand_cw_read(nandc, use_ecc, last_cw);
+	config_nand_cw_read(chip, use_ecc, last_cw);
 }
 
 /*
  * Helper to prepare DMA descriptors used to configure registers needed for
  * before writing a NAND page.
  */
-static void config_nand_page_write(struct qcom_nand_controller *nandc)
+static void config_nand_page_write(struct nand_chip *chip)
 {
+	struct qcom_nand_controller *nandc = get_qcom_nand_controller(chip);
+
 	write_reg_dma(nandc, NAND_ADDR0, 2, 0);
 	write_reg_dma(nandc, NAND_DEV0_CFG0, 3, 0);
 	write_reg_dma(nandc, NAND_EBI2_ECC_BUF_CFG, 1,
@@ -1241,8 +1247,10 @@ static void config_nand_page_write(struct qcom_nand_controller *nandc)
  * Helper to prepare DMA descriptors for configuring registers
  * before writing each codeword in NAND page.
  */
-static void config_nand_cw_write(struct qcom_nand_controller *nandc)
+static void config_nand_cw_write(struct nand_chip *chip)
 {
+	struct qcom_nand_controller *nandc = get_qcom_nand_controller(chip);
+
 	write_reg_dma(nandc, NAND_FLASH_CMD, 1, NAND_BAM_NEXT_SGL);
 	write_reg_dma(nandc, NAND_EXEC_CMD, 1, NAND_BAM_NEXT_SGL);
 
@@ -1303,7 +1311,7 @@ static int nandc_param(struct qcom_nand_host *host)
 	nandc->buf_count = 512;
 	memset(nandc->data_buffer, 0xff, nandc->buf_count);
 
-	config_nand_single_cw_page_read(nandc, false, false);
+	config_nand_single_cw_page_read(chip, false, false);
 
 	read_data_dma(nandc, FLASH_BUF_ACC, nandc->data_buffer,
 		      nandc->buf_count, 0);
@@ -1707,6 +1715,12 @@ static int check_flash_errors(struct qcom_nand_host *host, int cw_cnt)
 	return 0;
 }
 
+/* Helper to check the code word, whether it is last cw or not */
+static bool qcom_nandc_is_last_cw(struct nand_ecc_ctrl *ecc, int cw)
+{
+	return cw == (ecc->steps - 1);
+}
+
 /* performs raw read for one codeword */
 static int
 qcom_nandc_read_cw_raw(struct mtd_info *mtd, struct nand_chip *chip,
@@ -1729,7 +1743,7 @@ qcom_nandc_read_cw_raw(struct mtd_info *mtd, struct nand_chip *chip,
 	data_size1 = mtd->writesize - host->cw_size * (ecc->steps - 1);
 	oob_size1 = host->bbm_size;
 
-	if (cw == (ecc->steps - 1)) {
+	if (qcom_nandc_is_last_cw(ecc, cw)) {
 		data_size2 = ecc->size - data_size1 -
 			     ((ecc->steps - 1) * 4);
 		oob_size2 = (ecc->steps * 4) + host->ecc_bytes_hw +
@@ -1740,7 +1754,7 @@ qcom_nandc_read_cw_raw(struct mtd_info *mtd, struct nand_chip *chip,
 	}
 
 	if (nandc->props->is_bam) {
-		if ((nandc->props->qpic_v2) && (cw == (ecc->steps - 1))) {
+		if ((nandc->props->qpic_v2) && qcom_nandc_is_last_cw(ecc, cw)) {
 			nandc_set_read_loc_last(nandc, 0, read_loc, data_size1, 0);
 			read_loc += data_size1;
 
@@ -1765,7 +1779,7 @@ qcom_nandc_read_cw_raw(struct mtd_info *mtd, struct nand_chip *chip,
 		}
 	}
 
-	config_nand_cw_read(nandc, false, cw == ecc->steps - 1 ? true : false);
+	config_nand_cw_read(chip, false, cw == ecc->steps - 1 ? true : false);
 
 	read_data_dma(nandc, reg_off, data_buf, data_size1, 0);
 	reg_off += data_size1;
@@ -1823,7 +1837,7 @@ check_for_erased_page(struct qcom_nand_host *host, u8 *data_buf,
 	}
 
 	for_each_set_bit(cw, &uncorrectable_cws, ecc->steps) {
-		if (cw == (ecc->steps - 1)) {
+		if (qcom_nandc_is_last_cw(ecc, cw)) {
 			data_size = ecc->size - ((ecc->steps - 1) * 4);
 			oob_size = (ecc->steps * 4) + host->ecc_bytes_hw;
 		} else {
@@ -1883,7 +1897,7 @@ static int parse_read_errors(struct qcom_nand_host *host, u8 *data_buf,
 		u32 flash, buffer, erased_cw;
 		int data_len, oob_len;
 
-		if (i == (ecc->steps - 1)) {
+		if (qcom_nandc_is_last_cw(ecc, i)) {
 			data_len = ecc->size - ((ecc->steps - 1) << 2);
 			oob_len = ecc->steps << 2;
 		} else {
@@ -1982,7 +1996,7 @@ static int read_page_ecc(struct qcom_nand_host *host, u8 *data_buf,
 	for (i = 0; i < ecc->steps; i++) {
 		int data_size, oob_size;
 
-		if (i == (ecc->steps - 1)) {
+		if (qcom_nandc_is_last_cw(ecc, i)) {
 			data_size = ecc->size - ((ecc->steps - 1) << 2);
 			oob_size = (ecc->steps << 2) + host->ecc_bytes_hw +
 				   host->spare_bytes;
@@ -1993,7 +2007,7 @@ static int read_page_ecc(struct qcom_nand_host *host, u8 *data_buf,
 
 		if (nandc->props->is_bam) {
 			if (data_buf && oob_buf) {
-				if (nandc->props->qpic_v2 && i == (ecc->steps - 1)) {
+				if (nandc->props->qpic_v2 && qcom_nandc_is_last_cw(ecc, i)) {
 					nandc_set_read_loc_last(nandc, 0, 0, data_size, 0);
 					nandc_set_read_loc_last(nandc, 1, data_size, oob_size, 1);
 				} else {
@@ -2001,19 +2015,19 @@ static int read_page_ecc(struct qcom_nand_host *host, u8 *data_buf,
 					nandc_set_read_loc(nandc, 1, data_size, oob_size, 1);
 				}
 			} else if (data_buf) {
-				if (nandc->props->qpic_v2 && i == (ecc->steps - 1))
+				if (nandc->props->qpic_v2 && qcom_nandc_is_last_cw(ecc, i))
 					nandc_set_read_loc_last(nandc, 0, 0, data_size, 1);
 				else
 					nandc_set_read_loc(nandc, 0, 0, data_size, 1);
 			} else {
-				if (nandc->props->qpic_v2 && i == (ecc->steps - 1))
+				if (nandc->props->qpic_v2 && qcom_nandc_is_last_cw(ecc, i))
 					nandc_set_read_loc_last(nandc, 0, data_size, oob_size, 1);
 				else
 					nandc_set_read_loc(nandc, 0, data_size, oob_size, 1);
 			}
 		}
 
-		config_nand_cw_read(nandc, true, i == ecc->steps - 1 ? true : false);
+		config_nand_cw_read(chip, true, i == ecc->steps - 1 ? true : false);
 
 		if (data_buf)
 			read_data_dma(nandc, FLASH_BUF_ACC, data_buf,
@@ -2075,7 +2089,7 @@ static int copy_last_cw(struct qcom_nand_host *host, int page)
 	set_address(host, host->cw_size * (ecc->steps - 1), page);
 	update_rw_regs(host, 1, true);
 
-	config_nand_single_cw_page_read(nandc, host->use_ecc, true);
+	config_nand_single_cw_page_read(chip, host->use_ecc, true);
 
 	read_data_dma(nandc, FLASH_BUF_ACC, nandc->data_buffer, size, 0);
 
@@ -2165,12 +2179,12 @@ static int qcom_nandc_write_page(struct nand_chip *chip, const uint8_t *buf,
 
 	host->use_ecc = true;
 	update_rw_regs(host, ecc->steps, false);
-	config_nand_page_write(nandc);
+	config_nand_page_write(chip);
 
 	for (i = 0; i < ecc->steps; i++) {
 		int data_size, oob_size;
 
-		if (i == (ecc->steps - 1)) {
+		if (qcom_nandc_is_last_cw(ecc, i)) {
 			data_size = ecc->size - ((ecc->steps - 1) << 2);
 			oob_size = (ecc->steps << 2) + host->ecc_bytes_hw +
 				   host->spare_bytes;
@@ -2190,14 +2204,14 @@ static int qcom_nandc_write_page(struct nand_chip *chip, const uint8_t *buf,
 		 * itself. For the last codeword, we skip the bbm positions and
 		 * write to the free oob area.
 		 */
-		if (i == (ecc->steps - 1)) {
+		if (qcom_nandc_is_last_cw(ecc, i)) {
 			oob_buf += host->bbm_size;
 
 			write_data_dma(nandc, FLASH_BUF_ACC + data_size,
 				       oob_buf, oob_size, 0);
 		}
 
-		config_nand_cw_write(nandc);
+		config_nand_cw_write(chip);
 
 		data_buf += data_size;
 		oob_buf += oob_size;
@@ -2236,7 +2250,7 @@ static int qcom_nandc_write_page_raw(struct nand_chip *chip,
 
 	host->use_ecc = false;
 	update_rw_regs(host, ecc->steps, false);
-	config_nand_page_write(nandc);
+	config_nand_page_write(chip);
 
 	for (i = 0; i < ecc->steps; i++) {
 		int data_size1, data_size2, oob_size1, oob_size2;
@@ -2245,7 +2259,7 @@ static int qcom_nandc_write_page_raw(struct nand_chip *chip,
 		data_size1 = mtd->writesize - host->cw_size * (ecc->steps - 1);
 		oob_size1 = host->bbm_size;
 
-		if (i == (ecc->steps - 1)) {
+		if (qcom_nandc_is_last_cw(ecc, i)) {
 			data_size2 = ecc->size - data_size1 -
 				     ((ecc->steps - 1) << 2);
 			oob_size2 = (ecc->steps << 2) + host->ecc_bytes_hw +
@@ -2273,7 +2287,7 @@ static int qcom_nandc_write_page_raw(struct nand_chip *chip,
 		write_data_dma(nandc, reg_off, oob_buf, oob_size2, 0);
 		oob_buf += oob_size2;
 
-		config_nand_cw_write(nandc);
+		config_nand_cw_write(chip);
 	}
 
 	ret = submit_descs(nandc);
@@ -2320,10 +2334,10 @@ static int qcom_nandc_write_oob(struct nand_chip *chip, int page)
 	set_address(host, host->cw_size * (ecc->steps - 1), page);
 	update_rw_regs(host, 1, false);
 
-	config_nand_page_write(nandc);
+	config_nand_page_write(chip);
 	write_data_dma(nandc, FLASH_BUF_ACC,
 		       nandc->data_buffer, data_size + oob_size, 0);
-	config_nand_cw_write(nandc);
+	config_nand_cw_write(chip);
 
 	ret = submit_descs(nandc);
 
@@ -2399,10 +2413,10 @@ static int qcom_nandc_block_markbad(struct nand_chip *chip, loff_t ofs)
 	set_address(host, host->cw_size * (ecc->steps - 1), page);
 	update_rw_regs(host, 1, false);
 
-	config_nand_page_write(nandc);
+	config_nand_page_write(chip);
 	write_data_dma(nandc, FLASH_BUF_ACC,
 		       nandc->data_buffer, host->cw_size, 0);
-	config_nand_cw_write(nandc);
+	config_nand_cw_write(chip);
 
 	ret = submit_descs(nandc);
 
