@@ -212,7 +212,7 @@ struct wcss_data {
 	bool need_mem_protection;
 	bool need_auto_boot;
 	bool is_q6v6;
-	bool subdev_required;
+	bool glink_subdev_required;
 	u8 pd_asid;
 };
 
@@ -1721,6 +1721,7 @@ static int q6_wcss_probe(struct platform_device *pdev)
 	struct rproc *rproc;
 	int ret;
 	u8 pd_asid;
+	char *subdev_name;
 
 	desc = of_device_get_match_data(&pdev->dev);
 	if (!desc)
@@ -1778,10 +1779,11 @@ static int q6_wcss_probe(struct platform_device *pdev)
 	if (ret)
 		goto free_rproc;
 
-	if (desc->subdev_required) {
+	if (desc->glink_subdev_required)
 		qcom_add_glink_subdev(rproc, &wcss->glink_subdev);
-		qcom_add_ssr_subdev(rproc, &wcss->ssr_subdev, desc->ssr_name);
-	}
+
+	subdev_name = (char *)(desc->ssr_name ? desc->ssr_name : pdev->name);
+	qcom_add_ssr_subdev(rproc, &wcss->ssr_subdev, subdev_name);
 
 	if (desc->sysmon_name)
 		wcss->sysmon = qcom_add_sysmon_subdev(rproc,
@@ -1833,7 +1835,7 @@ static const struct wcss_data q6_ipq5018_res_init = {
 	.need_mem_protection = true,
 	.need_auto_boot = false,
 	.is_q6v6 = true,
-	.subdev_required = true,
+	.glink_subdev_required = true,
 };
 
 static const struct wcss_data wcss_ahb_ipq5018_res_init = {
