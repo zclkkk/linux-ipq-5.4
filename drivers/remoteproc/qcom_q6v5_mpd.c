@@ -16,7 +16,6 @@
 #include <linux/of_reserved_mem.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
-#include <linux/regulator/consumer.h>
 #include <linux/reset.h>
 #include <linux/soc/qcom/mdt_loader.h>
 #include <linux/soc/qcom/smem.h>
@@ -167,8 +166,6 @@ struct q6_wcss {
 	struct clk *axmis_clk;				//"gcc_q6_axis_clk"
 	struct clk *axi_s_clk;				//"gcc_wcss_axi_s_clk"
 
-	struct regulator *cx_supply;
-
 	struct qcom_rproc_glink glink_subdev;
 	struct qcom_rproc_ssr ssr_subdev;
 	struct qcom_sysmon *sysmon;
@@ -196,7 +193,6 @@ struct q6_wcss {
 
 struct wcss_data {
 	int (*init_clock)(struct q6_wcss *wcss);
-	int (*init_regulator)(struct q6_wcss *wcss);
 	int (*init_irq)(struct qcom_q6v5 *q6, struct platform_device *pdev,
 				struct rproc *rproc, int crash_reason,
 				void (*handover)(struct qcom_q6v5 *q6));
@@ -1760,12 +1756,6 @@ static int q6_wcss_probe(struct platform_device *pdev)
 
 	if (desc->init_clock) {
 		ret = desc->init_clock(wcss);
-		if (ret)
-			goto free_rproc;
-	}
-
-	if (desc->init_regulator) {
-		ret = desc->init_regulator(wcss);
 		if (ret)
 			goto free_rproc;
 	}
