@@ -18,6 +18,9 @@
 #define SCM_IO_WRITE    2
 #define SCM_SVC_IO_ACCESS       0x5
 
+#define QTI_TZ_DIAG_LOG_ENCR_ID		0x0
+#define QTI_TZ_QSEE_LOG_ENCR_ID		0x1
+#define QTI_TZ_LOG_NO_UPDATE		-6
 enum qseecom_qceos_cmd_id {
 	QSEOS_APP_START_COMMAND	= 0x01,
 	QSEOS_APP_SHUTDOWN_COMMAND,
@@ -243,6 +246,9 @@ extern int qti_scm_pshold(void);
 extern int qti_scm_extwdt(u32 svc_id, u32 cmd_id, unsigned int regaddr,
 			   unsigned int val);
 extern int qti_scm_tcsr_reg_write(u32 reg_addr, u32 value);
+extern int qti_scm_is_tz_log_encrypted(void);
+extern int qti_scm_get_encrypted_tz_log(void *ker_buf, u32 buf_len, u32 log_id);
+extern int qti_scm_is_tz_log_encryption_supported(void);
 #else
 
 #include <linux/errno.h>
@@ -329,7 +335,20 @@ extern int qti_scm_tcsr_reg_write(u32 reg_addr, u32 value)
 {
 	return -ENODEV;
 }
+static inline int qti_scm_is_tz_log_encrypted(void)
+{
+	return 0;
+}
+static inline int qti_scm_get_encrypted_tz_log(void *ker_buf, u32 buf_len, u32 log_id)
+{
+	return -ENODEV;
+}
+static inline int qti_scm_is_tz_log_encryption_supported(void)
+{
+	return 0;
+}
 #endif
+
 extern int qti_scm_wcss_boot(u32 svc_id, u32 cmd_id, void *cmd_buf);
 extern int qti_scm_pdseg_memcpy_v2(u32 peripheral, int phno, dma_addr_t dma,
 								int seg_cnt);

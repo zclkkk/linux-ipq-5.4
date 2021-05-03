@@ -929,6 +929,33 @@ int qti_scm_extwdt(u32 svc_id, u32 cmd_id, unsigned int regaddr,
 }
 EXPORT_SYMBOL(qti_scm_extwdt);
 
+int qti_scm_is_tz_log_encryption_supported(void)
+{
+	int ret;
+
+	ret = __qcom_scm_is_call_available(__scm->dev, QCOM_SCM_SVC_BOOT,
+					   QCOM_SCM_IS_TZ_LOG_ENCRYPTED);
+
+	return (ret == 1) ? 1 : 0;
+}
+EXPORT_SYMBOL(qti_scm_is_tz_log_encryption_supported);
+
+int qti_scm_is_tz_log_encrypted(void)
+{
+	int ret;
+
+	ret = __qti_scm_is_tz_log_encrypted(__scm->dev);
+
+	return (ret == 1) ? 1 : 0;
+}
+EXPORT_SYMBOL(qti_scm_is_tz_log_encrypted);
+
+int qti_scm_get_encrypted_tz_log(void *ker_buf, u32 buf_len, u32 log_id)
+{
+	return __qti_scm_get_encrypted_tz_log(__scm->dev, ker_buf, buf_len, log_id);
+}
+EXPORT_SYMBOL(qti_scm_get_encrypted_tz_log);
+
 static int qcom_scm_probe(struct platform_device *pdev)
 {
 	struct device_node *np = (&pdev->dev)->of_node;
