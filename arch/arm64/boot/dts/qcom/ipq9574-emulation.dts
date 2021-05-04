@@ -136,6 +136,10 @@
 			gcc-use-dummy;
 		};
 
+		nsscc: nsscc@39b00000 {
+			nsscc-use-dummy;
+		};
+
 		remoteproc@cd00000 {
 			qcom,emulation;
 			bootaddr=<0x4AB00000>;

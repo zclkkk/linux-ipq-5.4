@@ -106,6 +106,10 @@
 			gcc-use-dummy;
 		};
 
+		nsscc: nsscc@39b00000 {
+			nsscc-use-dummy;
+		};
+
 		ess-instance {
 			num_devices = <0x1>;
 			ess-switch@3a000000 {
