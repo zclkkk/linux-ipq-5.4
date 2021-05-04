@@ -37,8 +37,8 @@
 	};
 
 	chosen {
-		linux,initrd-end = <0x46000000>;
-		linux,initrd-start = <0x44000000>;
+		linux,initrd-end = <0x47000000>;
+		linux,initrd-start = <0x45000000>;
 		bootargs-append = " maxcpus=2";
 		stdout-path = "serial0";
 	};
