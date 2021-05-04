@@ -1724,3 +1724,51 @@ int __qti_scm_tcsr_reg_write(struct device *dev, u32 reg_addr, u32 value)
 
 	return le32_to_cpu(desc.ret[0]);
 }
+
+int __qti_scm_is_tz_log_encrypted(struct device *dev)
+{
+	int ret;
+	__le32 scm_ret;
+	struct scm_desc desc = {0};
+
+	desc.arginfo = SCM_ARGS(0);
+
+	ret = qti_scm_call2(dev, SCM_SIP_FNID(QCOM_SCM_SVC_BOOT,
+					QCOM_SCM_IS_TZ_LOG_ENCRYPTED), &desc);
+	scm_ret = desc.ret[0];
+
+	if (!ret)
+		return le32_to_cpu(scm_ret);
+
+	return ret;
+}
+
+int __qti_scm_get_encrypted_tz_log(struct device *dev, void *ker_buf, u32 buf_len, u32 log_id)
+{
+	struct scm_desc desc = {0};
+	dma_addr_t log_buf;
+	int ret;
+
+	log_buf = dma_map_single(dev, ker_buf, buf_len, DMA_FROM_DEVICE);
+	ret = dma_mapping_error(dev, log_buf);
+
+	if (ret) {
+		dev_err(dev, "DMA mapping error : %d\n", ret);
+		return ret;
+	}
+
+	desc.args[0] = log_buf;
+	desc.args[1] = buf_len;
+	desc.args[2] = log_id;
+	desc.arginfo = SCM_ARGS(3, QCOM_SCM_RW, QCOM_SCM_VAL, QCOM_SCM_VAL);
+
+	ret = qti_scm_call2(dev, SCM_SIP_FNID(QCOM_SCM_SVC_BOOT,
+					QCOM_SCM_GET_TZ_LOG_ENCRYPTED), &desc);
+
+	dma_unmap_single(dev, log_buf, buf_len, DMA_FROM_DEVICE);
+
+	if (ret)
+		return ret;
+
+	return le32_to_cpu(desc.ret[0]);
+}
