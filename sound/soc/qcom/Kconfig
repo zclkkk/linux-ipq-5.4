@@ -115,6 +115,7 @@ config SND_SOC_IPQ
 	depends on SND_SOC_QCOM && HAS_DMA
 	select SND_SOC_IPQ_ADSS
 	select SND_SOC_IPQ_MBOX
+	select SND_SOC_IPQ_PCM_RAW
 	help
 	Say Y or M to if you want to add support for SoC audio on
 	Qualcomm Technologies IPQ based board.
@@ -124,5 +125,9 @@ config SND_SOC_IPQ_ADSS
 	depends on SND_SOC_IPQ
 
 config SND_SOC_IPQ_MBOX
+	tristate
+	depends on SND_SOC_IPQ
+
+config SND_SOC_IPQ_PCM_RAW
 	tristate
 	depends on SND_SOC_IPQ
