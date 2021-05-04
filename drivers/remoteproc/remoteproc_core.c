@@ -37,6 +37,7 @@
 #include <asm/byteorder.h>
 #include <linux/platform_device.h>
 #include <linux/delay.h>
+#include <linux/of_platform.h>
 
 #include "remoteproc_internal.h"
 
@@ -1303,7 +1304,7 @@ static void rproc_resource_cleanup(struct rproc *rproc)
 	rproc_coredump_cleanup(rproc);
 }
 
-static int rproc_start(struct rproc *rproc, const struct firmware *fw)
+int rproc_start(struct rproc *rproc, const struct firmware *fw)
 {
 	struct resource_table *loaded_table;
 	struct device *dev = &rproc->dev;
@@ -1369,6 +1370,7 @@ reset_table_ptr:
 
 	return ret;
 }
+EXPORT_SYMBOL(rproc_start);
 
 /*
  * take a firmware and boot a remote processor with it.
@@ -1479,7 +1481,7 @@ static int rproc_trigger_auto_boot(struct rproc *rproc)
 	return ret;
 }
 
-static int rproc_stop(struct rproc *rproc, bool crashed)
+int rproc_stop(struct rproc *rproc, bool crashed)
 {
 	struct device *dev = &rproc->dev;
 	int ret;
@@ -1500,7 +1502,6 @@ static int rproc_stop(struct rproc *rproc, bool crashed)
 
 	rproc_unprepare_subdevices(rproc);
 	rproc_subsys_notify(rproc, SUBSYS_AFTER_SHUTDOWN, false);
-	rproc_subsys_notify(rproc, SUBSYS_RAMDUMP_NOTIFICATION, false);
 
 	rproc->state = RPROC_OFFLINE;
 
@@ -1508,6 +1509,7 @@ static int rproc_stop(struct rproc *rproc, bool crashed)
 
 	return 0;
 }
+EXPORT_SYMBOL(rproc_stop);
 
 /**
  * rproc_coredump_add_segment() - add segment of device memory to coredump
@@ -1684,6 +1686,7 @@ int rproc_trigger_recovery(struct rproc *rproc)
 	if (ret)
 		goto unlock_mutex;
 
+	rproc_subsys_notify(rproc, SUBSYS_RAMDUMP_NOTIFICATION, false);
 	/* generate coredump */
 	rproc_coredump(rproc);
 
@@ -2251,6 +2254,7 @@ struct rproc *rproc_get_by_name(const char* name)
 
 	return rproc;
 }
+EXPORT_SYMBOL(rproc_get_by_name);
 
 /**
  * rproc_register_subsys_notifier() - register for subsys start, stop events
@@ -2301,6 +2305,7 @@ int rproc_unregister_subsys_notifier(const char *name, struct notifier_block *nb
 
 	return ret;
 }
+EXPORT_SYMBOL(rproc_unregister_subsys_notifier);
 
 /**
  * rproc_subsys_notify() - notify sub system event
@@ -2310,13 +2315,16 @@ int rproc_unregister_subsys_notifier(const char *name, struct notifier_block *nb
  */
 void rproc_subsys_notify(struct rproc *rproc, int event, bool atomic)
 {
+	struct notif_data data;
+
+	data.pdev = of_find_device_by_node(rproc->dev.parent->of_node);
 	if (!atomic && (event == SUBSYS_AFTER_POWERUP))
 		msleep(100);
 
 	if (atomic)
-		atomic_notifier_call_chain(&rproc->atomic_nlist, event, NULL);
+		atomic_notifier_call_chain(&rproc->atomic_nlist, event, &data);
 	else
-		blocking_notifier_call_chain(&rproc->nlist, event, NULL);
+		blocking_notifier_call_chain(&rproc->nlist, event, &data);
 }
 /**
  * rproc_report_crash() - rproc crash reporter function

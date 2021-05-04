@@ -1641,6 +1641,7 @@ void  *cnss_subsystem_get(struct device *dev, int device_id)
 	if (rproc_boot(subsys_info->subsys_handle)) {
 		cnss_pr_err("%s: error: rproc_boot failed for %s\n",
 			    __func__, plat_priv->device_name);
+		CNSS_ASSERT(0);
 		return NULL;
 	}
 	return subsys_info->subsys_handle;
@@ -2908,6 +2909,7 @@ int cnss_register_subsys(struct cnss_plat_data *plat_priv)
 	if (ret) {
 		cnss_pr_err("%s: Failed to boot device %s (%d)\n",
 			    __func__, plat_priv->device_name, ret);
+		CNSS_ASSERT(0);
 		cnss_unregister_notifier_cb(plat_priv);
 	}
 
