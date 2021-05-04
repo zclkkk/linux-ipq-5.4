@@ -112,6 +112,10 @@
 			clock-frequency = <240000>;
 		};
 
+		qti,rpm-log@29fc00 {
+			status = "disabled";
+		};
+
 	};
 
 	psci {
