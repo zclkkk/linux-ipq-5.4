@@ -5,6 +5,7 @@
 
 #include <linux/kernel.h>
 #include <linux/completion.h>
+#include <linux/soc/qcom/smem.h>
 
 struct rproc;
 struct qcom_smem_state;
@@ -31,6 +32,7 @@ struct qcom_q6v5 {
 	struct completion stop_done;
 	struct completion spawn_done;
 
+	int remote_id;
 	int crash_reason;
 
 	bool running;
@@ -39,7 +41,7 @@ struct qcom_q6v5 {
 };
 
 int qcom_q6v5_init(struct qcom_q6v5 *q6v5, struct platform_device *pdev,
-		   struct rproc *rproc, int crash_reason,
+		   struct rproc *rproc, int remote_id, int crash_reason,
 		   void (*handover)(struct qcom_q6v5 *q6v5));
 
 int qcom_q6v5_prepare(struct qcom_q6v5 *q6v5);
