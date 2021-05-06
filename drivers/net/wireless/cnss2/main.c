@@ -728,6 +728,174 @@ void cnss_get_ramdump_device_name(struct device *dev,
 }
 EXPORT_SYMBOL(cnss_get_ramdump_device_name);
 
+int cnss_get_mlo_chip_id(struct device *dev)
+{
+	struct cnss_plat_data *plat_priv = cnss_bus_dev_to_plat_priv(dev);
+	u8 mlo_chip_id = 0;
+	struct device *bus_dev;
+	struct device_node *mlo_chip_node = NULL;
+	phandle mlo_chip_phandle;
+
+	if (!plat_priv)
+		return -EINVAL;
+
+	if (plat_priv->device_id != QCN9224_DEVICE_ID)
+		return -EINVAL;
+
+	bus_dev = &plat_priv->plat_dev->dev;
+
+	if (of_property_read_u32(bus_dev->of_node, "mlo_chip_info",
+				 &mlo_chip_phandle)) {
+		cnss_pr_err("could not get mlo_chip_phandle\n");
+		return -EINVAL;
+	}
+
+	mlo_chip_node = of_find_node_by_phandle(mlo_chip_phandle);
+	if (!mlo_chip_node) {
+		cnss_pr_err("could not get mlo_chip_node\n");
+		return -EINVAL;
+	}
+	if (of_property_read_u8(mlo_chip_node,
+				"chip_id",
+				&mlo_chip_id)) {
+		cnss_pr_err("Error: No MLO CHIP ID present\n");
+		of_node_put(mlo_chip_node);
+		return -EINVAL;
+	}
+	of_node_put(mlo_chip_node);
+	return (int)mlo_chip_id;
+}
+EXPORT_SYMBOL(cnss_get_mlo_chip_id);
+
+bool cnss_get_mlo_capable(struct device *dev)
+{
+	struct cnss_plat_data *plat_priv = cnss_bus_dev_to_plat_priv(dev);
+	struct device_node *mlo_group_info_node;
+	bool mlo_capable = false;
+	struct device *bus_dev;
+
+	if (!plat_priv)
+		return false;
+
+	if (plat_priv->device_id != QCN9224_DEVICE_ID)
+		return false;
+
+	bus_dev = &plat_priv->plat_dev->dev;
+	phandle mlo_group_phandle = 0;
+
+	if (of_property_read_u32(bus_dev->of_node, "mlo_group_info",
+				 &mlo_group_phandle)) {
+		/* no entry found, disable mlo capability */
+		mlo_capable = false;
+	}
+	if (mlo_group_phandle)
+		mlo_capable = true;
+
+	return mlo_capable;
+}
+EXPORT_SYMBOL(cnss_get_mlo_capable);
+
+phys_addr_t cnss_get_mlo_global_config_region(struct device *dev)
+{
+	struct cnss_plat_data *plat_priv = cnss_bus_dev_to_plat_priv(dev);
+	struct device_node *mlo_global_mem_node;
+	struct resource mlo_mem;
+
+	if (!plat_priv)
+		return 0;
+
+	if (plat_priv->device_id != QCN9224_DEVICE_ID)
+		return 0;
+
+	mlo_global_mem_node = of_find_node_by_name(NULL, "mlo_global_mem0"); 
+	if (!mlo_global_mem_node) {
+		cnss_pr_err("could not get mlo_global_mem_node\n");
+		return 0;
+	}
+
+	if (of_address_to_resource(mlo_global_mem_node, 0, &mlo_mem)) {
+		cnss_pr_err("%s: Unable to read mlo_mem", __func__);
+		of_node_put(mlo_global_mem_node);
+		return 0;
+	}
+	of_node_put(mlo_global_mem_node);
+	return mlo_mem.start;
+}
+EXPORT_SYMBOL(cnss_get_mlo_global_config_region);
+
+int cnss_get_num_mlo_links(struct device *dev)
+{
+	struct cnss_plat_data *plat_priv = cnss_bus_dev_to_plat_priv(dev);
+	struct device_node *mlo_chip_info = NULL;
+	u8 num_local_links = 0;
+	struct device *bus_dev;
+	struct device_node *mlo_chip_node = NULL;
+	phandle mlo_chip_phandle;
+
+	if (!plat_priv)
+		return -EINVAL;
+
+	if (plat_priv->device_id != QCN9224_DEVICE_ID)
+		return -EINVAL;
+
+	bus_dev = &plat_priv->plat_dev->dev;
+
+	if (of_property_read_u32(bus_dev->of_node, "mlo_chip_info",
+				 &mlo_chip_phandle)) {
+		cnss_pr_err("could not get mlo_chip_phandle\n");
+		return -EINVAL;
+	}
+
+	mlo_chip_node = of_find_node_by_phandle(mlo_chip_phandle);
+	if (!mlo_chip_node) {
+		cnss_pr_err("could not get mlo_chip_node\n");
+		return -EINVAL;
+	}
+	if (of_property_read_u8(mlo_chip_node,
+				"num_local_links",
+				&num_local_links)) {
+		of_node_put(mlo_chip_node);
+		cnss_pr_err("Error: No num_local_links is present\n");
+		return -EINVAL;
+	}
+	of_node_put(mlo_chip_node);
+	return (int)num_local_links;
+}
+EXPORT_SYMBOL(cnss_get_num_mlo_links);
+
+int cnss_get_num_mlo_capable_devices(unsigned int *device_id, int num_elements)
+{
+	struct device_node *mlo_group_info_node;
+	struct cnss_plat_data *plat_priv = NULL;
+	struct device *dev;
+	int num_capable = 0;
+	int i;
+	int device_count = 0;
+	phandle mlo_group_phandle;
+
+	for (i = 0; i < MAX_NUMBER_OF_SOCS; i++) {
+		plat_priv = plat_env[i];
+		if (!plat_priv)
+			break;
+
+		dev = &plat_priv->plat_dev->dev;
+
+		mlo_group_phandle = 0;
+		if (of_property_read_u32(dev->of_node, "mlo_group_info",
+					 &mlo_group_phandle))
+			continue;
+
+		if (mlo_group_phandle) {
+			num_capable++;
+			if (device_id && device_count < num_elements)
+				device_id[device_count++] =
+						plat_priv->device_id;
+		}
+	}
+	return num_capable;
+}
+EXPORT_SYMBOL(cnss_get_num_mlo_capable_devices);
+
 void cnss_wait_for_fw_ready(struct device *dev)
 {
 	struct cnss_plat_data *plat_priv = cnss_bus_dev_to_plat_priv(dev);
