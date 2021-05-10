@@ -9,6 +9,8 @@
 #define QCOM_SCM_SET_DLOAD_MODE		0x10
 #define QCOM_SCM_BOOT_ADDR_MC		0x11
 #define QCOM_SCM_SET_REMOTE_STATE	0xa
+#define QCOM_SCM_IS_TZ_LOG_ENCRYPTED	0xb
+#define QCOM_SCM_GET_TZ_LOG_ENCRYPTED	0xc
 extern int __qcom_scm_set_remote_state(struct device *dev, u32 state, u32 id);
 extern int __qcom_scm_set_dload_mode(struct device *dev, bool enable);
 
@@ -298,3 +300,7 @@ extern int __qti_scm_pshold(struct device *);
 extern int __qti_scm_extwdt(struct device *, u32 svc_id, u32 cmd_id,
 			     unsigned int regaddr, unsigned int val);
 extern int __qti_scm_tcsr_reg_write(struct device *dev, u32 reg_addr, u32 value);
+
+extern int __qti_scm_is_tz_log_encrypted(struct device *dev);
+extern int __qti_scm_get_encrypted_tz_log(struct device *dev, void *ker_buf,
+					  u32 buf_len, u32 log_id);
