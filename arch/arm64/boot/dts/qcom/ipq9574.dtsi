@@ -11,6 +11,7 @@
 #include "ipq9574-memory.dtsi"
 #include <dt-bindings/clock/qcom,nsscc-ipq9574.h>
 #include <dt-bindings/reset/qcom,nsscc-ipq9574.h>
+#include <dt-bindings/soc/qcom,dcc_v2.h>
 
 / {
 	#address-cells = <2>;
@@ -316,6 +317,34 @@
 			clock-names = "xo", "sleep_clk";
 			#clock-cells = <0x1>;
 			#reset-cells = <0x1>;
+		};
+
+		msm_imem: qcom,msm-imem@8600000 {
+			compatible = "qcom,msm-imem";
+			reg = <0x08600000 0x1000>;
+			ranges = <0x0 0x08600000 0x1000>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			mem_dump_table@10 {
+				compatible = "qcom,msm-imem-mem_dump_table";
+				reg = <0x10 8>;
+			};
+		};
+
+		dcc: dcc_v2@797F000 {
+			compatible = "qcom,dcc-v2";
+			status = "ok";
+			reg = <0x797F000 0x1000>,
+				<0x7906000 0x1000>;
+			reg-names = "dcc-base", "dcc-ram-base";
+
+			dcc-ram-offset = <0x6000>;
+
+			clocks = <&gcc GCC_DCC_CLK>;
+			clock-names = "dcc_clk";
+
+			qca,save-reg;
 		};
 
 		tcsr_mutex_regs: syscon@1905000 {
