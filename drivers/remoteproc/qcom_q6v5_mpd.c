@@ -1462,10 +1462,18 @@ static int q6_alloc_memory_region(struct q6_wcss *wcss)
 	struct device_node *node;
 	struct device *dev = wcss->dev;
 
-	node = of_parse_phandle(dev->of_node, "memory-region", 0);
-	if (node)
-		rmem = of_reserved_mem_lookup(node);
-	else {
+	if (wcss->version == Q6_IPQ) {
+		node = of_parse_phandle(dev->of_node, "memory-region", 0);
+		if (node)
+			rmem = of_reserved_mem_lookup(node);
+
+		of_node_put(node);
+
+		if (!rmem) {
+			dev_err(dev, "unable to acquire memory-region\n");
+			return -EINVAL;
+		}
+	} else {
 		struct rproc *rpd_rproc = dev_get_drvdata(dev->parent);
 		struct q6_wcss *rpd_wcss = rpd_rproc->priv;
 
@@ -1474,13 +1482,6 @@ static int q6_alloc_memory_region(struct q6_wcss *wcss)
 		wcss->mem_size = rpd_wcss->mem_size;
 		wcss->mem_region = rpd_wcss->mem_region;
 		return 0;
-	}
-
-	of_node_put(node);
-
-	if (!rmem) {
-		dev_err(dev, "unable to acquire memory-region\n");
-		return -EINVAL;
 	}
 
 	wcss->mem_phys = rmem->base;
