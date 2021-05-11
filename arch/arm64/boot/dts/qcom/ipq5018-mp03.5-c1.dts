@@ -544,7 +544,7 @@
 
 	qcom,rproc = <&q6v5_wcss>;
 	status = "ok";
-	q6_wcss_pd1 {
+	q6_wcss_pd1: remoteproc_pd1@4ab000 {
 		compatible = "qcom,ipq5018-wcss-ahb-mpd";
 		reg = <0x4ab000 0x20>;
 		reg-names = "rmb";
@@ -583,7 +583,7 @@
 					"spawn";
 	};
 
-	q6_wcss_pd2 {
+	q6_wcss_pd2: remoteproc_pd2 {
 		compatible = "qcom,ipq5018-wcss-pcie-mpd";
 		firmware = "IPQ5018/q6_fw.mdt";
 		m3_firmware = "qcn6122/m3_fw.mdt";
@@ -604,7 +604,7 @@
 					"spawn";
 	};
 
-	q6_wcss_pd3 {
+	q6_wcss_pd3: remoteproc_pd3 {
 		compatible = "qcom,ipq5018-wcss-pcie-mpd";
 		firmware = "IPQ5018/q6_fw.mdt";
 		interrupts-extended = <&wcss_smp2p_in 24 0>,
