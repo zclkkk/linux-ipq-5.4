@@ -226,6 +226,17 @@
 			};
 		};
 
+		pwm {
+			compatible = "qti,ipq9574-pwm";
+			reg = <0x1941010 0x20>;
+			clocks = <&gcc GCC_ADSS_PWM_CLK>;
+			clock-names = "core";
+			src-freq = <100000000>;
+			pwm-base-index = <0>;
+			used-pwm-indices = <1>, <1>, <1>, <1>;
+			status = "disabled";
+		};
+
 		ess-instance {
 			ess-switch@3a000000 {
 				compatible = "qcom,ess-switch-ipq95xx";

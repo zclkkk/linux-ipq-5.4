@@ -59,6 +59,11 @@
 			status = "ok";
 		};
 
+		pwm {
+			used-pwm-indices = <1>, <1>, <1>, <1>;
+			status = "ok";
+		};
+
 		nand@79b0000 {
 			status = "ok";
 
