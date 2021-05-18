@@ -27,6 +27,7 @@
 #include "qcom_q6v5.h"
 
 #define WCSS_CRASH_REASON		421
+#define WCSS_SMEM_HOST			1
 
 #define Q6_BOOT_TRIG_SVC_ID		0x5
 #define Q6_BOOT_TRIG_CMD_ID		0x2
@@ -188,6 +189,7 @@ struct wcss_data {
 	const char *q6_firmware_name;
 	const char *m3_firmware_name;
 	int crash_reason_smem;
+	int remote_id;
 	u32 version;
 	u32 q6_version;
 	u32 reset_cmd_id;
@@ -1741,8 +1743,8 @@ static int q6v5_wcss_probe(struct platform_device *pdev)
 		}
 	}
 
-	ret = qcom_q6v5_init(&wcss->q6v5, pdev, rproc, desc->crash_reason_smem,
-			     NULL);
+	ret = qcom_q6v5_init(&wcss->q6v5, pdev, rproc, desc->remote_id,
+			     desc->crash_reason_smem, NULL);
 	if (ret)
 		goto free_rproc;
 
@@ -1784,6 +1786,7 @@ static const struct wcss_data wcss_ipq8074_res_init = {
 	.q6_firmware_name = "IPQ8074/q6_fw.mdt",
 	.m3_firmware_name = "IPQ8074/m3_fw.mdt",
 	.crash_reason_smem = WCSS_CRASH_REASON,
+	.remote_id = QCOM_SMEM_HOST_ANY,
 	.aon_reset_required = true,
 	.wcss_q6_reset_required = true,
 	.bcr_reset_required = false,
@@ -1801,6 +1804,7 @@ static const struct wcss_data wcss_ipq6018_res_init = {
 	.q6_firmware_name = "IPQ6018/q6_fw.mdt",
 	.m3_firmware_name = "IPQ6018/m3_fw.mdt",
 	.crash_reason_smem = WCSS_CRASH_REASON,
+	.remote_id = QCOM_SMEM_HOST_ANY,
 	.aon_reset_required = true,
 	.wcss_q6_reset_required = true,
 	.bcr_reset_required = false,
@@ -1819,6 +1823,7 @@ static const struct wcss_data wcss_ipq5018_res_init = {
 	.q6_firmware_name = "IPQ5018/q6_fw.mdt",
 	.m3_firmware_name = "IPQ5018/m3_fw.mdt",
 	.crash_reason_smem = WCSS_CRASH_REASON,
+	.remote_id = QCOM_SMEM_HOST_ANY,
 	.aon_reset_required = true,
 	.wcss_q6_reset_required = true,
 	.bcr_reset_required = false,
@@ -1836,6 +1841,7 @@ static const struct wcss_data wcss_ipq9574_res_init = {
 	.init_clock = ipq9574_init_clock,
 	.q6_firmware_name = "IPQ9574/q6_fw.mdt",
 	.crash_reason_smem = WCSS_CRASH_REASON,
+	.remote_id = WCSS_SMEM_HOST,
 	.aon_reset_required = true,
 	.wcss_q6_reset_required = true,
 	.bcr_reset_required = false,
@@ -1853,6 +1859,7 @@ static const struct wcss_data wcss_qcs404_res_init = {
 	.init_clock = qcs404_init_clock,
 	.init_regulator = qcs404_init_regulator,
 	.crash_reason_smem = WCSS_CRASH_REASON,
+	.remote_id = QCOM_SMEM_HOST_ANY,
 	.q6_firmware_name = "wcnss.mdt",
 	.version = WCSS_QCS404,
 	.aon_reset_required = false,
