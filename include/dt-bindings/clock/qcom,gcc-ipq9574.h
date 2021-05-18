@@ -315,4 +315,5 @@
 #define GCC_SNOC_XO_DCD_CLK				307
 #define GCC_SNOC_XO_DBG_CLK				308
 #define GCC_ANOC_XO_DCD_CLK				309
+#define GCC_Q6SS_BOOT_CLK				310
 #endif

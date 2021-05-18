@@ -2209,6 +2209,22 @@ static struct clk_branch gcc_nssnoc_nsscc_clk = {
 	},
 };
 
+static struct clk_branch gcc_q6ss_boot_clk = {
+	.halt_reg = 0x25080,
+	.clkr = {
+		.enable_reg = 0x25080,
+		.enable_mask = BIT(0),
+		.hw.init = &(struct clk_init_data){
+			.name = "gcc_q6ss_boot_clk",
+			.parent_hws = (const struct clk_hw *[]){
+					&pcnoc_bfdcd_clk_src.clkr.hw },
+			.num_parents = 1,
+			.flags = CLK_SET_RATE_PARENT,
+			.ops = &clk_branch2_ops,
+		},
+	},
+};
+
 static struct clk_branch gcc_nsscc_clk = {
 	.halt_reg = 0x17034,
 	.clkr = {
@@ -5927,6 +5943,7 @@ static struct clk_regmap *gcc_ipq9574_clks[] = {
 	[GCC_UNIPHY1_SYS_CLK] = &gcc_uniphy1_sys_clk.clkr,
 	[GCC_UNIPHY2_SYS_CLK] = &gcc_uniphy2_sys_clk.clkr,
 	[GCC_CMN_12GPLL_SYS_CLK] = &gcc_cmn_12gpll_sys_clk.clkr,
+	[GCC_Q6SS_BOOT_CLK] = &gcc_q6ss_boot_clk.clkr,
 };
 
 static struct clk_regmap *gcc_ipq9574_dummy_clks[] = {
@@ -6239,6 +6256,7 @@ static struct clk_regmap *gcc_ipq9574_dummy_clks[] = {
 	[GCC_UNIPHY1_SYS_CLK] = DEFINE_DUMMY_CLK(gcc_uniphy1_sys_clk),
 	[GCC_UNIPHY2_SYS_CLK] = DEFINE_DUMMY_CLK(gcc_uniphy2_sys_clk),
 	[GCC_CMN_12GPLL_SYS_CLK] = DEFINE_DUMMY_CLK(gcc_cmn_12gpll_sys_clk),
+	[GCC_Q6SS_BOOT_CLK] = DEFINE_DUMMY_CLK(gcc_q6ss_boot_clk),
 };
 
 static const struct qcom_reset_map gcc_ipq9574_resets[] = {
