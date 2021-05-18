@@ -181,6 +181,14 @@ config QTI_DCC
           driver provides interface to configure DCC block and read back
           captured data from DCC's internal SRAM
 
+config QTI_DCC_V2
+	bool "QTI Data Capture and Compare enigne support"
+	help
+	  This option enables driver for Data Capture and Compare engine. DCC
+	  V2 driver provides interface to configure DCC block and read back
+	  captured data from DCC_V2's internal SRAM
+
+
 config QCOM_SMD_RPM
 	tristate "Qualcomm Resource Power Manager (RPM) over SMD"
 	depends on ARCH_QCOM || COMPILE_TEST
