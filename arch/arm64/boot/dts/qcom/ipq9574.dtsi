@@ -879,15 +879,18 @@
 				 <&gcc GCC_Q6_AXIM_CLK>,
 				 <&gcc GCC_Q6_AXIM2_CLK>,
 				 <&gcc GCC_Q6_AHB_CLK>,
-				 <&gcc GCC_Q6_AHB_S_CLK>;
-			clock-names = "gcc_wcss_ahb_s_clk",
-				      "gcc_wcss_ecahb_clk",
-				      "gcc_wcss_acmt_clk",
-				      "gcc_wcss_axi_m_clk",
-				      "gcc_q6_axim_clk",
-				      "gcc_q6_axim2_clk",
-				      "gcc_q6_ahb_clk",
-				      "gcc_q6_ahb_s_clk";
+				 <&gcc GCC_Q6_AHB_S_CLK>,
+				 <&gcc GCC_Q6_AHB_S_CLK>,
+				 <&gcc GCC_Q6SS_BOOT_CLK>;
+			clock-names = "wcss_ahb_s",
+				      "wcss_ecahb",
+				      "wcss_acmt",
+				      "wcss_axi_m",
+				      "q6_axim",
+				      "q6_axim2",
+				      "q6_ahb",
+				      "q6_ahb_s",
+				      "q6ss_boot";
 
 			qcom,halt-regs = <&tcsr_q6_block 0xa000 0xd000 0x0>;
 
