@@ -145,6 +145,11 @@
 			bootaddr=<0x4AB00000>;
 		};
 
+		pwm {
+			used-pwm-indices = <1>, <1>, <1>, <1>;
+			status = "ok";
+		};
+
 		ess-instance {
 			num_devices = <0x1>;
 			ess-switch@3a000000 {
