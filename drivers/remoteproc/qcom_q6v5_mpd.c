@@ -1200,7 +1200,7 @@ static int q6_wcss_load(struct rproc *rproc, const struct firmware *fw)
 			if (ret)
 				continue;
 
-			ret = qcom_mdt_load_no_init(&upd_pdev->dev, m3_fw,
+			ret = qcom_mdt_load_no_init(wcss->dev, m3_fw,
 					m3_fw_name, 0,
 					wcss->mem_region, wcss->mem_phys,
 					wcss->mem_size, &wcss->mem_reloc);
