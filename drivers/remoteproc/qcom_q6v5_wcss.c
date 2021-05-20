@@ -1840,6 +1840,7 @@ static const struct wcss_data wcss_ipq5018_res_init = {
 static const struct wcss_data wcss_ipq9574_res_init = {
 	.init_clock = ipq9574_init_clock,
 	.q6_firmware_name = "IPQ9574/q6_fw.mdt",
+	.m3_firmware_name = "IPQ9574/m3_fw.mdt",
 	.crash_reason_smem = WCSS_CRASH_REASON,
 	.remote_id = WCSS_SMEM_HOST,
 	.aon_reset_required = true,
