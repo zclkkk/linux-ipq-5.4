@@ -16,7 +16,6 @@
 #include <linux/of_reserved_mem.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
-#include <linux/regulator/consumer.h>
 #include <linux/reset.h>
 #include <linux/soc/qcom/mdt_loader.h>
 #include <linux/soc/qcom/smem.h>
@@ -167,8 +166,6 @@ struct q6_wcss {
 	struct clk *axmis_clk;				//"gcc_q6_axis_clk"
 	struct clk *axi_s_clk;				//"gcc_wcss_axi_s_clk"
 
-	struct regulator *cx_supply;
-
 	struct qcom_rproc_glink glink_subdev;
 	struct qcom_rproc_ssr ssr_subdev;
 	struct qcom_sysmon *sysmon;
@@ -196,7 +193,6 @@ struct q6_wcss {
 
 struct wcss_data {
 	int (*init_clock)(struct q6_wcss *wcss);
-	int (*init_regulator)(struct q6_wcss *wcss);
 	int (*init_irq)(struct qcom_q6v5 *q6, struct platform_device *pdev,
 				struct rproc *rproc, int crash_reason,
 				void (*handover)(struct qcom_q6v5 *q6));
@@ -216,7 +212,7 @@ struct wcss_data {
 	bool need_mem_protection;
 	bool need_auto_boot;
 	bool is_q6v6;
-	bool subdev_required;
+	bool glink_subdev_required;
 	u8 pd_asid;
 };
 
@@ -1204,7 +1200,7 @@ static int q6_wcss_load(struct rproc *rproc, const struct firmware *fw)
 			if (ret)
 				continue;
 
-			ret = qcom_mdt_load_no_init(&upd_pdev->dev, m3_fw,
+			ret = qcom_mdt_load_no_init(wcss->dev, m3_fw,
 					m3_fw_name, 0,
 					wcss->mem_region, wcss->mem_phys,
 					wcss->mem_size, &wcss->mem_reloc);
@@ -1466,10 +1462,18 @@ static int q6_alloc_memory_region(struct q6_wcss *wcss)
 	struct device_node *node;
 	struct device *dev = wcss->dev;
 
-	node = of_parse_phandle(dev->of_node, "memory-region", 0);
-	if (node)
-		rmem = of_reserved_mem_lookup(node);
-	else {
+	if (wcss->version == Q6_IPQ) {
+		node = of_parse_phandle(dev->of_node, "memory-region", 0);
+		if (node)
+			rmem = of_reserved_mem_lookup(node);
+
+		of_node_put(node);
+
+		if (!rmem) {
+			dev_err(dev, "unable to acquire memory-region\n");
+			return -EINVAL;
+		}
+	} else {
 		struct rproc *rpd_rproc = dev_get_drvdata(dev->parent);
 		struct q6_wcss *rpd_wcss = rpd_rproc->priv;
 
@@ -1478,13 +1482,6 @@ static int q6_alloc_memory_region(struct q6_wcss *wcss)
 		wcss->mem_size = rpd_wcss->mem_size;
 		wcss->mem_region = rpd_wcss->mem_region;
 		return 0;
-	}
-
-	of_node_put(node);
-
-	if (!rmem) {
-		dev_err(dev, "unable to acquire memory-region\n");
-		return -EINVAL;
 	}
 
 	wcss->mem_phys = rmem->base;
@@ -1725,6 +1722,7 @@ static int q6_wcss_probe(struct platform_device *pdev)
 	struct rproc *rproc;
 	int ret;
 	u8 pd_asid;
+	char *subdev_name;
 
 	desc = of_device_get_match_data(&pdev->dev);
 	if (!desc)
@@ -1764,12 +1762,6 @@ static int q6_wcss_probe(struct platform_device *pdev)
 			goto free_rproc;
 	}
 
-	if (desc->init_regulator) {
-		ret = desc->init_regulator(wcss);
-		if (ret)
-			goto free_rproc;
-	}
-
 	ret = q6_wcss_init_reset(wcss, desc);
 	if (ret)
 		goto free_rproc;
@@ -1788,10 +1780,11 @@ static int q6_wcss_probe(struct platform_device *pdev)
 	if (ret)
 		goto free_rproc;
 
-	if (desc->subdev_required) {
+	if (desc->glink_subdev_required)
 		qcom_add_glink_subdev(rproc, &wcss->glink_subdev);
-		qcom_add_ssr_subdev(rproc, &wcss->ssr_subdev, desc->ssr_name);
-	}
+
+	subdev_name = (char *)(desc->ssr_name ? desc->ssr_name : pdev->name);
+	qcom_add_ssr_subdev(rproc, &wcss->ssr_subdev, subdev_name);
 
 	if (desc->sysmon_name)
 		wcss->sysmon = qcom_add_sysmon_subdev(rproc,
@@ -1843,7 +1836,7 @@ static const struct wcss_data q6_ipq5018_res_init = {
 	.need_mem_protection = true,
 	.need_auto_boot = false,
 	.is_q6v6 = true,
-	.subdev_required = true,
+	.glink_subdev_required = true,
 };
 
 static const struct wcss_data wcss_ahb_ipq5018_res_init = {

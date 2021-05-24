@@ -35,6 +35,7 @@
 #define BDF_WIN_FILE_NAME_PREFIX	"bdwlan.b"
 #define REGDB_FILE_NAME			"regdb.bin"
 #define DUMMY_BDF_FILE_NAME		"bdwlan.dmy"
+#define HDS_FILE_NAME			"hds.bin"
 
 #define DEFAULT_CAL_FILE_NAME		"caldata.bin"
 #define CAL_FILE_NAME_PREFIX		"caldata.b"
@@ -687,6 +688,12 @@ static int cnss_wlfw_load_bdf(struct wlfw_bdf_download_req_msg_v01 *req,
 				 "%s" DEFAULT_CAL_FILE_NAME, folder);
 		}
 		break;
+	case BDF_TYPE_HDS:
+		snprintf(filename, sizeof(filename), HDS_FILE_NAME);
+		break;
+	case BDF_TYPE_REGDB:
+		snprintf(filename, sizeof(filename), REGDB_FILE_NAME);
+		break;
 	default:
 		return -EINVAL;
 	}
@@ -709,10 +716,12 @@ static int cnss_wlfw_load_bdf(struct wlfw_bdf_download_req_msg_v01 *req,
 	if (!bdf_addr) {
 		cnss_pr_err("ERROR. not able to ioremap BDF location\n");
 		ret = -EIO;
-		goto out;
+		CNSS_ASSERT(0);
 	}
 	if (size != 0 && size <= BDF_MAX_SIZE) {
-		if (bdf_type == BDF_TYPE_GOLDEN) {
+		if (bdf_type == BDF_TYPE_GOLDEN ||
+		    bdf_type == BDF_TYPE_HDS ||
+		    bdf_type == BDF_TYPE_REGDB) {
 			cnss_pr_info("BDF location : 0x%x\n", bdf_addr_pa);
 			cnss_pr_info("BDF %s size %d\n",
 				     filename, (unsigned int)fw->size);
@@ -803,9 +812,6 @@ int cnss_wlfw_bdf_dnld_send_sync(struct cnss_plat_data *plat_priv,
 				 plat_priv->board_info.board_id >> 8 & 0xFF,
 				 plat_priv->board_info.board_id & 0xFF);
 		break;
-	case CNSS_BDF_REGDB:
-		snprintf(filename, sizeof(filename), REGDB_FILE_NAME);
-		break;
 	case CNSS_BDF_DUMMY:
 		cnss_pr_dbg("CNSS_BDF_DUMMY is set, sending dummy BDF\n");
 		snprintf(filename, sizeof(filename), DUMMY_BDF_FILE_NAME);
@@ -877,26 +883,57 @@ int cnss_wlfw_bdf_dnld_send_sync(struct cnss_plat_data *plat_priv,
 			goto bypass_bdf;
 		}
 		break;
+	case CNSS_BDF_REGDB:
+		fw_bdf_type = BDF_TYPE_REGDB;
+		snprintf(filename, sizeof(filename), REGDB_FILE_NAME);
+		if (plat_priv->bus_type == CNSS_BUS_AHB) {
+			temp = filename;
+			remaining = MAX_BDF_FILE_NAME;
+			goto bypass_bdf;
+		}
+		break;
+	case CNSS_BDF_HDS:
+		fw_bdf_type = BDF_TYPE_HDS;
+		snprintf(filename, sizeof(filename), HDS_FILE_NAME);
+		if (plat_priv->bus_type == CNSS_BUS_AHB) {
+			temp = filename;
+			remaining = MAX_BDF_FILE_NAME;
+			goto bypass_bdf;
+		}
+		break;
 	default:
 		cnss_pr_err("Invalid BDF type: %d\n",
 			    plat_priv->ctrl_params.bdf_type);
 		ret = -EINVAL;
-		goto err_req_fw;
+		goto out;
 	}
 
 	ret = request_firmware(&fw_entry, filename, &plat_priv->plat_dev->dev);
 	if (ret) {
-		/* If caldata download fails, skip caldata sequence and proceed
-		 * without error
-		 */
 		if (bdf_type == CNSS_CALDATA_WIN) {
-			cnss_pr_info("Failed to load CALDATA %s, skipping caldata download\n",
-				     filename);
+			/* Ideally, caldata should be present */
+			cnss_pr_err("Failed to load Caldata: %s\n", filename);
+			goto out;
+		} else if (bdf_type == CNSS_BDF_HDS) {
+			/* HDS bin download is not mandatory */
 			ret = 0;
 			goto out;
+		} else if (bdf_type == CNSS_BDF_REGDB) {
+			if (plat_priv->device_id == QCN9224_DEVICE_ID) {
+				/* Reg DB bin download is mandatory for QCN9224,
+				 * hence if the file is not found, we assert.
+				 */
+				cnss_pr_info("Failed to load RegDB %s\n",
+					     filename);
+				goto out;
+			} else {
+				ret = 0;
+				goto out;
+			}
 		} else {
+			/* BDF download is mandatory for all targets */
 			cnss_pr_err("Failed to load BDF: %s\n", filename);
-			goto err_req_fw;
+			goto out;
 		}
 	}
 
@@ -931,9 +968,31 @@ bypass_bdf:
 		    plat_priv->device_id == QCA5018_DEVICE_ID ||
 		    plat_priv->device_id == QCN6122_DEVICE_ID ||
 		    plat_priv->device_id == QCA6018_DEVICE_ID) {
-			cnss_wlfw_load_bdf(req, plat_priv,
-					   MAX_BDF_FILE_NAME,
-					   fw_bdf_type);
+			ret = cnss_wlfw_load_bdf(req, plat_priv,
+						 MAX_BDF_FILE_NAME,
+						 fw_bdf_type);
+			if (ret) {
+				if (bdf_type == CNSS_CALDATA_WIN) {
+					/* Caldata should be present */
+					cnss_pr_err("Failed to load Caldata: %s\n",
+						    filename);
+					goto err_req_fw;
+				} else if (bdf_type == CNSS_BDF_HDS ||
+					   bdf_type == CNSS_BDF_REGDB) {
+					/* HDS is not mandatory and REGDB is
+					 * is mandatory only for QCN9224
+					 */
+					ret = 0;
+					goto err_req_fw;
+				} else {
+					/* BDF download is mandatory for
+					 * all targets.
+					 */
+					cnss_pr_err("Failed to load BDF: %s\n",
+						    filename);
+					goto err_req_fw;
+				}
+			}
 		}
 
 		memcpy(req->data, temp, req->data_len);
@@ -1002,13 +1061,11 @@ err_send:
 err_req_fw:
 	qmi_record(plat_priv->wlfw_service_instance_id,
 		   QMI_WLFW_BDF_DOWNLOAD_REQ_V01, ret, resp_error_msg);
-	if (bdf_type != CNSS_BDF_REGDB)
-		CNSS_ASSERT(0);
 out:
 	kfree(req);
 	kfree(resp);
 
-	if (ret < 0)
+	if (ret)
 		CNSS_ASSERT(0);
 	else
 		ret = 0;
