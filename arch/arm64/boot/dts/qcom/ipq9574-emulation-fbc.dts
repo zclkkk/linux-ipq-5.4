@@ -13,7 +13,7 @@
 	#address-cells = <0x2>;
 	#size-cells = <0x2>;
 	model = "Qualcomm Technologies, Inc. IPQ9574-EMULATION";
-	compatible = "qcom,ipq9574-emulation", "qcom,ipq9574";
+	compatible = "qcom,ipq9574-ap-emulation", "qcom,ipq9574";
 	interrupt-parent = <&intc>;
 
 	clocks {
