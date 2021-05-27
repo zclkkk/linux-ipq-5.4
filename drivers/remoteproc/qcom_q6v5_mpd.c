@@ -1307,24 +1307,6 @@ static const struct rproc_ops q6_wcss_ipq5018_ops = {
 	.parse_fw = q6_wcss_register_dump_segments,
 };
 
-int q6_wcss_get_pd_asid(struct device *dev, u8 *pd_asid)
-{
-	char *str;
-	long tmp;
-
-	str = strstr(dev->of_node->name, "pd");
-	if (!str) {
-		tmp = 0;
-		goto ret_asid;
-	}
-	str += strlen("pd");
-	kstrtol(str, 10, &tmp);
-ret_asid:
-	*pd_asid = (u8)tmp;
-	return 0;
-}
-EXPORT_SYMBOL(q6_wcss_get_pd_asid);
-
 static int q6_wcss_init_reset(struct q6_wcss *wcss,
 				const struct wcss_data *desc)
 {
@@ -1721,7 +1703,6 @@ static int q6_wcss_probe(struct platform_device *pdev)
 	struct q6_wcss *wcss;
 	struct rproc *rproc;
 	int ret;
-	u8 pd_asid;
 	char *subdev_name;
 
 	desc = of_device_get_match_data(&pdev->dev);
@@ -1766,10 +1747,7 @@ static int q6_wcss_probe(struct platform_device *pdev)
 	if (ret)
 		goto free_rproc;
 
-	ret = q6_wcss_get_pd_asid(&pdev->dev, &pd_asid);
-	if (ret)
-		goto free_rproc;
-	wcss->pd_asid = pd_asid;
+	wcss->pd_asid = qcom_get_pd_asid(wcss->dev->of_node);
 
 	if (desc->init_irq)
 		ret = desc->init_irq(&wcss->q6, pdev, rproc,
