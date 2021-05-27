@@ -224,6 +224,11 @@
 			};
 		};
 
+		qcom,test@0 {
+			skip-pci-sw-reset;
+			status = "ok";
+		};
+
 		serial@78b3000 {
 			status = "ok";
 		};
