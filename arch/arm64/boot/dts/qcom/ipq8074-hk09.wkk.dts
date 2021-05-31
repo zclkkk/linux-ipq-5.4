@@ -380,8 +380,6 @@
 		};
 
 		pci@20000000 {
-			pinctrl-0 = <&pcie0_pins>;
-			pinctrl-names = "default";
 			perst-gpio = <&tlmm 58 1>;
 			link_retries_count = <400>;
 			status = "ok";
