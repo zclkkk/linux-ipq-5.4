@@ -41,7 +41,7 @@
 			 <&gcc GCC_QDSS_AT_CLK>;
 		clock-names = "apb_pclk", "core_a_clk";
 
-		out-port {
+		out-ports {
 			port {
 				stm_out: endpoint {
 					remote-endpoint = <&funnel0_in7>;
@@ -250,6 +250,7 @@
 
 		arm,buffer-size = <0x100000>;
 		arm,sg-enable;
+		memory-region = <&q6_etr_region>;
 
 		coresight-name = "coresight-tmc-etr";
 
