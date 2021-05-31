@@ -481,27 +481,6 @@
 	};
 };
 
-&wifi0 {
-	/* IPQ5018 */
-	qcom,multipd_arch;
-	qcom,userpd-subsys-name = "q6v5_wcss_userpd1";
-#ifdef __IPQ_MEM_PROFILE_256_MB__
-	qcom,tgt-mem-mode = <2>;
-#else
-	qcom,tgt-mem-mode = <1>;
-#endif
-	qcom,board_id = <0x23>;
-	qcom,bdf-addr = <0x4C400000 0x4C400000 0x4C400000 0x0 0x0>;
-#ifdef __CNSS2__
-	qcom,caldb-addr = <0x4D400000 0x4D400000 0 0 0>;
-#else
-	qcom,caldb-addr = <0x4D400000>;
-	m3-dump-addr = <0x4D200000>;
-#endif
-	qcom,caldb-size = <0x200000>;
-	status = "ok";
-};
-
 &q6v5_wcss {
 	compatible = "qcom,ipq5018-q6-mpd";
 	#address-cells = <1>;
@@ -624,3 +603,69 @@
 					"spawn";
 	};
 };
+&wifi0 {
+	/* IPQ5018 */
+	qcom,multipd_arch;
+	qcom,userpd-subsys-name = "q6v5_wcss_userpd1";
+	qcom,rproc = <&q6_wcss_pd1>;
+#ifdef __IPQ_MEM_PROFILE_256_MB__
+	qcom,tgt-mem-mode = <2>;
+#else
+	qcom,tgt-mem-mode = <1>;
+#endif
+	qcom,board_id = <0x23>;
+	qcom,bdf-addr = <0x4C400000 0x4C400000 0x4C400000 0x0 0x0>;
+#ifdef __CNSS2__
+	qcom,caldb-addr = <0x4D400000 0x4D400000 0 0 0>;
+#else
+	qcom,caldb-addr = <0x4D400000>;
+	m3-dump-addr = <0x4D200000>;
+#endif
+	qcom,caldb-size = <0x200000>;
+	status = "ok";
+};
+
+&wifi1 {
+	/* QCN6122 5G */
+	qcom,multipd_arch;
+	qcom,userpd-subsys-name = "q6v5_wcss_userpd2";
+	qcom,rproc = <&q6_wcss_pd2>;
+#ifdef __IPQ_MEM_PROFILE_256_MB__
+	qcom,tgt-mem-mode = <2>;
+#else
+	qcom,tgt-mem-mode = <1>;
+#endif
+	qcom,board_id = <0x60>;
+	qcom,bdf-addr = <0x4D600000 0x4D600000 0x4D300000 0x0 0x0>;
+#ifdef __CNSS2__
+	qcom,caldb-addr = <0x4E800000 0x4E800000 0 0 0>;
+#else
+	qcom,caldb-addr = <0x4E800000>;
+	m3-dump-addr = <0x4E600000>;
+#endif
+	qcom,caldb-size = <0x500000>;
+	status = "ok";
+};
+
+&wifi2 {
+	/* QCN6122 6G */
+	qcom,multipd_arch;
+	qcom,userpd-subsys-name = "q6v5_wcss_userpd3";
+	qcom,rproc = <&q6_wcss_pd3>;
+#ifdef __IPQ_MEM_PROFILE_256_MB__
+	qcom,tgt-mem-mode = <2>;
+#else
+	qcom,tgt-mem-mode = <1>;
+#endif
+	qcom,board_id = <0xb0>;
+	qcom,bdf-addr = <0x4ED00000 0x4ED00000 0x4E400000 0x0 0x0>;
+#ifdef __CNSS2__
+	qcom,caldb-addr = <0x4FF00000 0x4FF00000 0 0 0>;
+#else
+	qcom,caldb-addr = <0x4FF00000>;
+	m3-dump-addr = <0x4FD00000>;
+#endif
+	qcom,caldb-size = <0x500000>;
+	status = "ok";
+};
+
