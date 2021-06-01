@@ -3471,9 +3471,9 @@ cnss_set_mod_param_feature_support(struct cnss_plat_data *plat_priv,
 		}
 		break;
 	case QCN9224_DEVICE_ID:
-		if ((plat_priv->userpd_id == QCN9224_0 &&
+		if ((plat_priv->qrtr_node_id == QCN9224_0 &&
 		     (bmap & SKIP_PCI_0)) ||
-		    (plat_priv->userpd_id == QCN9224_1 &&
+		    (plat_priv->qrtr_node_id == QCN9224_1 &&
 		     (bmap & SKIP_PCI_1))) {
 			*ptr = 0;
 			cnss_pr_info("Disabling %s support for %s", fname,
