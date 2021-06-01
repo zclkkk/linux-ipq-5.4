@@ -72,7 +72,7 @@ static const struct regmap_config ipq_pll_regmap_config = {
 
 static const struct of_device_id apss_ipq_pll_match_table[] = {
 	{ .compatible = "qcom,ipq6018-a53pll", .data = &ipq6018_pll_config, },
-	{ .compatible = "qcom,ipq9574-a53pll", .data = &ipq9574_pll_config, },
+	{ .compatible = "qcom,ipq9574-a73pll", .data = &ipq9574_pll_config, },
 	{ }
 };
 

@@ -162,9 +162,20 @@
 
 		apcs_glb: mailbox@b111000 {
 			compatible = "qcom,ipq9574-apcs-apps-global";
-			reg = <0x0b111000 0x6000>;
+			reg = <0x0b111000 0x1000>;
+			#clock-cells = <1>;
+			clocks = <&a73pll>, <&xo>;
+			clock-names = "pll", "xo";
 
 			#mbox-cells = <1>;
+		};
+
+		a73pll: clock@b116000 {
+			compatible = "qcom,ipq9574-a73pll";
+			reg = <0x0b116000 0x40>;
+			#clock-cells = <0>;
+			clocks = <&xo>;
+			clock-names = "xo";
 		};
 
 		prng: prng@e3000 {
