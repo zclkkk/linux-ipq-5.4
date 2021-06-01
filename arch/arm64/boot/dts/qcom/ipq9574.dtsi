@@ -11,6 +11,7 @@
 #include <dt-bindings/clock/qcom,nsscc-ipq9574.h>
 #include <dt-bindings/reset/qcom,nsscc-ipq9574.h>
 #include <dt-bindings/soc/qcom,dcc_v2.h>
+#include <dt-bindings/clock/qcom,apss-ipq.h>
 
 / {
 	#address-cells = <2>;
@@ -71,6 +72,8 @@
 			reg = <0x0>;
 			enable-method = "psci";
 			next-level-cache = <&L2_0>;
+			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
+			clock-names = "cpu";
 		};
 
 		CPU1: cpu@1 {
@@ -79,6 +82,8 @@
 			enable-method = "psci";
 			reg = <0x1>;
 			next-level-cache = <&L2_0>;
+			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
+			clock-names = "cpu";
 		};
 
 		CPU2: cpu@2 {
@@ -87,6 +92,8 @@
 			enable-method = "psci";
 			reg = <0x2>;
 			next-level-cache = <&L2_0>;
+			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
+			clock-names = "cpu";
 		};
 
 		CPU3: cpu@3 {
@@ -95,6 +102,8 @@
 			enable-method = "psci";
 			reg = <0x3>;
 			next-level-cache = <&L2_0>;
+			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
+			clock-names = "cpu";
 		};
 
 		L2_0: l2-cache {
@@ -1417,6 +1426,18 @@
 				"wbm2host-tx-completions-ring1",
 				"tcl2host-status-ring";
 			status = "disabled";
+		};
+
+		qfprom@a4000 {
+			compatible = "qcom,qfprom";
+			reg = <0xA4000 0x5a1>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			cpu_speed_bin: cpu_speed_bin@15 {
+				reg = <0x15 0x2>;
+				bits = <7 2>;
+			};
 		};
 	};
 

@@ -9,6 +9,8 @@
 
 #include "ipq9574.dtsi"
 #include "ipq9574-default-memory.dtsi"
+#include "ipq9574-cpu.dtsi"
+
 / {
 	#address-cells = <0x2>;
 	#size-cells = <0x2>;
