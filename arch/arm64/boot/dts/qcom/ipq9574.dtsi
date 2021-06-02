@@ -8,7 +8,6 @@
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/clock/qcom,gcc-ipq9574.h>
 #include <dt-bindings/reset/qcom,gcc-ipq9574.h>
-#include "ipq9574-memory.dtsi"
 #include <dt-bindings/clock/qcom,nsscc-ipq9574.h>
 #include <dt-bindings/reset/qcom,nsscc-ipq9574.h>
 #include <dt-bindings/soc/qcom,dcc_v2.h>
