@@ -7,6 +7,7 @@
 #include <dt-bindings/clock/qcom,gcc-ipq5018.h>
 #include <dt-bindings/reset/qcom,gcc-ipq5018.h>
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/clock/qca,apss-ipq5018.h>
 #include "ipq5018-memory.dtsi"
 
 
@@ -38,7 +39,16 @@
 			compatible = "arm,cortex-a53";
 			reg = <0x0>;
 			enable-method = "psci";
+			qcom,acc = <&acc0>;
 			next-level-cache = <&L2_0>;
+			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
+			clock-names = "cpu";
+			operating-points = <
+				/* kHz   uV (fixed) */
+				800000	1100000
+				1008000	1100000
+			>;
+			clock-latency = <200000>;
 		};
 
 		CPU1: cpu@1 {
@@ -46,7 +56,16 @@
 			compatible = "arm,cortex-a53";
 			enable-method = "psci";
 			reg = <0x1>;
+			qcom,acc = <&acc1>;
 			next-level-cache = <&L2_0>;
+			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
+			clock-names = "cpu";
+			operating-points = <
+				/* kHz   uV (fixed) */
+				800000	1100000
+				1008000	1100000
+			>;
+			clock-latency = <200000>;
 		};
 
 		L2_0: l2-cache {
@@ -535,9 +554,9 @@
 		};
 
 		apcs_glb: mailbox@b111000 {
-			compatible = "qcom,ipq8074-apcs-apps-global";
-			reg = <0x0b111000 0xc>;
-
+			compatible = "qcom,ipq5018-apcs-apps-global";
+			reg = <0x0b111000 0x6000>;
+			#clock-cells = <1>;
 			#mbox-cells = <1>;
 		};
 
@@ -1003,6 +1022,23 @@
 			clocks = <&gcc GCC_BTSS_LPO_CLK>;
 			clock-names = "lpo_clk";
 			status = "disabled";
+		};
+
+		apss_clk: qcom,apss_clk@b111000 {
+			compatible = "qcom,apss-ipq5018";
+			reg = <0xb111000 0x6000>;
+			#clock-cells = <1>;
+			#reset-cells = <1>;
+		};
+
+		acc0:clock-controller@b188000 {
+			compatible = "qcom,arm-cortex-acc";
+			reg = <0x0b188000 0x1000>;
+		};
+
+		acc1:clock-controller@b198000 {
+			compatible = "qcom,arm-cortex-acc";
+			reg = <0x0b198000 0x1000>;
 		};
 	};
 
