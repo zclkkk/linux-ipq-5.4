@@ -38,7 +38,7 @@ static const struct qcom_apcs_ipc_data ipq8074_apcs_data = {
 };
 
 static const struct qcom_apcs_ipc_data ipq9574_apcs_data = {
-	.offset = 8, .clk_name = NULL
+	.offset = 8, .clk_name = "qcom,apss-ipq6018-clk"
 };
 
 static const struct qcom_apcs_ipc_data msm8916_apcs_data = {
