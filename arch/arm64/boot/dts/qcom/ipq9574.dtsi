@@ -238,7 +238,16 @@
 			status = "disabled";
 		};
 
+		mdio@90000 {
+			#address-cells = <1>;
+			#size-cells = <1>;
+			compatible = "qcom,qca-mdio";
+			reg = <0x90000 0x64>;
+			status = "disabled";
+		};
+
 		ess-instance {
+			compatible = "qcom,ess-instance";
 			ess-switch@3a000000 {
 				compatible = "qcom,ess-switch-ipq95xx";
 				switch_access_mode = "local bus";
@@ -404,6 +413,21 @@
 				function = "blsp2_uart";
 				drive-strength = <8>;
 				bias-pull-down;
+			};
+
+			mdio_pins: mdio_pinmux {
+				mux_0 {
+					pins = "gpio38";
+					function = "mdc";
+					drive-strength = <8>;
+					bias-pull-up;
+				};
+				mux_1 {
+					pins = "gpio39";
+					function = "mdio";
+					drive-strength = <8>;
+					bias-pull-up;
+				};
 			};
 		};
 
