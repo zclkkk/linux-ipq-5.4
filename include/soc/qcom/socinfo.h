@@ -51,6 +51,8 @@
 #define CPU_IPQ9554 512
 #define CPU_IPQ9570 513
 #define CPU_IPQ9574 514
+#define CPU_IPQ9550 511
+#define CPU_IPQ9510 521
 
 static inline int read_ipq_soc_version_major(void)
 {
@@ -347,6 +349,24 @@ static inline int cpu_is_ipq9574(void)
 #endif
 }
 
+static inline int cpu_is_ipq9550(void)
+{
+#ifdef CONFIG_ARCH_QCOM
+	return read_ipq_cpu_type() == CPU_IPQ9550;
+#else
+	return 0;
+#endif
+}
+
+static inline int cpu_is_ipq9510(void)
+{
+#ifdef CONFIG_ARCH_QCOM
+	return read_ipq_cpu_type() == CPU_IPQ9510;
+#else
+	return 0;
+#endif
+}
+
 static inline int cpu_is_ipq807x(void)
 {
 #ifdef CONFIG_ARCH_QCOM
@@ -389,7 +409,8 @@ static inline int cpu_is_ipq95xx(void)
 {
 #ifdef CONFIG_ARCH_QCOM
 	return  cpu_is_ipq9514() || cpu_is_ipq9554() ||
-		cpu_is_ipq9570() || cpu_is_ipq9574();
+		cpu_is_ipq9570() || cpu_is_ipq9574() ||
+		cpu_is_ipq9550() || cpu_is_ipq9510();
 #else
 	return 0;
 #endif
