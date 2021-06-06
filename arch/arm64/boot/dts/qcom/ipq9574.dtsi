@@ -137,7 +137,7 @@
 	};
 
 	tzlog: qti,tzlog {
-		compatible = "qti,tzlog";
+		compatible = "qti,tzlog-ipq9574";
 		interrupts = <GIC_SPI 244 IRQ_TYPE_EDGE_RISING>;
 		qca,tzbsp-diag-buf-start = <0x4a7df000>;
 		qti,tz-diag-buf-size = <0x2000>;
