@@ -43,6 +43,12 @@
 	status = "ok";
 };
 
+&i2c_0 {
+	pinctrl-0 = <&i2c_pins>;
+	pinctrl-names = "default";
+	status = "ok";
+};
+
 &tlmm {
 	emmc_pins: emmc_pins {
 		emmc_clk {
