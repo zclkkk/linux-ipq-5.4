@@ -27,6 +27,7 @@ dtb-$(CONFIG_ARCH_QCOM) += ipq8074-ac02.dtb
 dtb-$(CONFIG_ARCH_QCOM) += ipq8074-ac03.dtb
 dtb-$(CONFIG_ARCH_QCOM) += ipq8074-ac04.dtb
 dtb-$(CONFIG_ARCH_QCOM) += ipq8074-hk12.dtb
+dtb-$(CONFIG_ARCH_QCOM) += ipq5018-mp02.1.dtb
 dtb-$(CONFIG_ARCH_QCOM) += ipq5018-mp03.1.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= ipq5018-mp03.1-c2.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= ipq5018-mp03.1-c3.dtb
