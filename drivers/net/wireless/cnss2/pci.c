@@ -46,7 +46,8 @@
 #define MHI_MSI_NAME			"MHI"
 
 #define MAX_M3_FILE_NAME_LENGTH		15
-#define DEFAULT_M3_FILE_NAME		"qcn9000/m3.bin"
+#define QCN9000_DEFAULT_M3_FILE_NAME	"qcn9000/m3.bin"
+#define QCN9224_DEFAULT_M3_FILE_NAME	"qcn9224/m3.bin"
 #define FW_V2_FILE_NAME			"amss20.bin"
 #define FW_V2_NUMBER			2
 
@@ -1745,6 +1746,7 @@ int cnss_pci_dev_powerup(struct cnss_pci_data *pci_priv)
 		ret = cnss_qca6174_powerup(pci_priv);
 		break;
 	case QCN9000_DEVICE_ID:
+	case QCN9224_DEVICE_ID:
 	case QCA6390_DEVICE_ID:
 	case QCA6490_DEVICE_ID:
 		ret = cnss_qcn9000_powerup(pci_priv);
@@ -1774,6 +1776,7 @@ int cnss_pci_dev_shutdown(struct cnss_pci_data *pci_priv)
 		ret = cnss_qca6174_shutdown(pci_priv);
 		break;
 	case QCN9000_DEVICE_ID:
+	case QCN9224_DEVICE_ID:
 	case QCA6390_DEVICE_ID:
 	case QCA6490_DEVICE_ID:
 		ret = cnss_qcn9000_shutdown(pci_priv);
@@ -1803,6 +1806,7 @@ int cnss_pci_dev_crash_shutdown(struct cnss_pci_data *pci_priv)
 		cnss_qca6174_crash_shutdown(pci_priv);
 		break;
 	case QCN9000_DEVICE_ID:
+	case QCN9224_DEVICE_ID:
 	case QCA6390_DEVICE_ID:
 	case QCA6490_DEVICE_ID:
 		cnss_qcn9000_crash_shutdown(pci_priv);
@@ -2733,7 +2737,8 @@ int cnss_pci_alloc_fw_mem(struct cnss_plat_data *plat_priv)
 		return -EINVAL;
 	}
 
-	if (plat_priv->device_id == QCN9000_DEVICE_ID) {
+	if (plat_priv->device_id == QCN9000_DEVICE_ID ||
+	    plat_priv->device_id == QCN9224_DEVICE_ID) {
 		for (i = 0; i < plat_priv->fw_mem_seg_len; i++) {
 			switch (fw_mem[i].type) {
 			case CALDB_MEM_REGION_TYPE:
@@ -2942,7 +2947,8 @@ int cnss_pci_alloc_qdss_mem(struct cnss_pci_data *pci_priv)
 	struct device *dev = &plat_priv->plat_dev->dev;
 	u32 i, addr = 0;
 
-	if (plat_priv->device_id != QCN9000_DEVICE_ID) {
+	if (plat_priv->device_id != QCN9000_DEVICE_ID &&
+	    plat_priv->device_id != QCN9224_DEVICE_ID) {
 		cnss_pr_err("%s: Unknown device id 0x%lx",
 			    __func__, plat_priv->device_id);
 		return -EINVAL;
@@ -3127,8 +3133,13 @@ int cnss_pci_load_m3(struct cnss_pci_data *pci_priv)
 			    m3_mem->va, &m3_mem->pa, SZ_512K);
 	}
 	CNSS_ASSERT(m3_mem->va);
-	snprintf(filename, sizeof(filename),
-		 DEFAULT_M3_FILE_NAME);
+
+	if (plat_priv->device_id == QCN9000_DEVICE_ID)
+		snprintf(filename, sizeof(filename),
+			 QCN9000_DEFAULT_M3_FILE_NAME);
+	else
+		snprintf(filename, sizeof(filename),
+			 QCN9224_DEFAULT_M3_FILE_NAME);
 
 	ret = request_firmware(&fw_entry, filename,
 			       &pci_priv->pci_dev->dev);
@@ -3518,7 +3529,8 @@ int cnss_get_user_msi_assignment(struct device *dev, char *user_name,
 	if (!plat_priv)
 		return -ENODEV;
 
-	if (plat_priv->device_id != QCN9000_DEVICE_ID) {
+	if (plat_priv->device_id != QCN9000_DEVICE_ID &&
+	    plat_priv->device_id != QCN9224_DEVICE_ID) {
 		cnss_pr_dbg("MSI not supported on device 0x%lx",
 			    plat_priv->device_id);
 		return -EINVAL;
@@ -3592,11 +3604,11 @@ void cnss_get_msi_address(struct device *dev, u32 *msi_addr_low,
 {
 	struct pci_dev *pci_dev = to_pci_dev(dev);
 
-	pci_read_config_dword(pci_dev, pci_dev->msi_cap + PCI_MSI_ADDRESS_LO,
-			      msi_addr_low);
-
-	pci_read_config_dword(pci_dev, pci_dev->msi_cap + PCI_MSI_ADDRESS_HI,
-			      msi_addr_high);
+	pci_dev = to_pci_dev(dev);
+	pci_read_config_dword(pci_dev, pci_dev->msi_cap +
+			      PCI_MSI_ADDRESS_LO, msi_addr_low);
+	pci_read_config_dword(pci_dev, pci_dev->msi_cap +
+			      PCI_MSI_ADDRESS_HI, msi_addr_high);
 
 	/* Since q6 supports only 32 bit addresses, mask the msi_addr_high
 	 * value. If this is programmed into the register, q6 interprets it
@@ -4333,6 +4345,7 @@ int cnss_pci_probe(struct pci_dev *pci_dev,
 		break;
 	case QCN9000_EMULATION_DEVICE_ID:
 	case QCN9000_DEVICE_ID:
+	case QCN9224_DEVICE_ID:
 	case QCA6390_DEVICE_ID:
 	case QCA6490_DEVICE_ID:
 		timer_setup(&pci_priv->dev_rddm_timer,
@@ -4404,6 +4417,7 @@ void cnss_pci_remove(struct pci_dev *pci_dev)
 	switch (pci_dev->device) {
 	case QCN9000_EMULATION_DEVICE_ID:
 	case QCN9000_DEVICE_ID:
+	case QCN9224_DEVICE_ID:
 	case QCA6390_DEVICE_ID:
 	case QCA6490_DEVICE_ID:
 		cnss_pci_unregister_mhi(pci_priv);
@@ -4431,12 +4445,13 @@ void cnss_pci_remove(struct pci_dev *pci_dev)
 EXPORT_SYMBOL(cnss_pci_remove);
 
 static const struct pci_device_id cnss_pci_id_table[] = {
-	{ QCA6174_VENDOR_ID, QCA6174_DEVICE_ID, PCI_ANY_ID, PCI_ANY_ID },
-	{ QCN9000_EMULATION_VENDOR_ID, QCN9000_EMULATION_DEVICE_ID,
+	{ QCATHR_VENDOR_ID, QCA6174_DEVICE_ID, PCI_ANY_ID, PCI_ANY_ID },
+	{ QCATHR_VENDOR_ID, QCN9000_EMULATION_DEVICE_ID,
 	  PCI_ANY_ID, PCI_ANY_ID },
-	{ QCN9000_VENDOR_ID, QCN9000_DEVICE_ID, PCI_ANY_ID, PCI_ANY_ID },
-	{ QCA6390_VENDOR_ID, QCA6390_DEVICE_ID, PCI_ANY_ID, PCI_ANY_ID },
-	{ QCA6490_VENDOR_ID, QCA6490_DEVICE_ID, PCI_ANY_ID, PCI_ANY_ID },
+	{ QUALCOMM_VENDOR_ID, QCN9000_DEVICE_ID, PCI_ANY_ID, PCI_ANY_ID },
+	{ QUALCOMM_VENDOR_ID, QCN9224_DEVICE_ID, PCI_ANY_ID, PCI_ANY_ID },
+	{ QUALCOMM_VENDOR_ID, QCA6390_DEVICE_ID, PCI_ANY_ID, PCI_ANY_ID },
+	{ QUALCOMM_VENDOR_ID, QCA6490_DEVICE_ID, PCI_ANY_ID, PCI_ANY_ID },
 	{ 0 }
 };
 MODULE_DEVICE_TABLE(pci, cnss_pci_id_table);
