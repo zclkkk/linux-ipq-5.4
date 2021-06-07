@@ -632,6 +632,7 @@ const struct nla_policy nl80211_policy[NUM_NL80211_ATTR] = {
 	[NL80211_ATTR_SAE_PWE] = NLA_POLICY_RANGE(NLA_U16, 0, 2),
 	[NL80211_ATTR_EHT_CAPABILITY] = { .type = NLA_BINARY,
 					 .len = NL80211_EHT_MAX_CAPABILITY_LEN },
+	[NL80211_ATTR_EHT_PUNCTURE_BITMAP] = { .type = NLA_U32 },
 };
 
 /* policy for the key attributes */
@@ -2774,6 +2775,13 @@ int nl80211_parse_chandef(struct cfg80211_registered_device *rdev,
 	} else {
 		chandef->edmg.bw_config = 0;
 		chandef->edmg.channels = 0;
+	}
+
+	if (info->attrs[NL80211_ATTR_EHT_PUNCTURE_BITMAP]) {
+		chandef->puncture_bitmap =
+			nla_get_u32(attrs[NL80211_ATTR_EHT_PUNCTURE_BITMAP]);
+	} else {
+		chandef->puncture_bitmap = IEEE80211_EHT_PUNCTURE_BITMAP_DEFAULT;
 	}
 
 	if (!cfg80211_chandef_valid(chandef)) {
