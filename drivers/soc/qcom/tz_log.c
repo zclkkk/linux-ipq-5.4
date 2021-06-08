@@ -390,6 +390,7 @@ static int qti_tzlog_probe(struct platform_device *pdev)
 	}
 
 	tz_hvc_log->is_diag_id = !(of_device_is_compatible(np, "qti,tzlog-ipq6018") ||
+				   of_device_is_compatible(np, "qti,tzlog-ipq9574") ||
 				   qti_scm_is_tz_log_encryption_supported());
 	if (!tz_hvc_log->is_diag_id) {
 		ret = of_property_read_u32(np, "qca,tzbsp-diag-buf-start",
@@ -566,6 +567,7 @@ static int qti_tzlog_remove(struct platform_device *pdev)
 static const struct of_device_id qti_tzlog_of_match[] = {
 	{ .compatible = "qti,tzlog" },
 	{ .compatible = "qti,tzlog-ipq6018" },
+	{ .compatible = "qti,tzlog-ipq9574" },
 	{}
 };
 MODULE_DEVICE_TABLE(of, qti_tzlog_of_match);
