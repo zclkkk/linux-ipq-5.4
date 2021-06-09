@@ -767,7 +767,7 @@ int cnss_wlfw_bdf_dnld_send_sync(struct cnss_plat_data *plat_priv,
 	unsigned int remaining, id = 0;
 	struct wlfw_bdf_download_req_msg_v01 *req;
 	struct wlfw_bdf_download_resp_msg_v01 *resp;
-	int ret = 0;
+	int ret = 0, node_id_base;
 	int resp_error_msg = 0;
 	u8 fw_bdf_type = BDF_TYPE_GOLDEN;
 
@@ -784,7 +784,8 @@ int cnss_wlfw_bdf_dnld_send_sync(struct cnss_plat_data *plat_priv,
 		return -ENOMEM;
 	}
 
-	folder = (plat_priv->device_id == QCN9000_DEVICE_ID) ? "qcn9000/" : "";
+	folder = (plat_priv->device_id == QCN9000_DEVICE_ID) ? "qcn9000/" :
+		 (plat_priv->device_id == QCN9224_DEVICE_ID) ? "qcn9224/" : "";
 	switch (bdf_type) {
 	case CNSS_BDF_ELF:
 		if (plat_priv->board_info.board_id == 0xFF)
@@ -819,7 +820,8 @@ int cnss_wlfw_bdf_dnld_send_sync(struct cnss_plat_data *plat_priv,
 		remaining = MAX_BDF_FILE_NAME;
 		goto bypass_bdf;
 	case CNSS_BDF_WIN:
-		if (plat_priv->device_id == QCN9000_DEVICE_ID &&
+		if ((plat_priv->device_id == QCN9000_DEVICE_ID ||
+		     plat_priv->device_id == QCN9224_DEVICE_ID) &&
 		    !plat_priv->board_info.board_id_override) {
 			dev = &plat_priv->plat_dev->dev;
 			if (!of_property_read_u32(dev->of_node, "board_id",
@@ -828,7 +830,8 @@ int cnss_wlfw_bdf_dnld_send_sync(struct cnss_plat_data *plat_priv,
 			}
 		}
 
-		if (plat_priv->device_id == QCN9000_DEVICE_ID &&
+		if ((plat_priv->device_id == QCN9000_DEVICE_ID ||
+		     plat_priv->device_id == QCN9224_DEVICE_ID) &&
 		    plat_priv->board_info.board_id_override)
 			snprintf(filename, sizeof(filename),
 				 "%s" BDF_WIN_FILE_NAME_PREFIX "%02x", folder,
@@ -853,13 +856,19 @@ int cnss_wlfw_bdf_dnld_send_sync(struct cnss_plat_data *plat_priv,
 		break;
 	case CNSS_CALDATA_WIN:
 		fw_bdf_type = BDF_TYPE_CALDATA;
-		if (plat_priv->device_id == QCN9000_DEVICE_ID) {
+		if (plat_priv->device_id == QCN9000_DEVICE_ID ||
+		    plat_priv->device_id == QCN9224_DEVICE_ID) {
+			if (plat_priv->device_id == QCN9224_DEVICE_ID)
+				node_id_base = QCN9224_NODE_ID_BASE;
+			else
+				node_id_base = QCN9000_NODE_ID_BASE;
+
 			snprintf(filename, sizeof(filename),
 				 "%s" DEFAULT_CAL_FILE_PREFIX
 				 "%d" DEFAULT_CAL_FILE_SUFFIX,
 				 folder,
 				 (plat_priv->wlfw_service_instance_id -
-				  (NODE_ID_BASE - 1)));
+				  (node_id_base - 1)));
 		} else {
 			snprintf(filename, sizeof(filename),
 				 "%s" DEFAULT_CAL_FILE_NAME, folder);
@@ -876,7 +885,8 @@ int cnss_wlfw_bdf_dnld_send_sync(struct cnss_plat_data *plat_priv,
 		}
 
 		if (plat_priv->eeprom_caldata_read_timeout &&
-		    plat_priv->device_id == QCN9000_DEVICE_ID) {
+		    (plat_priv->device_id == QCN9000_DEVICE_ID ||
+		     plat_priv->device_id == QCN9224_DEVICE_ID)) {
 			fw_bdf_type = BDF_TYPE_EEPROM;
 			temp = filename;
 			remaining = MAX_BDF_FILE_NAME;
@@ -1093,7 +1103,8 @@ int cnss_wlfw_m3_dnld_send_sync(struct cnss_plat_data *plat_priv)
 		kfree(req);
 		return -ENOMEM;
 	}
-	if ((plat_priv->device_id == QCN9000_DEVICE_ID) &&
+	if ((plat_priv->device_id == QCN9000_DEVICE_ID ||
+	     plat_priv->device_id == QCN9224_DEVICE_ID) &&
 	    (!m3_mem->pa || !m3_mem->size)) {
 		cnss_pr_err("Memory for M3 is not available\n");
 		ret = -ENOMEM;
@@ -2708,7 +2719,8 @@ int cnss_qmi_init(struct cnss_plat_data *plat_priv)
 			pr_info("No qca8074_tgt_mem_mode entry in dev-tree.\n");
 			plat_priv->tgt_mem_cfg_mode = 0;
 		}
-	} else if (plat_priv->device_id == QCN9000_DEVICE_ID) {
+	} else if (plat_priv->device_id == QCN9000_DEVICE_ID ||
+		   plat_priv->device_id == QCN9224_DEVICE_ID) {
 		if (of_property_read_u32(dev->of_node,
 					 "tgt-mem-mode",
 					 &plat_priv->tgt_mem_cfg_mode)) {

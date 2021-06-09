@@ -51,7 +51,8 @@
 #define CNSS_QMI_TIMEOUT_DEFAULT	10000
 #define CNSS_BDF_TYPE_DEFAULT		CNSS_BDF_ELF
 #define CNSS_TIME_SYNC_PERIOD_DEFAULT	900000
-#define DEFAULT_FW_FILE_NAME		"qcn9000/amss.bin"
+#define QCN9000_DEFAULT_FW_FILE_NAME	"qcn9000/amss.bin"
+#define QCN9224_DEFAULT_FW_FILE_NAME	"qcn9224/amss.bin"
 
 #define MAX_NUMBER_OF_SOCS 4
 struct cnss_plat_data *plat_env[MAX_NUMBER_OF_SOCS];
@@ -109,6 +110,10 @@ MODULE_PARM_DESC(cold_boot_cal_timeout, "Cold boot cal timeout in seconds");
 static int soc_version_major;
 module_param(soc_version_major, int, 0444);
 MODULE_PARM_DESC(soc_version_major, "SOC Major Version");
+
+static int enable_qcn9224_support;
+module_param(enable_qcn9224_support, int, 0444);
+MODULE_PARM_DESC(enable_qcn9224_support, "Enable QCN9224 support");
 
 enum skip_cnss_options {
 	CNSS_SKIP_NONE,
@@ -433,7 +438,8 @@ int cnss_wlan_enable(struct device *dev,
 	}
 
 	/* Set wmi diag logging */
-	if (plat_priv->device_id == QCN9000_DEVICE_ID)
+	if (plat_priv->device_id == QCN9000_DEVICE_ID ||
+	    plat_priv->device_id == QCN9224_DEVICE_ID)
 		cnss_set_fw_log_mode(dev, 1);
 
 	cnss_pr_dbg("Mode: %d, config: %pK, host_version: %s\n",
@@ -615,7 +621,8 @@ static int cnss_fw_mem_ready_hdlr(struct cnss_plat_data *plat_priv)
 		}
 	}
 
-	if (plat_priv->device_id == QCN9000_DEVICE_ID) {
+	if (plat_priv->device_id == QCN9000_DEVICE_ID ||
+	    plat_priv->device_id == QCN9224_DEVICE_ID) {
 		ret = cnss_bus_load_m3(plat_priv);
 		if (ret) {
 			cnss_pr_err("m3 load failed. ret %d\n", ret);
@@ -689,6 +696,7 @@ void cnss_get_ramdump_device_name(struct device *dev,
 		snprintf(ramdump_dev_name, ramdump_dev_name_len, "q6mem");
 		break;
 	case QCN9000_DEVICE_ID:
+	case QCN9224_DEVICE_ID:
 		snprintf(ramdump_dev_name, ramdump_dev_name_len, "ramdump_%s",
 			 plat_priv->device_name);
 		break;
@@ -729,6 +737,7 @@ void cnss_wait_for_fw_ready(struct device *dev)
 	    plat_priv->device_id == QCA6018_DEVICE_ID ||
 	    plat_priv->device_id == QCA5018_DEVICE_ID ||
 	    plat_priv->device_id == QCN6122_DEVICE_ID ||
+	    plat_priv->device_id == QCN9224_DEVICE_ID ||
 	    plat_priv->device_id == QCN9000_DEVICE_ID) {
 		cnss_pr_info("Waiting for FW ready. Device: 0x%lx, FW ready timeout: %d seconds\n",
 			     plat_priv->device_id, fw_ready_timeout);
@@ -758,6 +767,7 @@ void cnss_wait_for_cold_boot_cal_done(struct device *dev)
 	    plat_priv->device_id == QCA8074V2_DEVICE_ID ||
 	    plat_priv->device_id == QCA6018_DEVICE_ID ||
 	    plat_priv->device_id == QCN6122_DEVICE_ID ||
+	    plat_priv->device_id == QCN9224_DEVICE_ID ||
 	    plat_priv->device_id == QCA5018_DEVICE_ID ||
 	    plat_priv->device_id == QCN9000_DEVICE_ID) {
 		/* Cold boot Calibration is done parallely for multiple devices
@@ -1329,11 +1339,9 @@ void *cnss_register_qcn9000_cb(struct cnss_plat_data *plat_priv)
 {
 	struct cnss_subsys_info *subsys_info;
 	void *ss_handle = NULL;
-	int index;
 	int ret = 0;
 
 	subsys_info = &plat_priv->subsys_info;
-	index = plat_priv->wlfw_service_instance_id - NODE_ID_BASE;
 	subsys_info->subsys_desc.name = plat_priv->device_name;
 
 	plat_priv->modem_nb.notifier_call = cnss_qcn9000_notifier_nb;
@@ -1414,6 +1422,7 @@ void *cnss_register_notifier_cb(struct cnss_plat_data *plat_priv)
 {
 	switch (plat_priv->device_id) {
 	case QCN9000_DEVICE_ID:
+	case QCN9224_DEVICE_ID:
 		return cnss_register_qcn9000_cb(plat_priv);
 	case QCA8074_DEVICE_ID:
 	case QCA8074V2_DEVICE_ID:
@@ -1431,6 +1440,7 @@ int cnss_unregister_notifier_cb(struct cnss_plat_data *plat_priv)
 {
 	switch (plat_priv->device_id) {
 	case QCN9000_DEVICE_ID:
+	case QCN9224_DEVICE_ID:
 		return cnss_unregister_qcn9000_cb(plat_priv);
 	case QCA8074_DEVICE_ID:
 	case QCA8074V2_DEVICE_ID:
@@ -1483,7 +1493,8 @@ int cnss_wlan_register_driver(struct cnss_wlan_driver *driver_ops)
 		 * connected to board. If PCI device is connected, probe_basic
 		 * function will initialize plat_priv->pci_dev
 		 */
-		if (plat_priv->device_id == QCN9000_DEVICE_ID &&
+		if ((plat_priv->device_id == QCN9000_DEVICE_ID ||
+		     plat_priv->device_id == QCN9224_DEVICE_ID) &&
 		    plat_priv->pci_dev &&
 		    (strcmp(driver_ops->name, "pld_pcie") == 0)) {
 			cnss_pci_init(plat_priv);
@@ -1601,7 +1612,8 @@ void cnss_wlan_unregister_driver(struct cnss_wlan_driver *driver_ops)
 			plat_priv->driver_state = 0;
 		}
 
-		if (plat_priv->device_id == QCN9000_DEVICE_ID && ops &&
+		if ((plat_priv->device_id == QCN9000_DEVICE_ID ||
+		     plat_priv->device_id == QCN9224_DEVICE_ID) && ops &&
 		    (strcmp(driver_ops->name, "pld_pcie") == 0)) {
 			set_bit(CNSS_DRIVER_UNLOADING, &plat_priv->driver_state);
 			subsys_info = &plat_priv->subsys_info;
@@ -2315,7 +2327,13 @@ static int cnss_qdss_trace_save_hdlr(struct cnss_plat_data *plat_priv,
 			snprintf(file_name, sizeof(file_name),
 				 "%s_qcn9000_pci%d%s", file_prefix,
 				 (plat_priv->wlfw_service_instance_id -
-				 NODE_ID_BASE), file_suffix);
+				 QCN9000_NODE_ID_BASE), file_suffix);
+
+		if (plat_priv->device_id == QCN9224_DEVICE_ID)
+			snprintf(file_name, sizeof(file_name),
+				 "%s_qcn9224_pci%d%s", file_prefix,
+				 (plat_priv->wlfw_service_instance_id -
+				 QCN9224_NODE_ID_BASE), file_suffix);
 	} else {
 		if (plat_priv->device_id == QCN6122_DEVICE_ID)
 			snprintf(file_name, sizeof(file_name),
@@ -2328,7 +2346,14 @@ static int cnss_qdss_trace_save_hdlr(struct cnss_plat_data *plat_priv,
 				 "%s_qcn9000_pci%d",
 				 event_data->file_name,
 				 (plat_priv->wlfw_service_instance_id -
-				 NODE_ID_BASE));
+				 QCN9000_NODE_ID_BASE));
+
+		if (plat_priv->device_id == QCN9224_DEVICE_ID)
+			snprintf(file_name, sizeof(file_name),
+				 "%s_qcn9224_pci%d",
+				 event_data->file_name,
+				 (plat_priv->wlfw_service_instance_id -
+				 QCN9224_NODE_ID_BASE));
 	}
 
 	if (event_data->mem_seg_len == 0) {
@@ -2707,7 +2732,13 @@ static int cnss_m3_dump_upload_req_hdlr(struct cnss_plat_data *plat_priv,
 	if (plat_priv->device_id == QCN9000_DEVICE_ID)
 		snprintf(dump_file_name, sizeof(dump_file_name),
 			 "m3_dump_qcn9000_pci%d.bin",
-			 (plat_priv->wlfw_service_instance_id - NODE_ID_BASE));
+			 (plat_priv->wlfw_service_instance_id -
+			  QCN9000_NODE_ID_BASE));
+	else if (plat_priv->device_id == QCN9224_DEVICE_ID)
+		snprintf(dump_file_name, sizeof(dump_file_name),
+			 "m3_dump_qcn9224_pci%d.bin",
+			 (plat_priv->wlfw_service_instance_id -
+			  QCN9224_NODE_ID_BASE));
 	else
 		snprintf(dump_file_name, sizeof(dump_file_name),
 			 "m3_dump_wifi%d.bin", m3_dump_data->pdev_id);
@@ -3160,6 +3191,7 @@ int cnss_register_ramdump(struct cnss_plat_data *plat_priv)
 		break;
 	case QCN9000_EMULATION_DEVICE_ID:
 	case QCN9000_DEVICE_ID:
+	case QCN9224_DEVICE_ID:
 	case QCA6390_DEVICE_ID:
 	case QCA6490_DEVICE_ID:
 		ret = cnss_register_ramdump_v2(plat_priv);
@@ -3253,6 +3285,7 @@ static ssize_t fs_ready_store(struct device *dev,
 	switch (plat_priv->device_id) {
 	case QCN9000_EMULATION_DEVICE_ID:
 	case QCN9000_DEVICE_ID:
+	case QCN9224_DEVICE_ID:
 	case QCA6390_DEVICE_ID:
 	case QCA6490_DEVICE_ID:
 		break;
@@ -3369,6 +3402,7 @@ static const struct platform_device_id cnss_platform_id_table[] = {
 	{ .name = "qca6018", .driver_data = QCA6018_DEVICE_ID, },
 	{ .name = "qca5018", .driver_data = QCA5018_DEVICE_ID, },
 	{ .name = "qcn6122", .driver_data = QCN6122_DEVICE_ID, },
+	{ .name = "qcn9224", .driver_data = QCN9224_DEVICE_ID, },
 };
 
 static const struct of_device_id cnss_of_match_table[] = {
@@ -3393,6 +3427,9 @@ static const struct of_device_id cnss_of_match_table[] = {
 	{
 		.compatible = "qcom,cnss-qcn6122",
 		.data = (void *)&cnss_platform_id_table[6]},
+	{
+		.compatible = "qcom,cnss-qcn9224",
+		.data = (void *)&cnss_platform_id_table[7]},
 	{ },
 };
 MODULE_DEVICE_TABLE(of, cnss_of_match_table);
@@ -3471,9 +3508,9 @@ cnss_set_mod_param_feature_support(struct cnss_plat_data *plat_priv,
 		}
 		break;
 	case QCN9224_DEVICE_ID:
-		if ((plat_priv->userpd_id == QCN9224_0 &&
+		if ((plat_priv->qrtr_node_id == QCN9224_0 &&
 		     (bmap & SKIP_PCI_0)) ||
-		    (plat_priv->userpd_id == QCN9224_1 &&
+		    (plat_priv->qrtr_node_id == QCN9224_1 &&
 		     (bmap & SKIP_PCI_1))) {
 			*ptr = 0;
 			cnss_pr_info("Disabling %s support for %s", fname,
@@ -3493,9 +3530,16 @@ static int cnss_set_device_name(struct cnss_plat_data *plat_priv)
 
 	switch (plat_priv->device_id) {
 	case QCN9000_DEVICE_ID:
-		index = plat_priv->wlfw_service_instance_id - NODE_ID_BASE;
+		index = plat_priv->wlfw_service_instance_id -
+				QCN9000_NODE_ID_BASE;
 		snprintf(plat_priv->device_name, sizeof(plat_priv->device_name),
 			 "QCN9000_PCI%d", index);
+		break;
+	case QCN9224_DEVICE_ID:
+		index = plat_priv->wlfw_service_instance_id -
+				QCN9224_NODE_ID_BASE;
+		snprintf(plat_priv->device_name, sizeof(plat_priv->device_name),
+			 "QCN9224_PCI%d", index);
 		break;
 	case QCA8074_DEVICE_ID:
 		snprintf(plat_priv->device_name, sizeof(plat_priv->device_name),
@@ -3596,7 +3640,8 @@ cnss_check_skip_target_probe(const struct platform_device_id *device_id,
 		       device_id->driver_data);
 		return true;
 	} else if (skip_cnss == CNSS_SKIP_PCI &&
-		   device_id->driver_data == QCN9000_DEVICE_ID) {
+		   (device_id->driver_data == QCN9000_DEVICE_ID ||
+		    device_id->driver_data == QCN9224_DEVICE_ID)) {
 		pr_err("Skipping cnss_probe for device 0x%lx\n",
 		       device_id->driver_data);
 		return true;
@@ -3627,16 +3672,18 @@ cnss_check_skip_target_probe(const struct platform_device_id *device_id,
 	} else if ((skip_radio_bmap & SKIP_PCI_0) &&
 		   (((userpd_id == QCN6122_0) &&
 		   (device_id->driver_data == QCN6122_DEVICE_ID)) ||
-		   ((node_id == QCN9000_0) &&
-		   (device_id->driver_data == QCN9000_DEVICE_ID)))) {
+		   ((node_id == QCN9000_0 || node_id == QCN9224_0) &&
+		   (device_id->driver_data == QCN9000_DEVICE_ID ||
+		    device_id->driver_data == QCN9224_DEVICE_ID)))) {
 		pr_err("Skipping cnss_probe for PCI_0 device 0x%lx\n",
 		       device_id->driver_data);
 		return true;
 	} else if ((skip_radio_bmap & SKIP_PCI_1) &&
 		   (((userpd_id == QCN6122_1) &&
 		   (device_id->driver_data == QCN6122_DEVICE_ID)) ||
-		   ((node_id == QCN9000_1) &&
-		   (device_id->driver_data == QCN9000_DEVICE_ID)))) {
+		   ((node_id == QCN9000_1 || node_id == QCN9224_1) &&
+		   (device_id->driver_data == QCN9000_DEVICE_ID ||
+		    device_id->driver_data == QCN9224_DEVICE_ID)))) {
 		pr_err("Skipping cnss_probe for PCI_1 device 0x%lx\n",
 		       device_id->driver_data);
 		return true;
@@ -3710,7 +3757,7 @@ static int cnss_probe(struct platform_device *plat_dev)
 	struct cnss_plat_data *plat_priv = NULL;
 	const struct of_device_id *of_id;
 	const struct platform_device_id *device_id;
-	u32 node_id = 0, userpd_id = 0;
+	u32 node_id = 0, userpd_id = 0, node_id_base;
 	const int *soc_version;
 
 	if (cnss_get_plat_priv(plat_dev)) {
@@ -3735,7 +3782,15 @@ static int cnss_probe(struct platform_device *plat_dev)
 		goto out;
 	}
 
-	if ((device_id->driver_data == QCN9000_DEVICE_ID) &&
+	if (device_id->driver_data == QCN9224_DEVICE_ID &&
+	    !enable_qcn9224_support) {
+		pr_err("Skipping QCN9224 device support\n");
+		ret = -ENODEV;
+		goto out;
+	}
+
+	if ((device_id->driver_data == QCN9000_DEVICE_ID ||
+	     device_id->driver_data == QCN9224_DEVICE_ID) &&
 	    (of_property_read_u32(plat_dev->dev.of_node,
 				  "qrtr_node_id", &node_id))) {
 		pr_err("Error: No qrtr_node_id in device_tree\n");
@@ -3746,7 +3801,6 @@ static int cnss_probe(struct platform_device *plat_dev)
 
 	if (cnss_check_skip_target_probe(device_id, userpd_id, node_id))
 		goto out;
-
 
 	soc_version = of_get_property(of_find_node_by_path("/"),
 				      "soc_version_major", NULL);
@@ -3789,20 +3843,31 @@ static int cnss_probe(struct platform_device *plat_dev)
 
 	switch (plat_priv->device_id) {
 	case QCN9000_DEVICE_ID:
+	case QCN9224_DEVICE_ID:
 		plat_priv->bus_type = CNSS_BUS_PCI;
 		plat_priv->service_id = WLFW_SERVICE_ID_V01_NPR;
 		plat_priv->qrtr_node_id = node_id;
 		plat_priv->wlfw_service_instance_id = node_id + FW_ID_BASE;
 
-		if (plat_priv->wlfw_service_instance_id == NODE_ID_BASE)
+		if (plat_priv->device_id == QCN9224_DEVICE_ID)
+			node_id_base = QCN9224_NODE_ID_BASE;
+		else
+			node_id_base = QCN9000_NODE_ID_BASE;
+
+		if (plat_priv->wlfw_service_instance_id == node_id_base)
 			plat_priv->board_info.board_id_override = bdf_pci0;
 		else if (plat_priv->wlfw_service_instance_id ==
-			 NODE_ID_BASE + 1)
+			 node_id_base + 1)
 			plat_priv->board_info.board_id_override = bdf_pci1;
 
-		snprintf(plat_priv->firmware_name,
-			 sizeof(plat_priv->firmware_name),
-			 DEFAULT_FW_FILE_NAME);
+		if (plat_priv->device_id == QCN9224_DEVICE_ID)
+			snprintf(plat_priv->firmware_name,
+				 sizeof(plat_priv->firmware_name),
+				 QCN9224_DEFAULT_FW_FILE_NAME);
+		else
+			snprintf(plat_priv->firmware_name,
+				 sizeof(plat_priv->firmware_name),
+				 QCN9000_DEFAULT_FW_FILE_NAME);
 		break;
 	case QCA8074_DEVICE_ID:
 	case QCA8074V2_DEVICE_ID:

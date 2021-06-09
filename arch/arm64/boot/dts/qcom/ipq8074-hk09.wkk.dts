@@ -68,7 +68,7 @@
 	 * +=================================================+
 	 */
 		/delete-node/ wifi_dump@4e900000;
-		qcn9000_pcie0@4e900000 {
+		qcn9224_pcie0@4e900000 {
 			no-map;
 			reg = <0x0 0x4e900000 0x0 0x01e00000>;
 		};
@@ -103,24 +103,24 @@
 	 * +--------+--------------+-------------------------+
 	 * | M3 Dump|  0x51000000  |           1MB           |
 	 * +--------+--------------+-------------------------+
-	 * |  Wkk   |  0x51100000  |          45MB           |
+	 * |  Wkk   |  0x51100000  |          46MB           |
 	 * +--------+--------------+-------------------------+
-	 * |  MHI0  |  0x53E00000  |          24MB           |
+	 * |  MHI0  |  0x53F00000  |          24MB           |
 	 * +--------+--------------+-------------------------+
 	 * |                                                 |
 	 * |          Rest of the memory for Linux           |
 	 * |                                                 |
 	 * +=================================================+
 	 */
-		qcn9000_pcie0@51100000 {
+		qcn9224_pcie0@51100000 {
 			no-map;
-			reg = <0x0 0x51100000 0x0 0x02D00000>;
+			reg = <0x0 0x51100000 0x0 0x02E00000>;
 		};
 
-		mhi_region0: dma_pool0@53e00000 {
+		mhi_region0: dma_pool0@53f00000 {
 			compatible = "shared-dma-pool";
 			no-map;
-			reg = <0x0 0x53E00000 0x0 0x01800000>;
+			reg = <0x0 0x53F00000 0x0 0x01800000>;
 		};
 #endif
 #endif
@@ -380,8 +380,6 @@
 		};
 
 		pci@20000000 {
-			pinctrl-0 = <&pcie0_pins>;
-			pinctrl-names = "default";
 			perst-gpio = <&tlmm 58 1>;
 			link_retries_count = <400>;
 			status = "ok";
@@ -391,7 +389,7 @@
 
 				qcom,mhi@0 {
 					reg = <0 0 0 0 0>;
-					qrtr_instance_id = <0x20>;
+					qrtr_instance_id = <0x30>;
 #if !defined(__IPQ_MEM_PROFILE_256_MB__)
 					memory-region = <&mhi_region0>;
 #endif
@@ -780,4 +778,50 @@
 			mdiobus = <&mdio>;
 		};
 	};
+};
+
+&wifi5 {
+#ifdef __IPQ_MEM_PROFILE_512_MB__
+      /* QCN9224 tgt-mem-mode=1 layout - 30MB
+       * +=========+==============+=========+
+       * |  Region | Start Offset |   Size  |
+       * +---------+--------------+---------+
+       * | HREMOTE |  0x4E900000  |   20MB  |
+       * +---------+--------------+---------+
+       * | M3 Dump |  0x4FD00000  |   1MB   |
+       * +---------+--------------+---------+
+       * |   ETR   |  0x4FE00000  |   1MB   |
+       * +---------+--------------+---------+
+       * |  Caldb  |  0x4FF00000  |   8MB   |
+       * +==================================+
+       */
+	base-addr = <0x4E900000>;
+	m3-dump-addr = <0x4FD00000>;
+	etr-addr = <0x4FE00000>;
+	caldb-addr = <0x4FF00000>;
+	hremote-size = <0x1400000>;
+	tgt-mem-mode = <0x1>;
+#else
+      /* QCN9224 tgt-mem-mode=0 layout - 45MB
+       * +=========+==============+=========+
+       * |  Region | Start Offset |   Size  |
+       * +---------+--------------+---------+
+       * | HREMOTE |  0x51100000  |   36MB  |
+       * +---------+--------------+---------+
+       * | M3 Dump |  0x53500000  |   1MB   |
+       * +---------+--------------+---------+
+       * |   ETR   |  0x53600000  |   1MB   |
+       * +---------+--------------+---------+
+       * |  Caldb  |  0x53700000  |   8MB   |
+       * +==================================+
+       */
+	base-addr = <0x51100000>;
+	m3-dump-addr = <0x53500000>;
+	etr-addr = <0x53600000>;
+	caldb-addr = <0x53700000>;
+	hremote-size = <0x2400000>;
+	tgt-mem-mode = <0x0>;
+#endif
+	caldb-size = <0x800000>;
+	status = "ok";
 };
