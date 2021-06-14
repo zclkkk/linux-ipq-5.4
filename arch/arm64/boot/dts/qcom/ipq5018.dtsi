@@ -6,6 +6,7 @@
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/clock/qcom,gcc-ipq5018.h>
 #include <dt-bindings/reset/qcom,gcc-ipq5018.h>
+#include <dt-bindings/gpio/gpio.h>
 #include "ipq5018-memory.dtsi"
 
 
@@ -325,6 +326,21 @@
 			clock-names = "core", "iface";
 			dmas = <&blsp_dma 4>, <&blsp_dma 5>;
 			dma-names = "tx", "rx";
+			status = "disabled";
+		};
+
+		i2c_0: i2c@78b7000 {
+			compatible = "qcom,i2c-qup-v2.2.1";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x78b7000 0x600>;
+			interrupts = <GIC_SPI 97 0x4>;
+			clocks = <&gcc GCC_BLSP1_AHB_CLK>,
+				<&gcc GCC_BLSP1_QUP3_I2C_APPS_CLK>;
+			clock-names = "iface", "core";
+			clock-frequency  = <400000>;
+			dmas = <&blsp_dma 9>, <&blsp_dma 8>;
+			dma-names = "rx", "tx";
 			status = "disabled";
 		};
 

@@ -830,6 +830,7 @@ dtb-$(CONFIG_ARCH_OXNAS) += \
 	ox820-cloudengines-pogoplug-series-3.dtb
 ifeq ($(CONFIG_IPQ_FLASH_16M_PROFILE),y)
 dtb-$(CONFIG_ARCH_QCOM) += \
+	ipq5018-mp02.1.dtb \
 	ipq5018-mp03.1.dtb
 else
 dtb-$(CONFIG_ARCH_QCOM) += \
@@ -847,6 +848,7 @@ dtb-$(CONFIG_ARCH_QCOM) += \
 	qcom-ipq4019-ap.dk07.1-c1.dtb \
 	qcom-ipq4019-ap.dk07.1-c2.dtb \
 	qcom-ipq8064-ap148.dtb \
+	ipq5018-mp02.1.dtb \
 	ipq5018-mp03.1.dtb \
 	ipq5018-mp03.1-c2.dtb \
 	ipq5018-mp03.1-c3.dtb \

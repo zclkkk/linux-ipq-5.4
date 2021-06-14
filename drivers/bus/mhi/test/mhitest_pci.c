@@ -344,7 +344,7 @@ int mhitest_pci_get_mhi_msi(struct mhitest_platform *mplat)
 		return ret;
 	}
 
-	MHITEST_LOG("MSI user:%s has num_vectore:%d and bas_vectore:%d\n",
+	MHITEST_LOG("MSI user:%s has num_vectors:%d and base_vector:%d\n",
 					"MHI-TEST", num_vectors, base_vector);
 
 	irq = kcalloc(num_vectors, sizeof(int), GFP_KERNEL);
