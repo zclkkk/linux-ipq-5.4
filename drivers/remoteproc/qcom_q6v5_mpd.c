@@ -109,7 +109,10 @@
 #define MAX_SEGMENTS		10
 
 #define BUF_SIZE 35
-#define MAX_DEP_CNT 4
+#define REMOTE_PID	1
+#define VERSION 1
+#define Q6_BOOT_ARGS_SMEM_SIZE 4096
+
 static int debug_wcss;
 static int crash_cnt;
 
@@ -1176,6 +1179,77 @@ static void *q6_wcss_da_to_va(struct rproc *rproc, u64 da, int len)
 	return wcss->mem_region + offset;
 }
 
+static int share_bootargs_to_q6(struct device *dev)
+{
+	int ret;
+	u32 smem_id, rd_val;
+	const char *key = "qcom,bootargs_smem";
+	size_t size;
+	u16 cnt, tmp, version;
+	void *ptr;
+	u8 *bootargs_arr;
+	struct device_node *np = dev->of_node;
+
+	ret = of_property_read_u32(np, key, &smem_id);
+	if (ret) {
+		pr_err("failed to get smem id\n");
+		return ret;
+	}
+
+	ret = qcom_smem_alloc(REMOTE_PID, smem_id,
+					Q6_BOOT_ARGS_SMEM_SIZE);
+	if (ret && ret != -EEXIST) {
+		pr_err("failed to allocate q6 bootargs smem segment\n");
+		return ret;
+	}
+
+	ptr = qcom_smem_get(REMOTE_PID, smem_id, &size);
+	if (IS_ERR(ptr)) {
+		pr_err("Unable to acquire smp2p item(%d) ret:%ld\n",
+					smem_id, PTR_ERR(ptr));
+		return PTR_ERR(ptr);
+	}
+
+	/*Version*/
+	version = VERSION;
+	memcpy_toio(ptr, &version, sizeof(version));
+	ptr += sizeof(version);
+
+	cnt = ret = of_property_count_u32_elems(np, "boot-args");
+	if (ret < 0) {
+		pr_err("failed to read boot args ret:%d\n", ret);
+		return ret;
+	}
+
+	/* No of elements */
+	memcpy_toio(ptr, &cnt, sizeof(u16));
+	ptr += sizeof(u16);
+
+	bootargs_arr = kzalloc(cnt, GFP_KERNEL);
+	if (!bootargs_arr) {
+		pr_err("failed to allocate memory\n");
+		return PTR_ERR(bootargs_arr);
+	}
+
+	for (tmp = 0; tmp < cnt; tmp++) {
+		ret = of_property_read_u32_index(np, "boot-args", tmp, &rd_val);
+		if (ret) {
+			pr_err("failed to read boot args\n");
+			kfree(bootargs_arr);
+			return ret;
+		}
+		bootargs_arr[tmp] = (u8)rd_val;
+	}
+
+	/* Copy bootargs */
+	memcpy_toio(ptr, bootargs_arr, cnt);
+	ptr += (cnt);
+
+	of_node_put(np);
+	kfree(bootargs_arr);
+	return ret;
+}
+
 static int q6_wcss_load(struct rproc *rproc, const struct firmware *fw)
 {
 	struct q6_wcss *wcss = rproc->priv;
@@ -1185,6 +1259,15 @@ static int q6_wcss_load(struct rproc *rproc, const struct firmware *fw)
 	const char *m3_fw_name;
 	struct device_node *upd_np;
 	struct platform_device *upd_pdev;
+
+	/* Share boot args to Q6 remote processor */
+	ret = share_bootargs_to_q6(wcss->dev);
+	if (ret) {
+		dev_err(wcss->dev,
+			"boot args sharing with q6 failed %d\n",
+			ret);
+		return ret;
+	}
 
 	/* load m3 firmware of userpd's */
 	for_each_available_child_of_node(wcss->dev->of_node, upd_np) {
@@ -1306,24 +1389,6 @@ static const struct rproc_ops q6_wcss_ipq5018_ops = {
 	.get_boot_addr = rproc_elf_get_boot_addr,
 	.parse_fw = q6_wcss_register_dump_segments,
 };
-
-int q6_wcss_get_pd_asid(struct device *dev, u8 *pd_asid)
-{
-	char *str;
-	long tmp;
-
-	str = strstr(dev->of_node->name, "pd");
-	if (!str) {
-		tmp = 0;
-		goto ret_asid;
-	}
-	str += strlen("pd");
-	kstrtol(str, 10, &tmp);
-ret_asid:
-	*pd_asid = (u8)tmp;
-	return 0;
-}
-EXPORT_SYMBOL(q6_wcss_get_pd_asid);
 
 static int q6_wcss_init_reset(struct q6_wcss *wcss,
 				const struct wcss_data *desc)
@@ -1721,7 +1786,6 @@ static int q6_wcss_probe(struct platform_device *pdev)
 	struct q6_wcss *wcss;
 	struct rproc *rproc;
 	int ret;
-	u8 pd_asid;
 	char *subdev_name;
 
 	desc = of_device_get_match_data(&pdev->dev);
@@ -1766,10 +1830,7 @@ static int q6_wcss_probe(struct platform_device *pdev)
 	if (ret)
 		goto free_rproc;
 
-	ret = q6_wcss_get_pd_asid(&pdev->dev, &pd_asid);
-	if (ret)
-		goto free_rproc;
-	wcss->pd_asid = pd_asid;
+	wcss->pd_asid = qcom_get_pd_asid(wcss->dev->of_node);
 
 	if (desc->init_irq)
 		ret = desc->init_irq(&wcss->q6, pdev, rproc,

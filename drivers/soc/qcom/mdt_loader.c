@@ -383,7 +383,7 @@ static int __qcom_mdt_load(struct device *dev, const struct firmware *fw,
 		return -EINVAL;
 
 
-	q6_wcss_get_pd_asid(dev, &pd_asid);
+	pd_asid = qcom_get_pd_asid(dev->of_node);
 
 	ehdr = (struct elf32_hdr *)fw->data;
 	phdrs = (struct elf32_phdr *)(ehdr + 1);
@@ -492,7 +492,7 @@ static int __qcom_mdt_load(struct device *dev, const struct firmware *fw,
 		if (!(pas_init && pd_asid))
 			ptr = mem_region + offset;
 
-		if (phdr->p_filesz && phdr->p_offset < fw->size) {
+		if (phdr->p_filesz && phdr->p_offset < fw->size && !pd_asid) {
 			/* Firmware is large enough to be non-split */
 			if (phdr->p_offset + phdr->p_filesz > fw->size) {
 				dev_err(dev,
