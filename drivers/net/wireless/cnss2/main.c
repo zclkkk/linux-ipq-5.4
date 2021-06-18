@@ -693,6 +693,7 @@ void cnss_get_ramdump_device_name(struct device *dev,
 	case QCA8074_DEVICE_ID:
 	case QCA8074V2_DEVICE_ID:
 	case QCA6018_DEVICE_ID:
+	case QCA9574_DEVICE_ID:
 		snprintf(ramdump_dev_name, ramdump_dev_name_len, "q6mem");
 		break;
 	case QCN9000_DEVICE_ID:
@@ -738,6 +739,7 @@ void cnss_wait_for_fw_ready(struct device *dev)
 	    plat_priv->device_id == QCA5018_DEVICE_ID ||
 	    plat_priv->device_id == QCN6122_DEVICE_ID ||
 	    plat_priv->device_id == QCN9224_DEVICE_ID ||
+	    plat_priv->device_id == QCA9574_DEVICE_ID ||
 	    plat_priv->device_id == QCN9000_DEVICE_ID) {
 		cnss_pr_info("Waiting for FW ready. Device: 0x%lx, FW ready timeout: %d seconds\n",
 			     plat_priv->device_id, fw_ready_timeout);
@@ -769,7 +771,8 @@ void cnss_wait_for_cold_boot_cal_done(struct device *dev)
 	    plat_priv->device_id == QCN6122_DEVICE_ID ||
 	    plat_priv->device_id == QCN9224_DEVICE_ID ||
 	    plat_priv->device_id == QCA5018_DEVICE_ID ||
-	    plat_priv->device_id == QCN9000_DEVICE_ID) {
+	    plat_priv->device_id == QCN9000_DEVICE_ID ||
+	    plat_priv->device_id == QCA9574_DEVICE_ID) {
 		/* Cold boot Calibration is done parallely for multiple devices
 		 * Check if this device has already completed cold boot cal
 		 * If already completed, we need not wait
@@ -1429,6 +1432,7 @@ void *cnss_register_notifier_cb(struct cnss_plat_data *plat_priv)
 	case QCA6018_DEVICE_ID:
 	case QCA5018_DEVICE_ID:
 	case QCN6122_DEVICE_ID:
+	case QCA9574_DEVICE_ID:
 		return cnss_register_qca8074_cb(plat_priv);
 	default:
 		cnss_pr_err("Invalid device ID: 0x%lx", plat_priv->device_id);
@@ -1447,6 +1451,7 @@ int cnss_unregister_notifier_cb(struct cnss_plat_data *plat_priv)
 	case QCA6018_DEVICE_ID:
 	case QCA5018_DEVICE_ID:
 	case QCN6122_DEVICE_ID:
+	case QCA9574_DEVICE_ID:
 		return cnss_unregister_qca8074_cb(plat_priv);
 	default:
 		cnss_pr_err("Invalid device ID: 0x%lx", plat_priv->device_id);
@@ -1481,7 +1486,8 @@ int cnss_wlan_register_driver(struct cnss_wlan_driver *driver_ops)
 		     plat_priv->device_id == QCA8074V2_DEVICE_ID ||
 		     plat_priv->device_id == QCA5018_DEVICE_ID ||
 		     plat_priv->device_id == QCN6122_DEVICE_ID ||
-		     plat_priv->device_id == QCA6018_DEVICE_ID) &&
+		     plat_priv->device_id == QCA6018_DEVICE_ID ||
+		     plat_priv->device_id == QCA9574_DEVICE_ID) &&
 		    (strcmp(driver_ops->name, "pld_ahb") == 0)) {
 			plat_priv->driver_ops = driver_ops;
 			ret = cnss_register_subsys(plat_priv);
@@ -1592,6 +1598,7 @@ void cnss_wlan_unregister_driver(struct cnss_wlan_driver *driver_ops)
 		     plat_priv->device_id == QCA8074V2_DEVICE_ID ||
 		     plat_priv->device_id == QCA5018_DEVICE_ID ||
 		     plat_priv->device_id == QCN6122_DEVICE_ID ||
+		     plat_priv->device_id == QCA9574_DEVICE_ID ||
 		     plat_priv->device_id == QCA6018_DEVICE_ID) && ops &&
 			(strcmp(driver_ops->name, "pld_ahb") == 0)) {
 			subsys_info = &plat_priv->subsys_info;
@@ -2979,7 +2986,8 @@ void cnss_unregister_subsys(struct cnss_plat_data *plat_priv)
 	    plat_priv->device_id == QCA8074V2_DEVICE_ID ||
 	    plat_priv->device_id == QCA5018_DEVICE_ID ||
 	    plat_priv->device_id == QCN6122_DEVICE_ID ||
-	    plat_priv->device_id == QCA6018_DEVICE_ID) {
+	    plat_priv->device_id == QCA6018_DEVICE_ID ||
+	    plat_priv->device_id == QCA9574_DEVICE_ID) {
 		return;
 	}
 
@@ -3403,6 +3411,7 @@ static const struct platform_device_id cnss_platform_id_table[] = {
 	{ .name = "qca5018", .driver_data = QCA5018_DEVICE_ID, },
 	{ .name = "qcn6122", .driver_data = QCN6122_DEVICE_ID, },
 	{ .name = "qcn9224", .driver_data = QCN9224_DEVICE_ID, },
+	{ .name = "qca9574", .driver_data = QCA9574_DEVICE_ID, },
 };
 
 static const struct of_device_id cnss_of_match_table[] = {
@@ -3430,6 +3439,9 @@ static const struct of_device_id cnss_of_match_table[] = {
 	{
 		.compatible = "qcom,cnss-qcn9224",
 		.data = (void *)&cnss_platform_id_table[7]},
+	{
+		.compatible = "qcom,cnss-qca9574",
+		.data = (void *)&cnss_platform_id_table[8]},
 	{ },
 };
 MODULE_DEVICE_TABLE(of, cnss_of_match_table);
@@ -3563,6 +3575,10 @@ static int cnss_set_device_name(struct cnss_plat_data *plat_priv)
 		snprintf(plat_priv->device_name, sizeof(plat_priv->device_name),
 			 "QCN6122_%d", index);
 		break;
+	case QCA9574_DEVICE_ID:
+		snprintf(plat_priv->device_name, sizeof(plat_priv->device_name),
+			 "QCA9574");
+		break;
 	default:
 		cnss_pr_err("No such device id 0x%lx\n", plat_priv->device_id);
 		return -ENODEV;
@@ -3650,7 +3666,8 @@ cnss_check_skip_target_probe(const struct platform_device_id *device_id,
 		   device_id->driver_data == QCA8074V2_DEVICE_ID ||
 		   device_id->driver_data == QCA6018_DEVICE_ID ||
 		   device_id->driver_data == QCN6122_DEVICE_ID ||
-		   device_id->driver_data == QCA5018_DEVICE_ID)) {
+		   device_id->driver_data == QCA5018_DEVICE_ID ||
+		   device_id->driver_data == QCA9574_DEVICE_ID)) {
 		pr_err("Skipping cnss_probe for device 0x%lx\n",
 		       device_id->driver_data);
 		return true;
@@ -3665,7 +3682,8 @@ cnss_check_skip_target_probe(const struct platform_device_id *device_id,
 	    ((device_id->driver_data == QCA5018_DEVICE_ID) ||
 	    (device_id->driver_data == QCA8074_DEVICE_ID) ||
 	    (device_id->driver_data == QCA8074V2_DEVICE_ID) ||
-	    (device_id->driver_data == QCA6018_DEVICE_ID))) {
+	    (device_id->driver_data == QCA6018_DEVICE_ID) ||
+	    (device_id->driver_data == QCA9574_DEVICE_ID))) {
 		pr_err("Skipping cnss_probe for device 0x%lx\n",
 		       device_id->driver_data);
 		return true;
@@ -3873,6 +3891,7 @@ static int cnss_probe(struct platform_device *plat_dev)
 	case QCA8074V2_DEVICE_ID:
 	case QCA5018_DEVICE_ID:
 	case QCA6018_DEVICE_ID:
+	case QCA9574_DEVICE_ID:
 		plat_priv->bus_type = CNSS_BUS_AHB;
 		plat_priv->wlfw_service_instance_id =
 			WLFW_SERVICE_INS_ID_V01_QCA8074;

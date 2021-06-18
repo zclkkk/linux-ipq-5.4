@@ -44,7 +44,8 @@
 #define QCA8074V2_DEVICE_ID             0xFFFE
 #define QCA6018_DEVICE_ID               0xFFFD
 #define QCA5018_DEVICE_ID               0xFFFC
-#define QCN6122_DEVICE_ID		0xFFFB
+#define QCN6122_DEVICE_ID           0xFFFB
+#define QCA9574_DEVICE_ID           0xFFFA
 #define QCN6122_DEVICE_BAR_SIZE		0x200000
 #define QCA6174_DEVICE_ID		0x003E
 #define QCA6390_DEVICE_ID		0x1101
