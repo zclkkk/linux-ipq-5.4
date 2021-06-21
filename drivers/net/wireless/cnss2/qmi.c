@@ -630,6 +630,9 @@ static int cnss_wlfw_load_bdf(struct wlfw_bdf_download_req_msg_v01 *req,
 	case QCN6122_DEVICE_ID:
 		folder = "qcn6122/";
 		break;
+	case QCA9574_DEVICE_ID:
+		folder = "IPQ9574/";
+		break;
 	default:
 		folder = "IPQ8074/";
 		break;
@@ -848,7 +851,8 @@ int cnss_wlfw_bdf_dnld_send_sync(struct cnss_plat_data *plat_priv,
 		    plat_priv->device_id == QCA8074V2_DEVICE_ID ||
 		    plat_priv->device_id == QCA5018_DEVICE_ID ||
 		    plat_priv->device_id == QCN6122_DEVICE_ID ||
-		    plat_priv->device_id == QCA6018_DEVICE_ID) {
+		    plat_priv->device_id == QCA6018_DEVICE_ID ||
+		    plat_priv->device_id == QCA9574_DEVICE_ID) {
 			temp = filename;
 			remaining = MAX_BDF_FILE_NAME;
 			goto bypass_bdf;
@@ -878,7 +882,8 @@ int cnss_wlfw_bdf_dnld_send_sync(struct cnss_plat_data *plat_priv,
 		    plat_priv->device_id == QCA8074V2_DEVICE_ID ||
 		    plat_priv->device_id == QCA5018_DEVICE_ID ||
 		    plat_priv->device_id == QCN6122_DEVICE_ID ||
-		    plat_priv->device_id == QCA6018_DEVICE_ID) {
+		    plat_priv->device_id == QCA6018_DEVICE_ID ||
+		    plat_priv->device_id == QCA9574_DEVICE_ID) {
 			temp = filename;
 			remaining = MAX_BDF_FILE_NAME;
 			goto bypass_bdf;
@@ -977,7 +982,8 @@ bypass_bdf:
 		    plat_priv->device_id == QCA8074V2_DEVICE_ID ||
 		    plat_priv->device_id == QCA5018_DEVICE_ID ||
 		    plat_priv->device_id == QCN6122_DEVICE_ID ||
-		    plat_priv->device_id == QCA6018_DEVICE_ID) {
+		    plat_priv->device_id == QCA6018_DEVICE_ID ||
+		    plat_priv->device_id == QCA9574_DEVICE_ID) {
 			ret = cnss_wlfw_load_bdf(req, plat_priv,
 						 MAX_BDF_FILE_NAME,
 						 fw_bdf_type);
@@ -2708,7 +2714,8 @@ int cnss_qmi_init(struct cnss_plat_data *plat_priv)
 	    plat_priv->device_id == QCA8074V2_DEVICE_ID ||
 	    plat_priv->device_id == QCA5018_DEVICE_ID ||
 	    plat_priv->device_id == QCN6122_DEVICE_ID ||
-	    plat_priv->device_id == QCA6018_DEVICE_ID) {
+	    plat_priv->device_id == QCA6018_DEVICE_ID ||
+	    plat_priv->device_id == QCA9574_DEVICE_ID) {
 		if (qca8074_fw_mem_mode != 0xFF) {
 			plat_priv->tgt_mem_cfg_mode = qca8074_fw_mem_mode;
 			pr_info("Using qca8074_fw_mem_mode 0x%x\n",
