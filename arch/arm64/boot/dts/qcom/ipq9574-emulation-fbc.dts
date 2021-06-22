@@ -577,17 +577,32 @@
 			};
 		};
 
-		pcie1_x1: pci@28000000 {
+		pcie0_x1: pci@28000000 {
 			max-link-speed = <1>;
 			perst-gpio = <&tlmm 39 1>;
+			status = "disabled";
+			pcie0_rp {
+				reg = <0 0 0 0 0>;
+
+				qcom,mhi@0 {
+					reg = <0 0 0 0 0>;
+					qrtr_instance_id = <0x20>;
+					memory-region = <&mhi_region1>;
+				};
+			};
+		};
+
+		pcie1_x1: pci@10000000 {
+			max-link-speed = <1>;
+			perst-gpio = <&tlmm 40 1>;
 			status = "disabled";
 			pcie1_rp {
 				reg = <0 0 0 0 0>;
 
 				qcom,mhi@1 {
 					reg = <0 0 0 0 0>;
-					qrtr_instance_id = <0x20>;
-					memory-region = <&mhi_region1>;
+					qrtr_instance_id = <0x21>;
+					memory-region = <&mhi_region2>;
 				};
 			};
 		};
@@ -601,8 +616,8 @@
 
 				qcom,mhi@2 {
 					reg = <0 0 0 0 0>;
-					qrtr_instance_id = <0x21>;
-					memory-region = <&mhi_region2>;
+					qrtr_instance_id = <0x22>;
+					memory-region = <&mhi_region1>;
 				};
 			};
 		};
@@ -615,21 +630,6 @@
 				reg = <0 0 0 0 0>;
 
 				qcom,mhi@3 {
-					reg = <0 0 0 0 0>;
-					qrtr_instance_id = <0x22>;
-					memory-region = <&mhi_region1>;
-				};
-			};
-		};
-
-		pcie4_x1: pci@10000000 {
-			max-link-speed = <1>;
-			perst-gpio = <&tlmm 40 1>;
-			status = "disabled";
-			pcie4_rp {
-				reg = <0 0 0 0 0>;
-
-				qcom,mhi@4 {
 					reg = <0 0 0 0 0>;
 					qrtr_instance_id = <0x23>;
 					memory-region = <&mhi_region2>;
