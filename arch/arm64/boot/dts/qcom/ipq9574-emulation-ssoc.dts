@@ -132,3 +132,7 @@
 		status = "disabled";
 	};
 };
+
+&wifi0 {
+       status = "ok";
+};
