@@ -858,15 +858,7 @@ int mhi_register_controller(struct mhi_controller *mhi_cntrl,
 	struct device_node *cma_node;
 	phys_addr_t cma_addr;
 	size_t cma_size;
-	/*
-	 * To do: hack to be removed
-	 * soc_info and the data parsed from its value
-	 * is not used anywhere else for now. So commenting
-	 * it for now and this needs to be fixed.
-	 */
-#ifdef MHI_SOC_INFO
 	u32 soc_info;
-#endif
 	int ret, i;
 
 	if (!mhi_cntrl)
@@ -943,13 +935,7 @@ int mhi_register_controller(struct mhi_controller *mhi_cntrl,
 		mhi_cntrl->unmap_single = mhi_unmap_single_no_bb;
 	}
 
-	/* To do: hack to be removed
-	 * soc_info and the data parsed from its value
-	 * is not used anywhere else for now. So commenting
-	 * it for now and this needs to be fixed.
-	 */
 	/* Read the MHI device info */
-#ifdef MHI_SOC_INFO
 	ret = mhi_read_reg(mhi_cntrl, mhi_cntrl->regs,
 			   SOC_HW_VERSION_OFFS, &soc_info);
 	if (ret)
@@ -963,7 +949,6 @@ int mhi_register_controller(struct mhi_controller *mhi_cntrl,
 					SOC_HW_VERSION_MAJOR_VER_SHFT;
 	mhi_cntrl->minor_version = (soc_info & SOC_HW_VERSION_MINOR_VER_BMSK) >>
 					SOC_HW_VERSION_MINOR_VER_SHFT;
-#endif
 
 	mhi_cntrl->index = ida_alloc(&mhi_controller_ida, GFP_KERNEL);
 	if (mhi_cntrl->index < 0) {
