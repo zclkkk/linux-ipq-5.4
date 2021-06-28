@@ -1092,7 +1092,8 @@ static int q6v5_wcss_powerdown(struct q6v5_wcss *wcss)
 	}
 
 	/* 8 - De-assert WCSS/Q6 HALTREQ */
-	reset_control_assert(wcss->wcss_reset);
+	if (wcss->q6_version != Q6V7)
+		reset_control_assert(wcss->wcss_reset);
 
 	return 0;
 }
