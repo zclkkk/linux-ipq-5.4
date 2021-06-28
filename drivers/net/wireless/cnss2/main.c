@@ -23,6 +23,9 @@
 #include <linux/remoteproc/qcom_rproc.h>
 #include <linux/remoteproc.h>
 #include <linux/of_address.h>
+#ifdef CONFIG_CNSS2_QCA9574_SUPPORT
+#include <soc/qcom/socinfo.h>
+#endif
 
 #include "main.h"
 #include "debug.h"
@@ -3817,6 +3820,18 @@ static int cnss_probe(struct platform_device *plat_dev)
 		ret = -ENODEV;
 		goto out;
 	}
+
+#ifdef CONFIG_CNSS2_QCA9574_SUPPORT
+	/* Check for QCA9574 here and skip probe accordingly */
+	if (device_id->driver_data == QCA9574_DEVICE_ID &&
+	    !cpu_is_internal_wifi_enabled())
+	{
+		pr_err("Skipping cnss_probe for device 0x%lx\n",
+		       device_id->driver_data);
+		ret = -ENODEV;
+		goto out;
+	}
+#endif
 
 	if (cnss_check_skip_target_probe(device_id, userpd_id, node_id))
 		goto out;
