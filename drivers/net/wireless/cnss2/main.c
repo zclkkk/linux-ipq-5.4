@@ -3493,6 +3493,7 @@ cnss_set_mod_param_feature_support(struct cnss_plat_data *plat_priv,
 	case QCA8074V2_DEVICE_ID:
 	case QCA6018_DEVICE_ID:
 	case QCA5018_DEVICE_ID:
+	case QCA9574_DEVICE_ID:
 		if (bmap & SKIP_INTEGRATED) {
 			cnss_pr_info("Disabling %s support for %s", fname,
 				     plat_priv->device_name);
