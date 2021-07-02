@@ -1836,7 +1836,7 @@ static int q6_wcss_probe(struct platform_device *pdev)
 		ret = desc->init_irq(&wcss->q6, pdev, rproc,
 					desc->crash_reason_smem, NULL);
 	else
-		ret = qcom_q6v5_init(&wcss->q6, pdev, rproc,
+		ret = qcom_q6v5_init(&wcss->q6, pdev, rproc, QCOM_SMEM_HOST_ANY,
 					desc->crash_reason_smem, NULL);
 	if (ret)
 		goto free_rproc;
