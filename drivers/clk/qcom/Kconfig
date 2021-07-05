@@ -166,6 +166,14 @@ config IPQ_NSSCC_9574
 	help
 	  Support for NSS clock controller on ipq9574 devices.
 
+config IPQ_APSS_5018
+	tristate "IPQ5018 APSS Clock Controller"
+	select IPQ_GCC_5018
+	depends on COMMON_CLK_QCOM
+	help
+	  Support for APSS clock controller on ipq5018 devices.
+	  Say Y if you want to use APSS clocks such as CPU.
+
 config IPQ_GCC_5018
 	tristate "IPQ5018 Global Clock Controller"
 	help

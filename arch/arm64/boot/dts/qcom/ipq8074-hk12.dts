@@ -79,12 +79,12 @@
 		/delete-node/ wcnss@4b000000;
 		/delete-node/ q6_etr_dump@4e700000;
 		/delete-node/ m3_dump@4e800000;
-		qcn9000_pcie0@4b000000 {
+		qcn9000_pcie0: qcn9000_pcie0@4b000000 {
 			no-map;
 			reg = <0x0 0x4b000000 0x0 0x01E00000>;
 		};
 
-		qcn9000_pcie1@4ce00000 {
+		qcn9000_pcie1: qcn9000_pcie1@4ce00000 {
 			no-map;
 			reg = <0x0 0x4CE00000 0x0 0x01E00000>;
 		};
@@ -135,12 +135,12 @@
 		/delete-node/ wcnss@4b000000;
 		/delete-node/ q6_etr_dump@50f00000;
 		/delete-node/ m3_dump@51000000;
-		qcn9000_pcie0@4b000000 {
+		qcn9000_pcie0: qcn9000_pcie0@4b000000 {
 			no-map;
 			reg = <0x0 0x4b000000 0x0 0x02D00000>;
 		};
 
-		qcn9000_pcie1@4dd00000 {
+		qcn9000_pcie1: qcn9000_pcie1@4dd00000 {
 			no-map;
 			reg = <0x0 0x4DD00000 0x0 0x02D00000>;
 		};
@@ -347,14 +347,17 @@
 };
 
 &wifi0 {
+	/delete-property/ mem-region;
 	status = "disabled";
 };
 
 &wifi1 {
+	/delete-property/ mem-region;
 	status = "disabled";
 };
 
 &wifi2 {
+#if !defined(__IPQ_MEM_PROFILE_256_MB__)
 #ifdef __IPQ_MEM_PROFILE_512_MB__
       /* QCN9000 tgt-mem-mode=1 layout - 30MB
        * +=========+==============+=========+
@@ -397,9 +400,13 @@
 	tgt-mem-mode = <0x0>;
 #endif
 	caldb-size = <0x800000>;
+	hremote_node = <&qcn9000_pcie0>;
+	mhi_node = <&mhi_region0>;
 	status = "ok";
+#endif
 };
 
+#if !defined(__IPQ_MEM_PROFILE_256_MB__)
 &wifi3 {
 #ifdef __IPQ_MEM_PROFILE_512_MB__
       /* QCN9000 tgt-mem-mode=1 layout - 30MB
@@ -443,5 +450,8 @@
 	tgt-mem-mode = <0x0>;
 #endif
 	caldb-size = <0x800000>;
+	hremote_node = <&qcn9000_pcie1>;
+	mhi_node = <&mhi_region1>;
 	status = "ok";
 };
+#endif
