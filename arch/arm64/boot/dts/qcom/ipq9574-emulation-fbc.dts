@@ -53,8 +53,8 @@
 		};
 
 		cryptobam: dma@704000 {
-			qcom,controlled-remotely = <0>;
-			qti,config-pipe-trust-reg = <1>;
+			qti,config-pipe-trust-reg = <0>;
+			status = "ok";
 		};
 
 		dma@7984000 {
