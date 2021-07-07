@@ -1215,8 +1215,7 @@ static int q6v5_wcss_stop(struct rproc *rproc)
 	if (wcss->requires_force_stop) {
 		ret = qcom_q6v5_request_stop(&wcss->q6v5);
 		if (ret == -ETIMEDOUT) {
-			dev_err(wcss->dev, "timed out on wait\n");
-			return ret;
+			dev_info(wcss->dev, "force stop ack timed out, proceeding shutdown\n");
 		}
 	}
 
