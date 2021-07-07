@@ -724,10 +724,12 @@ static int cnss_wlfw_load_bdf(struct wlfw_bdf_download_req_msg_v01 *req,
 		}
 		break;
 	case BDF_TYPE_HDS:
-		snprintf(filename, sizeof(filename), HDS_FILE_NAME);
+		snprintf(filename, sizeof(filename),
+			 "%s" HDS_FILE_NAME, folder);
 		break;
 	case BDF_TYPE_REGDB:
-		snprintf(filename, sizeof(filename), REGDB_FILE_NAME);
+		snprintf(filename, sizeof(filename),
+			 "%s" REGDB_FILE_NAME, folder);
 		break;
 	default:
 		return -EINVAL;
@@ -932,7 +934,8 @@ int cnss_wlfw_bdf_dnld_send_sync(struct cnss_plat_data *plat_priv,
 		break;
 	case CNSS_BDF_REGDB:
 		fw_bdf_type = BDF_TYPE_REGDB;
-		snprintf(filename, sizeof(filename), REGDB_FILE_NAME);
+		snprintf(filename, sizeof(filename),
+			 "%s" REGDB_FILE_NAME, folder);
 		if (plat_priv->bus_type == CNSS_BUS_AHB) {
 			temp = filename;
 			remaining = MAX_BDF_FILE_NAME;
@@ -941,7 +944,8 @@ int cnss_wlfw_bdf_dnld_send_sync(struct cnss_plat_data *plat_priv,
 		break;
 	case CNSS_BDF_HDS:
 		fw_bdf_type = BDF_TYPE_HDS;
-		snprintf(filename, sizeof(filename), HDS_FILE_NAME);
+		snprintf(filename, sizeof(filename),
+			 "%s" HDS_FILE_NAME, folder);
 		if (plat_priv->bus_type == CNSS_BUS_AHB) {
 			temp = filename;
 			remaining = MAX_BDF_FILE_NAME;
