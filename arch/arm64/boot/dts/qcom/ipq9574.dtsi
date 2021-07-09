@@ -119,12 +119,14 @@
 	firmware {
 		scm {
 			compatible = "qcom,scm";
+			smmu-state-cmd-id = <0x20>;
 		};
 
 		qfprom {
 			compatible = "qcom,qfprom-sec";
 			img-addr = <0x4A400000>;
 			img-size = <0x00700000>;
+			scm-cmd-id = <0x1F>;
 		};
 	};
 
