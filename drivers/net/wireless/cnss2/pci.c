@@ -1839,6 +1839,7 @@ int cnss_pci_dev_ramdump(struct cnss_pci_data *pci_priv)
 		ret = cnss_qca6174_ramdump(pci_priv);
 		break;
 	case QCN9000_DEVICE_ID:
+	case QCN9224_DEVICE_ID:
 	case QCA6390_DEVICE_ID:
 	case QCA6490_DEVICE_ID:
 		ret = cnss_qcn9000_ramdump(pci_priv);
@@ -3599,6 +3600,7 @@ void cnss_free_soc_info(struct cnss_plat_data *plat_priv)
 	/* Free SOC specific resources like memory remapped for PCI BAR */
 	switch (plat_priv->device_id) {
 	case QCN9000_DEVICE_ID:
+	case QCN9224_DEVICE_ID:
 		/* For PCI targets, BAR is freed from cnss_pci_disable_bus */
 		break;
 	case QCN6122_DEVICE_ID:
@@ -3797,6 +3799,8 @@ int cnss_get_pci_slot(struct device *dev)
 	switch (plat_priv->device_id) {
 	case QCN9000_DEVICE_ID:
 		return plat_priv->qrtr_node_id - QCN9000_0;
+	case QCN9224_DEVICE_ID:
+		return plat_priv->qrtr_node_id - QCN9224_0;
 	default:
 		cnss_pr_info("PCI slot is 0 for target 0x%lx",
 			     plat_priv->device_id);
