@@ -23,9 +23,8 @@
 		coresight-name = "coresight-csr";
 		qcom,blk-size = <1>;
 
-		clocks = <&gcc GCC_QDSS_DAP_CLK>,
-			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "core_clk", "core_a_clk";
+		clocks = <&gcc GCC_QDSS_DAP_CLK>;
+		clock-names = "apb_pclk";
 	};
 
 	stm: stm@6002000 {
@@ -39,7 +38,7 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "apb_pclk", "core_a_clk";
+		clock-names = "apb_pclk", "atclk";
 
 		out-ports {
 			port {
@@ -60,7 +59,7 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "apb_pclk", "core_a_clk";
+		clock-names = "apb_pclk", "atclk";
 
 		in-ports {
 			#address-cells = <1>;
@@ -102,7 +101,7 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "apb_pclk", "core_a_clk";
+		clock-names = "apb_pclk", "atclk";
 
 		in-ports {
 			#address-cells = <1>;
@@ -145,7 +144,7 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "apb_pclk", "core_a_clk";
+		clock-names = "apb_pclk", "atclk";
 
 		out-ports {
 			port {
@@ -186,7 +185,7 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "apb_pclk", "core_a_clk";
+		clock-names = "apb_pclk", "atclk";
 
 		out-ports {
 			#address-cells = <1>;
@@ -218,9 +217,8 @@
 		coresight-name = "coresight-tmc-etf";
 		arm,default-sink;
 
-		clocks = <&gcc GCC_QDSS_DAP_CLK>,
-			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "apb_pclk", "core_a_clk";
+		clocks = <&gcc GCC_QDSS_DAP_CLK>;
+		clock-names = "apb_pclk";
 
 		out-ports {
 			port {
@@ -254,9 +252,8 @@
 
 		coresight-name = "coresight-tmc-etr";
 
-		clocks = <&gcc GCC_QDSS_DAP_CLK>,
-			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "apb_pclk", "core_a_clk";
+		clocks = <&gcc GCC_QDSS_DAP_CLK>;
+		clock-names = "apb_pclk";
 
 		in-ports {
 			port {
@@ -276,9 +273,8 @@
 		coresight-name = "coresight-cti-cpu0";
 		cpu = <&CPU0>;
 
-		clocks = <&gcc GCC_QDSS_DAP_CLK>,
-			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "apb_pclk", "core_a_clk";
+		clocks = <&gcc GCC_QDSS_DAP_CLK>;
+		clock-names = "apb_pclk";
 	};
 
 	etm0: etm@6293000 {
@@ -289,9 +285,8 @@
 		coresight-name = "coresight-etm0";
 		cpu = <&CPU0>;
 
-		clocks = <&gcc GCC_QDSS_DAP_CLK>,
-			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "apb_pclk", "core_a_clk";
+		clocks = <&gcc GCC_QDSS_DAP_CLK>;
+		clock-names = "apb_pclk";
 
 		out-ports {
 			port {
@@ -311,9 +306,8 @@
 		coresight-name = "coresight-cti-cpu1";
 		cpu = <&CPU1>;
 
-		clocks = <&gcc GCC_QDSS_DAP_CLK>,
-			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "apb_pclk", "core_a_clk";
+		clocks = <&gcc GCC_QDSS_DAP_CLK>;
+		clock-names = "apb_pclk";
 	};
 
 	etm1: etm@6297000 {
@@ -324,9 +318,8 @@
 		coresight-name = "coresight-etm1";
 		cpu = <&CPU1>;
 
-		clocks = <&gcc GCC_QDSS_DAP_CLK>,
-			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "apb_pclk", "core_a_clk";
+		clocks = <&gcc GCC_QDSS_DAP_CLK>;
+		clock-names = "apb_pclk";
 
 		out-ports {
 			port {
@@ -346,9 +339,8 @@
 		coresight-name = "coresight-cti-cpu2";
 		cpu = <&CPU2>;
 
-		clocks = <&gcc GCC_QDSS_DAP_CLK>,
-			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "apb_pclk", "core_a_clk";
+		clocks = <&gcc GCC_QDSS_DAP_CLK>;
+		clock-names = "apb_pclk";
 	};
 
 	etm2: etm@629b000 {
@@ -359,9 +351,8 @@
 		coresight-name = "coresight-etm2";
 		cpu = <&CPU2>;
 
-		clocks = <&gcc GCC_QDSS_DAP_CLK>,
-			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "apb_pclk", "core_a_clk";
+		clocks = <&gcc GCC_QDSS_DAP_CLK>;
+		clock-names = "apb_pclk";
 
 		out-ports {
 			port {
@@ -381,9 +372,8 @@
 		coresight-name = "coresight-cti-cpu3";
 		cpu = <&CPU3>;
 
-		clocks = <&gcc GCC_QDSS_DAP_CLK>,
-			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "apb_pclk", "core_a_clk";
+		clocks = <&gcc GCC_QDSS_DAP_CLK>;
+		clock-names = "apb_pclk";
 	};
 
 	etm3: etm@629f000 {
@@ -394,9 +384,8 @@
 		coresight-name = "coresight-etm3";
 		cpu = <&CPU3>;
 
-		clocks = <&gcc GCC_QDSS_DAP_CLK>,
-			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "apb_pclk", "core_a_clk";
+		clocks = <&gcc GCC_QDSS_DAP_CLK>;
+		clock-names = "apb_pclk";
 
 		out-ports {
 			port {
@@ -417,7 +406,7 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "apb_pclk", "core_a_clk";
+		clock-names = "apb_pclk", "atclk";
 
 		out-ports {
 			port {
