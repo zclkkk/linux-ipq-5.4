@@ -54,6 +54,9 @@
 #define AFC_SLOT_SIZE			0x1000
 #define AFC_MAX_SLOT			2
 #define AFC_MEM_SIZE			(AFC_SLOT_SIZE * AFC_MAX_SLOT)
+#define AFC_AUTH_STATUS_OFFSET		1
+#define AFC_AUTH_SUCCESS		1
+#define AFC_AUTH_ERROR			0
 
 #define WAKE_MSI_NAME			"WAKE"
 
@@ -2740,6 +2743,7 @@ int cnss_send_buffer_to_afcmem(struct device *dev, char *afcdb, uint32_t len,
 	struct cnss_fw_mem *fw_mem;
 	void *mem = NULL;
 	int i, ret;
+	u32 *status;
 
 	if (!plat_priv)
 		return -EINVAL;
@@ -2759,6 +2763,7 @@ int cnss_send_buffer_to_afcmem(struct device *dev, char *afcdb, uint32_t len,
 	for (i = 0; i < plat_priv->fw_mem_seg_len; i++) {
 		if (fw_mem[i].type == AFC_REGION_TYPE) {
 			mem = fw_mem[i].va;
+			status = mem + (slotid * AFC_SLOT_SIZE);
 			break;
 		}
 	}
@@ -2769,8 +2774,10 @@ int cnss_send_buffer_to_afcmem(struct device *dev, char *afcdb, uint32_t len,
 		goto err;
 	}
 
+	status[AFC_AUTH_STATUS_OFFSET] = cpu_to_le32(AFC_AUTH_ERROR);
 	memset(mem + (slotid * AFC_SLOT_SIZE), 0, AFC_SLOT_SIZE);
 	memcpy(mem + (slotid * AFC_SLOT_SIZE), afcdb, len);
+	status[AFC_AUTH_STATUS_OFFSET] = cpu_to_le32(AFC_AUTH_SUCCESS);
 
 	return 0;
 err:
@@ -3119,15 +3126,16 @@ int cnss_pci_alloc_fw_mem(struct cnss_plat_data *plat_priv)
 				memset(fw_mem[i].va, 0, fw_mem[i].size);
 				break;
 			}
-			fw_mem[i].va = kzalloc(fw_mem[i].size,
-					GFP_KERNEL);
+
+			fw_mem[i].va =
+				dma_alloc_coherent(&pci_priv->pci_dev->dev,
+						   fw_mem[i].size,
+						   &fw_mem[i].pa, GFP_KERNEL);
 			if (!fw_mem[i].va) {
 				cnss_pr_err("AFC mem allocation failed\n");
 				fw_mem[i].pa = 0;
 				CNSS_ASSERT(0);
 				return -ENOMEM;
-			} else {
-				fw_mem[i].pa =  virt_to_phys(fw_mem[i].va);
 			}
 			break;
 		case QMI_WLFW_MLO_GLOBAL_MEM_V01:
@@ -3330,6 +3338,8 @@ void cnss_pci_free_fw_mem(struct cnss_plat_data *plat_priv)
 				iounmap(fw_mem[i].va);
 				fw_mem[i].va = NULL;
 				fw_mem[i].size = 0;
+			} else {
+				memset(fw_mem[i].va, 0, AFC_MEM_SIZE);
 			}
 		}
 	}
