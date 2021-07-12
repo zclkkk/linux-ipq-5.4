@@ -13,6 +13,12 @@ menuconfig ARCH_QCOM
 
 if ARCH_QCOM
 
+config ARCH_IPQ9574
+	bool "Enable Support for IPQ9574"
+	help
+	  This enables support for the IPQ9574 chipset. If you dont
+	  know what do here, say N
+
 config ARCH_MSM8X60
 	bool "Enable support for MSM8X60"
 	select CLKSRC_QCOM
