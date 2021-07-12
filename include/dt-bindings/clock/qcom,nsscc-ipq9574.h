@@ -147,5 +147,6 @@
 #define NSS_CC_XGMAC5_PTP_REF_CLK				138
 #define NSS_CC_XGMAC5_PTP_REF_DIV_CLK_SRC			139
 #define UBI32_PLL						140
+#define UBI32_PLL_MAIN						141
 
 #endif
