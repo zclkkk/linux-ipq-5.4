@@ -8,7 +8,11 @@
 /dts-v1/;
 
 #include "ipq9574.dtsi"
+#ifdef __IPQ_MEM_PROFILE_512_MB__
+#include "ipq9574-512MB-memory.dtsi"
+#else
 #include "ipq9574-default-memory.dtsi"
+#endif
 #include "ipq9574-cpu.dtsi"
 
 / {
@@ -126,10 +130,85 @@
 			};
 		};
 
-		serial@78b1000 {
+		blsp1_uart2: serial@78b1000 {
 			pinctrl-0 = <&blsp1_uart2_pins>;
 			pinctrl-names = "default";
 			status = "ok";
+		};
+
+		qpic_bam: dma@7984000 {
+			status = "ok";
+		};
+
+		qpic_nand: nand@79b0000 {
+			status = "ok";
+			pinctrl-0 = <&qspi_nand_pins>;
+			pinctrl-names = "default";
+
+			nand@0 {
+				reg = <0>;
+				#address-cells = <1>;
+				#size-cells = <1>;
+
+				nand-ecc-strength = <4>;
+				nand-ecc-step-size = <512>;
+				nand-bus-width = <8>;
+			};
+		};
+
+		spi_0: spi@78b5000 { /* BLSP1 QUP0 */
+			status = "ok";
+			pinctrl-0 = <&spi_0_pins>;
+			pinctrl-names = "default";
+			cs-select = <0>;
+
+			m25p80@0 {
+				compatible = "n25q128a11";
+				#address-cells = <1>;
+				#size-cells = <1>;
+				reg = <0>;
+				spi-max-frequency = <50000000>;
+			};
+		};
+
+		usb: usb3@8A00000 {
+			status = "ok";
+		};
+
+		qusb_phy_0: qusb@79000 {
+			status = "ok";
+		};
+
+		ssphy_0: ssphy@78000 {
+			status = "ok";
+		};
+
+		pcie2_x2: pci@20000000 {
+			perst-gpio = <&tlmm 29 1>;
+			status = "ok";
+			pcie2_rp {
+				reg = <0 0 0 0 0>;
+
+				qcom,mhi@2 {
+					reg = <0 0 0 0 0>;
+					qrtr_instance_id = <0x20>;
+					memory-region = <&mhi_region1>;
+				};
+			};
+		};
+
+		pcie3_x2: pci@18000000 {
+			perst-gpio = <&tlmm 32 1>;
+			status = "ok";
+			pcie3_rp {
+				reg = <0 0 0 0 0>;
+
+				qcom,mhi@3 {
+					reg = <0 0 0 0 0>;
+					qrtr_instance_id = <0x21>;
+					memory-region = <&mhi_region2>;
+				};
+			};
 		};
 	};
 };

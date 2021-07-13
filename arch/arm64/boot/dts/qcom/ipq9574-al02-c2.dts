@@ -47,5 +47,19 @@
 				};
 			};
 		};
+
+		qpic_bam: dma@7984000 {
+			status = "disabled";
+		};
+
+		qpic_nand: nand@79b0000 {
+			status = "disabled";
+		};
+
+		sdhc_1: sdhci@7804000 {
+			status = "ok";
+			pinctrl-0 = <&emmc_pins>;
+			pinctrl-names = "default";
+		};
 	};
 };
