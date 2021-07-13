@@ -7,9 +7,7 @@
 
 /dts-v1/;
 
-#include "ipq9574.dtsi"
-#include "ipq9574-default-memory.dtsi"
-#include "ipq9574-cpu.dtsi"
+#include "ipq9574-al02-c1.dts"
 
 / {
 	#address-cells = <0x2>;
@@ -17,20 +15,4 @@
 	model = "Qualcomm Technologies, Inc. IPQ9574/AP-AL02-C2";
 	compatible = "qcom,ipq9574-ap-al02-c2", "qcom,ipq9574-al02", "qcom,ipq9574";
 	interrupt-parent = <&intc>;
-
-	aliases {
-		serial0 = &blsp1_uart2;
-	};
-
-	chosen {
-		stdout-path = "serial0";
-	};
-
-	soc {
-		serial@78b1000 {
-			pinctrl-0 = <&serial_3_pins>;
-			pinctrl-names = "default";
-			status = "ok";
-		};
-	};
 };
