@@ -46,6 +46,44 @@
 	};
 
 	soc {
+		pinctrl@1000000 {
+			i2c_1_pins: i2c-1-pinmux {
+				pins = "gpio36", "gpio37";
+				function = "blsp1_i2c";
+				drive-strength = <8>;
+				bias-disable;
+			};
+
+			serial_0_pins: serial0-pinmux {
+				pins = "gpio13", "gpio14";
+				function = "blsp0_uart";
+				drive-strength = <8>;
+				bias-pull-down;
+			};
+
+			serial_3_pins: serial3-pinmux {
+				pins = "gpio34", "gpio35";
+				function = "blsp2_uart";
+				drive-strength = <8>;
+				bias-pull-down;
+			};
+
+			mdio_pins: mdio_pinmux {
+				mux_0 {
+					pins = "gpio38";
+					function = "mdc";
+					drive-strength = <8>;
+					bias-pull-up;
+				};
+				mux_1 {
+					pins = "gpio39";
+					function = "mdio";
+					drive-strength = <8>;
+					bias-pull-up;
+				};
+			};
+		};
+
 		serial@78af000 {
 			pinctrl-0 = <&serial_0_pins>;
 			pinctrl-names = "default";
