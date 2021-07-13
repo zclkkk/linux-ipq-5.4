@@ -119,12 +119,14 @@
 	firmware {
 		scm {
 			compatible = "qcom,scm";
+			smmu-state-cmd-id = <0x20>;
 		};
 
 		qfprom {
 			compatible = "qcom,qfprom-sec";
-			img-addr = <0x4A400000>;
-			img-size = <0x00700000>;
+			img-addr = <0x4A100000>;
+			img-size = <0x00500000>;
+			scm-cmd-id = <0x1F>;
 		};
 	};
 
@@ -159,6 +161,11 @@
 		compatible = "qcom,smem";
 		memory-region = <&smem_region>;
 		hwlocks = <&tcsr_mutex 0>;
+	};
+
+	qseecom: qseecom {
+		compatible = "ipq9574-qseecom";
+		status = "disabled";
 	};
 
 	soc: soc {

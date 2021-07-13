@@ -170,7 +170,6 @@ struct scm_desc {
 #define QTI_QFPROM_IS_AUTHENTICATE_CMD	0x7
 #define QTI_QFPROM_ROW_READ_CMD	0x8
 #define QTI_QFPROM_ROW_WRITE_CMD	0x9
-#define QTI_SCM_CMD_SEC_AUTH		0x15
 extern int __qti_qfprom_show_authenticate(struct device *dev, char *buf);
 extern int __qti_qfprom_write_version(struct device *dev, void *wrip,
 					int size);

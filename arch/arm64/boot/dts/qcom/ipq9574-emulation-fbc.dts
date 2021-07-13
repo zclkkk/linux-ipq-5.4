@@ -640,3 +640,9 @@
 	};
 
 };
+
+&qseecom {
+	mem-start = <0x49B00000>;
+	mem-size = <0x600000>;
+	status = "ok";
+};
