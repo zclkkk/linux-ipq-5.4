@@ -27,8 +27,77 @@
 	};
 
 	soc {
+		pinctrl@1000000 {
+			blsp1_uart2_pins: blsp1_uart2_pinmux {
+				pins = "gpio34", "gpio35";
+				function = "blsp2_uart";
+				drive-strength = <8>;
+				bias-disable;
+			};
+
+			qspi_nand_pins: qspi_nand_pins {
+				qspi_clock {
+					pins = "gpio5";
+					function = "qspi_clk";
+					drive-strength = <8>;
+					bias-disable;
+				};
+
+				qspi_cs {
+					pins = "gpio4";
+					function = "qspi_cs";
+					drive-strength = <8>;
+					bias-disable;
+				};
+
+				qspi_data {
+					pins = "gpio0", "gpio1", "gpio2", "gpio3";
+					function = "qspi_data";
+					drive-strength = <8>;
+					bias-disable;
+				};
+			};
+
+			mdio_pins: mdio_pinmux {
+				mux_0 {
+					pins = "gpio38";
+					function = "mdc";
+					drive-strength = <8>;
+					bias-disable;
+				};
+				mux_1 {
+					pins = "gpio39";
+					function = "mdio";
+					drive-strength = <8>;
+					bias-pull-up;
+				};
+			};
+
+			spi_0_pins: spi-0-pins {
+				pins = "gpio11", "gpio12", "gpio13", "gpio14";
+				function = "blsp0_spi";
+				drive-strength = <8>;
+				bias-disable;
+			};
+
+			ziggy_pins: ziggy_pins {
+				blsp1_uart4_pinmux {
+					pins = "gpio50", "gpio51", "gpio52", "gpio53";
+					function = "blsp4_uart";
+					drive-strength = <8>;
+					bias-disable;
+				};
+				ziggy_reset {
+					pins = "gpio19";
+					function = "gpio";
+					drive-strength = <8>;
+					bias-pull-down;
+				};
+			};
+		};
+
 		serial@78b1000 {
-			pinctrl-0 = <&serial_3_pins>;
+			pinctrl-0 = <&blsp1_uart2_pins>;
 			pinctrl-names = "default";
 			status = "ok";
 		};
