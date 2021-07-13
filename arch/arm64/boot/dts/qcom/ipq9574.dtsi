@@ -269,6 +269,8 @@
 			#size-cells = <1>;
 			compatible = "qcom,qca-mdio";
 			reg = <0x90000 0x64>;
+			clocks = <&gcc GCC_MDIO_AHB_CLK>;
+			clock-names = "gcc_mdio_ahb_clk";
 			status = "disabled";
 		};
 
@@ -282,6 +284,336 @@
 				switch_inner_bmp = <0x80>; /*inner port bitmap*/
 				clocks = <&gcc GCC_CMN_12GPLL_AHB_CLK>;
 				clock-names = "cmn_ahb_clk";
+
+				port_scheduler_resource {
+					port@0 {
+						port_id = <0>;
+						ucast_queue = <0 43>;
+						mcast_queue = <256 262>;
+						l0sp = <0 6>;
+						l0cdrr = <0 27>;
+						l0edrr = <0 27>;
+						l1cdrr = <0 0>;
+						l1edrr = <0 0>;
+					};
+					port@1 {
+						port_id = <1>;
+						ucast_queue = <204 211>;
+						mcast_queue = <272 275>;
+						l0sp = <51 52>;
+						l0cdrr = <108 115>;
+						l0edrr = <108 115>;
+						l1cdrr = <23 24>;
+						l1edrr = <23 24>;
+					};
+					port@2 {
+						port_id = <2>;
+						ucast_queue = <212 219>;
+						mcast_queue = <276 279>;
+						l0sp = <53 54>;
+						l0cdrr = <116 123>;
+						l0edrr = <116 123>;
+						l1cdrr = <25 26>;
+						l1edrr = <25 26>;
+					};
+					port@3 {
+						port_id = <3>;
+						ucast_queue = <220 227>;
+						mcast_queue = <280 283>;
+						l0sp = <55 56>;
+						l0cdrr = <124 131>;
+						l0edrr = <124 131>;
+						l1cdrr = <27 28>;
+						l1edrr = <27 28>;
+					};
+					port@4 {
+						port_id = <4>;
+						ucast_queue = <228 235>;
+						mcast_queue = <284 287>;
+						l0sp = <57 58>;
+						l0cdrr = <132 139>;
+						l0edrr = <132 139>;
+						l1cdrr = <29 30>;
+						l1edrr = <29 30>;
+					};
+					port@5 {
+						port_id = <5>;
+						ucast_queue = <236 243>;
+						mcast_queue = <288 291>;
+						l0sp = <59 60>;
+						l0cdrr = <140 147>;
+						l0edrr = <140 147>;
+						l1cdrr = <31 32>;
+						l1edrr = <31 32>;
+					};
+					port@6 {
+						port_id = <6>;
+						ucast_queue = <244 251>;
+						mcast_queue = <292 295>;
+						l0sp = <61 62>;
+						l0cdrr = <148 155>;
+						l0edrr = <148 155>;
+						l1cdrr = <33 34>;
+						l1edrr = <33 34>;
+					};
+					port@7 {
+						port_id = <7>;
+						ucast_queue = <252 255>;
+						mcast_queue = <296 299>;
+						l0sp = <63 63>;
+						l0cdrr = <156 159>;
+						l0edrr = <156 159>;
+						l1cdrr = <35 35>;
+						l1edrr = <35 35>;
+					};
+					reserved {
+						ucast_queue = <44 203>;
+						mcast_queue = <263 271>;
+						l0sp = <7 50>;
+						l0cdrr = <28 107>;
+						l0edrr = <28 107>;
+						l1cdrr = <1 22>;
+						l1edrr = <1 22>;
+					};
+				};
+				port_scheduler_config {
+					port@0 {
+						port_id = <0>;
+						l1scheduler {
+							group@0 {
+								/* L0 SP */
+								sp = <0 1 2 3 4 5 6>;
+								/* cpri cdrr epri edrr */
+								cfg = <0 0 0 0>;
+							};
+						};
+						l0scheduler {
+							group@0 {
+								/* unicast queue */
+								ucast_queue = <0>;
+								ucast_loop_pri = <4>;
+								/* multicast queue */
+								mcast_queue = <256>;
+								/* sp cpri cdrr epri edrr */
+								cfg = <0 0 0 0 0>;
+							};
+							group@1 {
+								ucast_queue = <4>;
+								ucast_loop_pri = <4>;
+								cfg = <0 0 0 0 0>;
+							};
+							group@2 {
+								ucast_queue = <8>;
+								ucast_loop_pri = <4>;
+								mcast_queue = <257>;
+								cfg = <1 0 4 0 4>;
+							};
+							group@3 {
+								ucast_queue = <12>;
+								ucast_loop_pri = <4>;
+								cfg = <1 0 4 0 4>;
+							};
+							group@4 {
+								ucast_queue = <16>;
+								ucast_loop_pri = <4>;
+								mcast_queue = <258>;
+								cfg = <2 0 8 0 8>;
+							};
+							group@5 {
+								ucast_queue = <20>;
+								ucast_loop_pri = <4>;
+								cfg = <2 0 8 0 8>;
+							};
+							group@6 {
+								ucast_queue = <24>;
+								ucast_loop_pri = <4>;
+								mcast_queue = <259>;
+								cfg = <3 0 12 0 12>;
+							};
+							group@7 {
+								ucast_queue = <28>;
+								ucast_loop_pri = <4>;
+								cfg = <3 0 12 0 12>;
+							};
+							group@8 {
+								ucast_queue = <32>;
+								ucast_loop_pri = <4>;
+								mcast_queue = <260>;
+								cfg = <4 0 16 0 16>;
+							};
+							group@9 {
+								ucast_queue = <36>;
+								ucast_loop_pri = <4>;
+								mcast_queue = <261>;
+								cfg = <5 0 20 0 20>;
+							};
+							group@10 {
+								ucast_queue = <40>;
+								ucast_loop_pri = <4>;
+								mcast_queue = <262>;
+								cfg = <6 0 24 0 24>;
+							};
+						};
+					};
+					port@1 {
+						port_id = <1>;
+						l1scheduler {
+							group@0 {
+								sp = <51>;
+								cfg = <0 23 0 23>;
+							};
+							group@1 {
+								sp = <52>;
+								cfg = <1 24 1 24>;
+							};
+						};
+						l0scheduler {
+							group@0 {
+								ucast_queue = <204>;
+								ucast_loop_pri = <8>;
+								/* max priority per SP */
+								ucast_max_pri = <4>;
+								mcast_queue = <272>;
+								mcast_loop_pri = <4>;
+								cfg = <51 0 108 0 108>;
+							};
+						};
+					};
+					port@2 {
+						port_id = <2>;
+						l1scheduler {
+							group@0 {
+								sp = <53>;
+								cfg = <0 25 0 25>;
+							};
+							group@1 {
+								sp = <54>;
+								cfg = <1 26 1 26>;
+							};
+						};
+						l0scheduler {
+							group@0 {
+								ucast_queue = <212>;
+								ucast_loop_pri = <8>;
+								ucast_max_pri = <4>;
+								mcast_queue = <276>;
+								mcast_loop_pri = <4>;
+								cfg = <53 0 116 0 116>;
+							};
+						};
+					};
+					port@3 {
+						port_id = <3>;
+						l1scheduler {
+							group@0 {
+								sp = <55>;
+								cfg = <0 27 0 27>;
+							};
+							group@1 {
+								sp = <56>;
+								cfg = <1 28 1 28>;
+							};
+						};
+						l0scheduler {
+							group@0 {
+								ucast_queue = <220>;
+								ucast_loop_pri = <8>;
+								ucast_max_pri = <4>;
+								mcast_queue = <280>;
+								mcast_loop_pri = <4>;
+								cfg = <55 0 124 0 124>;
+							};
+						};
+					};
+					port@4 {
+						port_id = <4>;
+						l1scheduler {
+							group@0 {
+								sp = <57>;
+								cfg = <0 29 0 29>;
+							};
+							group@1 {
+								sp = <58>;
+								cfg = <1 30 1 30>;
+							};
+						};
+						l0scheduler {
+							group@0 {
+								ucast_queue = <228>;
+								ucast_loop_pri = <8>;
+								ucast_max_pri = <4>;
+								mcast_queue = <284>;
+								mcast_loop_pri = <4>;
+								cfg = <57 0 132 0 132>;
+							};
+						};
+					};
+					port@5 {
+						port_id = <5>;
+						l1scheduler {
+							group@0 {
+								sp = <59>;
+								cfg = <0 31 0 31>;
+							};
+							group@1 {
+								sp = <60>;
+								cfg = <1 32 1 32>;
+							};
+						};
+						l0scheduler {
+							group@0 {
+								ucast_queue = <236>;
+								ucast_loop_pri = <8>;
+								ucast_max_pri = <4>;
+								mcast_queue = <288>;
+								mcast_loop_pri = <4>;
+								cfg = <59 0 140 0 140>;
+							};
+						};
+					};
+					port@6 {
+						port_id = <6>;
+						l1scheduler {
+							group@0 {
+								sp = <61>;
+								cfg = <0 33 0 33>;
+							};
+							group@1 {
+								sp = <62>;
+								cfg = <1 34 1 34>;
+							};
+						};
+						l0scheduler {
+							group@0 {
+								ucast_queue = <244>;
+								ucast_loop_pri = <8>;
+								ucast_max_pri = <4>;
+								mcast_queue = <292>;
+								mcast_loop_pri = <4>;
+								cfg = <61 0 148 0 148>;
+							};
+						};
+					};
+					port@7 {
+						port_id = <7>;
+						l1scheduler {
+							group@0 {
+								sp = <63>;
+								cfg = <0 35 0 35>;
+							};
+						};
+						l0scheduler {
+							group@0 {
+								ucast_queue = <252>;
+								ucast_loop_pri = <4>;
+								ucast_max_pri = <4>;
+								mcast_queue = <296>;
+								mcast_loop_pri = <4>;
+								cfg = <63 0 156 0 156>;
+							};
+						};
+					};
+				};
 			};
 		};
 
