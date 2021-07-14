@@ -52,3 +52,9 @@ config CNSS2_GENL
 	depends on CNSS2
 	---help---
 	  This option is to enable cnss2 genl support
+
+config CNSS2_QCA9574_SUPPORT
+	bool "Support for QCA9574"
+	depends on CNSS2
+	---help---
+	  This option is to enable QCA9574 support

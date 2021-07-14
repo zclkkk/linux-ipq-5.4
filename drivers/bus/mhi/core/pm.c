@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (c) 2018-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2018-2021, The Linux Foundation. All rights reserved.
  *
  */
 
@@ -154,24 +154,11 @@ static void mhi_toggle_dev_wake(struct mhi_controller *mhi_cntrl)
 /* Handle device ready state transition */
 int mhi_ready_state_transition(struct mhi_controller *mhi_cntrl)
 {
-	void __iomem *base = mhi_cntrl->regs;
 	struct mhi_event *mhi_event;
 	enum mhi_pm_state cur_state;
+	u32 interval_us = 25000; /* poll register field every 25 milliseconds */
 	struct device *dev = &mhi_cntrl->mhi_dev->dev;
-	u32 reset = 1, ready = 0;
 	int ret, i;
-
-	/* Wait for RESET to be cleared and READY bit to be set by the device */
-	wait_event_timeout(mhi_cntrl->state_event,
-			   MHI_PM_IN_FATAL_STATE(mhi_cntrl->pm_state) ||
-			   mhi_read_reg_field(mhi_cntrl, base, MHICTRL,
-					      MHICTRL_RESET_MASK,
-					      MHICTRL_RESET_SHIFT, &reset) ||
-			   mhi_read_reg_field(mhi_cntrl, base, MHISTATUS,
-					      MHISTATUS_READY_MASK,
-					      MHISTATUS_READY_SHIFT, &ready) ||
-			   (!reset && ready),
-			   msecs_to_jiffies(mhi_cntrl->timeout_ms));
 
 	/* Check if device entered error state */
 	if (MHI_PM_IN_FATAL_STATE(mhi_cntrl->pm_state)) {
@@ -179,11 +166,22 @@ int mhi_ready_state_transition(struct mhi_controller *mhi_cntrl)
 		return -EIO;
 	}
 
-	/* Timeout if device did not transition to ready state */
-	if (reset || !ready) {
-		dev_err(dev, "Device Ready timeout\n");
-		return -ETIMEDOUT;
-	}
+       /* Wait for RESET to be cleared and READY bit to be set by the device */
+       ret = mhi_poll_reg_field(mhi_cntrl, mhi_cntrl->regs, MHICTRL,
+                                MHICTRL_RESET_MASK, MHICTRL_RESET_SHIFT, 0,
+                                interval_us);
+       if (ret) {
+               dev_err(dev, "Device failed to clear MHI Reset\n");
+               return ret;
+       }
+
+       ret = mhi_poll_reg_field(mhi_cntrl, mhi_cntrl->regs, MHISTATUS,
+                                MHISTATUS_READY_MASK, MHISTATUS_READY_SHIFT, 1,
+                                interval_us);
+       if (ret) {
+               dev_err(dev, "Device failed to enter MHI Ready\n");
+               return ret;
+       }
 
 	dev_dbg(dev, "Device in READY State\n");
 	write_lock_irq(&mhi_cntrl->pm_lock);
@@ -456,6 +454,7 @@ static void mhi_pm_disable_transition(struct mhi_controller *mhi_cntrl)
 	struct mhi_event_ctxt *er_ctxt;
 	struct device *dev = &mhi_cntrl->mhi_dev->dev;
 	int ret, i;
+	u32 interval_us = 25000; /* poll register field every 25 milliseconds */
 
 	dev_dbg(dev, "Processing disable transition with PM state: %s\n",
 		to_mhi_pm_state_str(mhi_cntrl->pm_state));
@@ -464,24 +463,18 @@ static void mhi_pm_disable_transition(struct mhi_controller *mhi_cntrl)
 
 	/* Trigger MHI RESET so that the device will not access host memory */
 	if (!MHI_PM_IN_FATAL_STATE(mhi_cntrl->pm_state)) {
-		u32 in_reset = -1;
-		unsigned long timeout = msecs_to_jiffies(mhi_cntrl->timeout_ms);
 
 		dev_dbg(dev, "Triggering MHI Reset in device\n");
 		mhi_set_mhi_state(mhi_cntrl, MHI_STATE_RESET);
 
-		/* Wait for the reset bit to be cleared by the device */
-		ret = wait_event_timeout(mhi_cntrl->state_event,
-					 mhi_read_reg_field(mhi_cntrl,
-							    mhi_cntrl->regs,
-							    MHICTRL,
-							    MHICTRL_RESET_MASK,
-							    MHICTRL_RESET_SHIFT,
-							    &in_reset) ||
-					!in_reset, timeout);
-		if (!ret || in_reset)
-			dev_err(dev, "Device failed to exit MHI Reset state\n");
+		ret = mhi_poll_reg_field(mhi_cntrl, mhi_cntrl->regs, MHICTRL,
+                                         MHICTRL_RESET_MASK,
+                                         MHICTRL_RESET_SHIFT, 0,
+                                         interval_us);
 
+		if (ret)
+                        dev_err(dev, "Device failed to exit RESET ret:%d\n",
+                                        ret);
 		/*
 		 * Device will clear BHI_INTVEC as a part of RESET processing,
 		 * hence re-program it
