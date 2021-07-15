@@ -7,9 +7,7 @@
 
 /dts-v1/;
 
-#include "ipq9574.dtsi"
-#include "ipq9574-default-memory.dtsi"
-#include "ipq9574-cpu.dtsi"
+#include "ipq9574-db-al01-c1.dts"
 
 / {
 	#address-cells = <0x2>;
@@ -18,19 +16,51 @@
 	compatible = "qcom,ipq9574-db-al01-c2", "qcom,ipq9574-db-al01", "qcom,ipq9574";
 	interrupt-parent = <&intc>;
 
-	aliases {
-		serial0 = &blsp1_uart2;
-	};
-
-	chosen {
-		stdout-path = "serial0";
-	};
-
 	soc {
-		serial@78b1000 {
-			pinctrl-0 = <&serial_3_pins>;
-			pinctrl-names = "default";
-			status = "ok";
+		pinctrl@1000000 {
+			emmc_pins: emmc_pins {
+				emmc_clk {
+					pins = "gpio5";
+					function = "sdc_clk";
+					drive-strength = <8>;
+					bias-disable;
+				};
+				emmc_cmd {
+					pins = "gpio4";
+					function = "sdc_cmd";
+					drive-strength = <8>;
+					bias-disable;
+				};
+				emmc_data {
+					pins = "gpio0", "gpio1", "gpio2",
+						"gpio3", "gpio6", "gpio7",
+						"gpio8", "gpio9";
+					function = "sdc_data";
+					drive-strength = <8>;
+					bias-disable;
+				};
+				emmc_rclk {
+					pins = "gpio10";
+					function = "sdc_rclk";
+					drive-strength = <8>;
+					bias-disable;
+				};
+			};
 		};
+
+		qpic_bam: dma@7984000 {
+			status = "disabled";
+		};
+
+		qpic_nand: nand@79b0000 {
+			status = "disabled";
+		};
+
+		sdhc_1: sdhci@7804000 {
+			status = "ok";
+			pinctrl-0 = <&emmc_pins>;
+			pinctrl-names = "default";
+		};
+
 	};
 };

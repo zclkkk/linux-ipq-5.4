@@ -286,22 +286,12 @@ enum ipq9574_functions {
 	msm_mux_qdss_tracectl_b,
 	msm_mux_qdss_tracedata_a,
 	msm_mux_qdss_tracedata_b,
-	msm_mux_qspi0,
-	msm_mux_qspi1,
-	msm_mux_qspi2,
-	msm_mux_qspi3,
+	msm_mux_qspi_data,
 	msm_mux_qspi_clk,
 	msm_mux_qspi_cs,
 	msm_mux_rx0,
 	msm_mux_rx1,
-	msm_mux_sdc0,
-	msm_mux_sdc1,
-	msm_mux_sdc2,
-	msm_mux_sdc3,
-	msm_mux_sdc4,
-	msm_mux_sdc5,
-	msm_mux_sdc6,
-	msm_mux_sdc7,
+	msm_mux_sdc_data,
 	msm_mux_sdc_clk,
 	msm_mux_sdc_cmd,
 	msm_mux_sdc_rclk,
@@ -324,40 +314,33 @@ static const char * const gpio_groups[] = {
 	"gpio57", "gpio58", "gpio59", "gpio60", "gpio61", "gpio62", "gpio63",
 	"gpio64",
 };
-static const char * const sdc7_groups[] = {
+static const char * const sdc_data_groups[] = {
 	"gpio0",
+	"gpio1",
+	"gpio2",
+	"gpio3",
+	"gpio6",
+	"gpio7",
+	"gpio8",
+	"gpio9",
 };
-static const char * const qspi3_groups[] = {
+
+static const char * const qspi_data_groups[] = {
 	"gpio0",
+	"gpio1",
+	"gpio2",
+	"gpio3",
 };
 static const char * const qdss_traceclk_b_groups[] = {
 	"gpio0",
 };
-static const char * const sdc6_groups[] = {
-	"gpio1",
-};
-static const char * const qspi2_groups[] = {
-	"gpio1",
-};
 static const char * const qdss_tracectl_b_groups[] = {
 	"gpio1",
-};
-static const char * const sdc5_groups[] = {
-	"gpio2",
-};
-static const char * const qspi1_groups[] = {
-	"gpio2",
 };
 static const char * const qdss_tracedata_b_groups[] = {
 	"gpio2", "gpio3", "gpio4", "gpio5", "gpio6", "gpio7", "gpio8", "gpio9",
 	"gpio10", "gpio11", "gpio12", "gpio13", "gpio14", "gpio15", "gpio16",
 	"gpio17",
-};
-static const char * const sdc4_groups[] = {
-	"gpio3",
-};
-static const char * const qspi0_groups[] = {
-	"gpio3",
 };
 static const char * const sdc_cmd_groups[] = {
 	"gpio4",
@@ -370,18 +353,6 @@ static const char * const sdc_clk_groups[] = {
 };
 static const char * const qspi_clk_groups[] = {
 	"gpio5",
-};
-static const char * const sdc3_groups[] = {
-	"gpio6",
-};
-static const char * const sdc2_groups[] = {
-	"gpio7",
-};
-static const char * const sdc1_groups[] = {
-	"gpio8",
-};
-static const char * const sdc0_groups[] = {
-	"gpio9",
 };
 static const char * const sdc_rclk_groups[] = {
 	"gpio10",
@@ -764,22 +735,12 @@ static const struct msm_function ipq9574_functions[] = {
 	FUNCTION(qdss_tracectl_b),
 	FUNCTION(qdss_tracedata_a),
 	FUNCTION(qdss_tracedata_b),
-	FUNCTION(qspi0),
-	FUNCTION(qspi1),
-	FUNCTION(qspi2),
-	FUNCTION(qspi3),
+	FUNCTION(qspi_data),
 	FUNCTION(qspi_clk),
 	FUNCTION(qspi_cs),
 	FUNCTION(rx0),
 	FUNCTION(rx1),
-	FUNCTION(sdc0),
-	FUNCTION(sdc1),
-	FUNCTION(sdc2),
-	FUNCTION(sdc3),
-	FUNCTION(sdc4),
-	FUNCTION(sdc5),
-	FUNCTION(sdc6),
-	FUNCTION(sdc7),
+	FUNCTION(sdc_data),
 	FUNCTION(sdc_clk),
 	FUNCTION(sdc_cmd),
 	FUNCTION(sdc_rclk),
@@ -790,17 +751,17 @@ static const struct msm_function ipq9574_functions[] = {
 };
 
 static const struct msm_pingroup ipq9574_groups[] = {
-	PINGROUP(0, sdc7, qspi3, qdss_traceclk_b, _, _, _, _, _, _),
-	PINGROUP(1, sdc6, qspi2, qdss_tracectl_b, _, _, _, _, _, _),
-	PINGROUP(2, sdc5, qspi1, qdss_tracedata_b, _, _, _, _, _, _),
-	PINGROUP(3, sdc4, qspi0, qdss_tracedata_b, _, _, _, _, _, _),
+	PINGROUP(0, sdc_data, qspi_data, qdss_traceclk_b, _, _, _, _, _, _),
+	PINGROUP(1, sdc_data, qspi_data, qdss_tracectl_b, _, _, _, _, _, _),
+	PINGROUP(2, sdc_data, qspi_data, qdss_tracedata_b, _, _, _, _, _, _),
+	PINGROUP(3, sdc_data, qspi_data, qdss_tracedata_b, _, _, _, _, _, _),
 	PINGROUP(4, sdc_cmd, qspi_cs, qdss_tracedata_b, _, _, _, _, _, _),
 	PINGROUP(5, sdc_clk, qspi_clk, qdss_tracedata_b, _, _, _, _, _,
 		 _),
-	PINGROUP(6, sdc3, qdss_tracedata_b, _, _, _, _, _, _, _),
-	PINGROUP(7, sdc2, qdss_tracedata_b, _, _, _, _, _, _, _),
-	PINGROUP(8, sdc1, qdss_tracedata_b, _, _, _, _, _, _, _),
-	PINGROUP(9, sdc0, qdss_tracedata_b, _, _, _, _, _, _, _),
+	PINGROUP(6, sdc_data, qdss_tracedata_b, _, _, _, _, _, _, _),
+	PINGROUP(7, sdc_data, qdss_tracedata_b, _, _, _, _, _, _, _),
+	PINGROUP(8, sdc_data, qdss_tracedata_b, _, _, _, _, _, _, _),
+	PINGROUP(9, sdc_data, qdss_tracedata_b, _, _, _, _, _, _, _),
 	PINGROUP(10, sdc_rclk, qdss_tracedata_b, _, _, _, _, _, _, _),
 	PINGROUP(11, blsp0_spi, blsp0_uart, qdss_tracedata_b, _, _, _, _,
 		 _, _),
