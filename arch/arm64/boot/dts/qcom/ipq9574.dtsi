@@ -1309,6 +1309,135 @@
 			};
 		};
 
+		pcie0_phy: phy@84000 {
+			compatible = "qcom,ipq9574-qmp-gen3x1-pcie-phy";
+			reg = <0x84000 0x1bc>; /* Serdes PLL */
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+			clocks = <&gcc GCC_PCIE0_AUX_CLK>,
+				 <&gcc GCC_PCIE0_AHB_CLK>;
+			clock-names = "aux", "cfg_ahb";
+
+			resets = <&gcc GCC_PCIE0_PHY_BCR>,
+				<&gcc GCC_PCIE0PHY_PHY_BCR>;
+			reset-names = "phy", "common";
+
+			status = "disabled";
+
+			pcie0_lane: lane@84200 {
+				reg = <0x84200 0x16c>, /* Serdes Tx */
+				      <0x84400 0x200>, /* Serdes Rx */
+				      <0x84800 0x4f4>; /* PCS: Lane0, COM, PCIE */
+				#phy-cells = <0>;
+
+				clocks = <&gcc GCC_PCIE0_PIPE_CLK>;
+				clock-names = "pipe0";
+				clock-output-names = "gcc_pcie0_pipe_clk_src";
+				#clock-cells = <0>;
+				gen3 = <1>;
+			};
+		};
+
+		pcie1_phy: phy@fc000 {
+			compatible = "qcom,ipq9574-qmp-gen3x1-pcie-phy";
+			reg = <0xfc000 0x1bc>; /* Serdes PLL */
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+
+			clocks = <&gcc GCC_PCIE1_AUX_CLK>,
+				 <&gcc GCC_PCIE1_AHB_CLK>;
+			clock-names = "aux", "cfg_ahb";
+
+			resets = <&gcc GCC_PCIE1_PHY_BCR>,
+				<&gcc GCC_PCIE1PHY_PHY_BCR>;
+			reset-names = "phy", "common";
+
+			status = "disabled";
+
+			pcie1_lane: lane@fc200 {
+				reg = <0xfc200 0x16c>, /* Serdes Tx */
+				      <0xfc400 0x200>, /* Serdes Rx */
+				      <0xfc800 0x4f4>; /* PCS: Lane0, COM, PCIE */
+				#phy-cells = <0>;
+
+				clocks = <&gcc GCC_PCIE1_PIPE_CLK>;
+				clock-names = "pipe1";
+				clock-output-names = "gcc_pcie1_pipe_clk_src";
+				#clock-cells = <0>;
+				gen3 = <1>;
+			};
+		};
+
+		pcie2_phy: phy@8c000 {
+			compatible = "qcom,ipq9574-qmp-gen3x2-pcie-phy";
+			reg = <0x8c000 0x1bc>; /* Serdes PLL */
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+
+			clocks = <&gcc GCC_PCIE2_AUX_CLK>,
+				 <&gcc GCC_PCIE2_AHB_CLK>;
+			clock-names = "aux", "cfg_ahb";
+
+			resets = <&gcc GCC_PCIE2_PHY_BCR>,
+				<&gcc GCC_PCIE2PHY_PHY_BCR>;
+			reset-names = "phy", "common";
+
+			status = "disabled";
+
+			pcie2_lanes: lanes@8c200 {
+				reg = <0x8c200 0x16c>, /* Serdes Tx0 */
+				      <0x8c400 0x200>, /* Serdes Rx0 */
+				      <0x8d000 0x4f4>, /* PCS: Lane0, COM, PCIE */
+				      <0x8c600 0x16c>, /* Serdes Tx1 */
+				      <0x8c800 0x200>; /* Serdes Rx1 */
+
+				#phy-cells = <0>;
+
+				clocks = <&gcc GCC_PCIE2_PIPE_CLK>;
+				clock-names = "pipe2";
+				clock-output-names = "gcc_pcie2_pipe_clk_src";
+				#clock-cells = <0>;
+				gen3 = <1>;
+			};
+		};
+
+		pcie3_phy: phy@f4000 {
+			compatible = "qcom,ipq9574-qmp-gen3x2-pcie-phy";
+			reg = <0xf4000 0x1bc>; /* Serdes PLL */
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+
+			clocks = <&gcc GCC_PCIE3_AUX_CLK>,
+				 <&gcc GCC_PCIE3_AHB_CLK>;
+			clock-names = "aux", "cfg_ahb";
+
+			resets = <&gcc GCC_PCIE3_PHY_BCR>,
+				<&gcc GCC_PCIE3PHY_PHY_BCR>;
+			reset-names = "phy", "common";
+
+			status = "disabled";
+
+			pcie3_lanes: lanes@f4200 {
+				reg = <0xf4200 0x16c>, /* Serdes Tx0 */
+				      <0xf4400 0x200>, /* Serdes Rx0 */
+				      <0xf5000 0x4f4>, /* PCS: Lane0, COM, PCIE */
+				      <0xf4600 0x16c>, /* Serdes Tx1 */
+				      <0xf4800 0x200>; /* Serdes Rx1 */
+
+				#phy-cells = <0>;
+
+				clocks = <&gcc GCC_PCIE3_PIPE_CLK>;
+				clock-names = "pipe3";
+				clock-output-names = "gcc_pcie3_pipe_clk_src";
+				#clock-cells = <0>;
+				gen3 = <1>;
+			};
+		};
+
 		pcie0_x1: pci@28000000 {
 			compatible = "qcom,pcie-ipq9574";
 			reg =  <0x28000000 0xf1d>,
@@ -1374,6 +1503,9 @@
 				      "axi_m",
 				      "aux",
 				      "ahb";
+
+			phys = <&pcie0_lane>;
+			phy-names = "pciephy";
 
 			msi-parent = <&v2m0>;
 			nvmem-cells = <&pcie0_disable>;
@@ -1446,6 +1578,9 @@
 				      "aux",
 				      "ahb";
 
+			phys = <&pcie1_lane>;
+			phy-names = "pciephy";
+
 			msi-parent = <&v2m0>;
 			nvmem-cells = <&pcie1_disable>;
 			status = "disabled";
@@ -1517,6 +1652,9 @@
 				      "aux",
 				      "ahb";
 
+			phys = <&pcie2_lanes>;
+			phy-names = "pciephy";
+
 			msi-parent = <&v2m1>;
 			nvmem-cells = <&pcie2_disable>;
 			status = "disabled";
@@ -1587,6 +1725,9 @@
 				      "axi_m",
 				      "aux",
 				      "ahb";
+
+			phys = <&pcie3_lanes>;
+			phy-names = "pciephy";
 
 			msi-parent = <&v2m2>;
 			nvmem-cells = <&pcie3_disable>;

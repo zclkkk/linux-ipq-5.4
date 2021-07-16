@@ -197,6 +197,10 @@
 			};
 		};
 
+		pcie2_phy: phy@8c000 {
+			status = "ok";
+		};
+
 		pcie3_x2: pci@18000000 {
 			perst-gpio = <&tlmm 32 1>;
 			status = "ok";
@@ -209,6 +213,10 @@
 					memory-region = <&mhi_region2>;
 				};
 			};
+		};
+
+		pcie3_phy: phy@f4000 {
+			status = "ok";
 		};
 
 		mdio@90000 {
