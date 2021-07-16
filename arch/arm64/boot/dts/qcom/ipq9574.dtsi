@@ -1482,6 +1482,11 @@
 	qti,scm_restart_reason {
 		compatible = "qti,scm_restart_reason";
 	};
+
+	qti,gadget_diag@0 {
+		     compatible = "qti,gadget-diag";
+		     status = "disabled";
+	};
 };
 
 #include "ipq9574-coresight.dtsi"
