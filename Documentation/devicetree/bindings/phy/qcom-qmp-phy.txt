@@ -10,6 +10,8 @@ Required properties:
 	       "qcom,ipq9048-qmp-usb3-phy" for USB3 QMP phy on IPQ9048
 	       "qcom,ipq8074-qmp-pcie-phy" for PCIe phy on IPQ8074
 	       "qcom,ipq8074-qmp-pcie-gen3-phy" for PCIe gen3 phy on IPQ8074
+	       "qcom,ipq9574-qmp-gen3x1-pcie-phy" for PCIe gen3 1 lane phy on IPQ9574
+	       "qcom,ipq9574-qmp-gen3x2-pcie-phy" for PCIe gen3 2 lane phy on IPQ9574
 	       "qcom,msm8996-qmp-pcie-phy" for 14nm PCIe phy on msm8996,
 	       "qcom,msm8996-qmp-usb3-phy" for 14nm USB3 phy on msm8996,
 	       "qcom,msm8998-qmp-usb3-phy" for USB3 QMP V3 phy on msm8998,

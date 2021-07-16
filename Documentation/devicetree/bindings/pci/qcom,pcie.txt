@@ -11,7 +11,7 @@
 			- "qcom,pcie-ipq4019" for ipq4019
 			- "qcom,pcie-ipq8074" for ipq8074 gen2 port
 			- "qcom,pcie-gen3-ipq8074" for ipq8074 gen3 port
-			- "qcom,pcie-ipq9048" for ipq9048 gen3 port
+			- "qcom,pcie-ipq9574" for ipq9574 gen3 port
 			- "qcom,pcie-qcs404" for qcs404
 
 - reg:

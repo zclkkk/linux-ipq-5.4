@@ -63,6 +63,9 @@
 #define	QSERDES_PLL_CMN_CONFIG				0x18c
 #define QSERDES_PLL_SVS_MODE_CLK_SEL			0x194
 #define QSERDES_PLL_CORECLK_DIV_MODE1			0x1b4
+#define QSERDES_PLL_SSC_EN_CENTER 			0x10
+#define QSERDES_PLL_SSC_ADJ_PER1 			0x14
+#define QSERDES_PLL_SSC_ADJ_PER2 			0x18
 
 /* QMP V2 PHY for PCIE gen3 ports - QSERDES TX registers */
 
@@ -137,6 +140,30 @@
 #define PCS_PCIE_EQ_CONFIG2				0x4a4
 #define PCS_PCIE_PRESET_P10_PRE				0x4bc
 #define PCS_PCIE_PRESET_P10_POST			0x4e0
+#define PCS_PCIE_INT_AUX_CLK_CONFIG1 			0x450
+#define PCS_PCIE_OSC_DTCT_MODE2_CONFIG6 		0x488
+
+/* QMP V2 PHY for PCIE gen3 2 Lane ports - PCS Misc registers */
+#define PCS_PCIE_X2_POWER_STATE_CONFIG2                    0x40c
+#define PCS_PCIE_X2_POWER_STATE_CONFIG4                    0x414
+#define PCS_PCIE_X2_ENDPOINT_REFCLK_DRIVE                  0x420
+#define PCS_PCIE_X2_L1P1_WAKEUP_DLY_TIME_AUXCLK_L          0x444
+#define PCS_PCIE_X2_L1P1_WAKEUP_DLY_TIME_AUXCLK_H          0x448
+#define PCS_PCIE_X2_L1P2_WAKEUP_DLY_TIME_AUXCLK_L          0x44c
+#define PCS_PCIE_X2_L1P2_WAKEUP_DLY_TIME_AUXCLK_H          0x450
+#define PCS_PCIE_X2_INT_AUX_CLK_CONFIG1                    0x454
+#define PCS_PCIE_X2_OSC_DTCT_CONFIG1                       0x45c
+#define PCS_PCIE_X2_OSC_DTCT_CONFIG2                       0x460
+#define PCS_PCIE_X2_OSC_DTCT_CONFIG4                       0x468
+#define PCS_PCIE_X2_OSC_DTCT_MODE2_CONFIG2                 0x47c
+#define PCS_PCIE_X2_OSC_DTCT_MODE2_CONFIG4                 0x484
+#define PCS_PCIE_X2_OSC_DTCT_MODE2_CONFIG5                 0x488
+#define PCS_PCIE_X2_OSC_DTCT_MODE2_CONFIG6                 0x48c
+#define PCS_PCIE_X2_OSC_DTCT_ACTIONS                       0x494
+#define PCS_PCIE_X2_EQ_CONFIG1                             0x4a4
+#define PCS_PCIE_X2_EQ_CONFIG2                             0x4a8
+#define PCS_PCIE_X2_PRESET_P10_PRE                         0x4c0
+#define PCS_PCIE_X2_PRESET_P10_POST                        0x4e4
 
 /* Only for QMP V2 PHY - QSERDES COM registers */
 
