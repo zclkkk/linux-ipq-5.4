@@ -182,6 +182,10 @@
 			gcc-use-dummy;
 		};
 
+		a73pll: clock@b116000 {
+			status = "disabled";
+		};
+
 		nsscc: nsscc@39b00000 {
 			nsscc-use-dummy;
 		};
