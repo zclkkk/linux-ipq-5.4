@@ -23,8 +23,17 @@
 		coresight-name = "coresight-csr";
 		qcom,blk-size = <1>;
 
-		clocks = <&gcc GCC_QDSS_DAP_CLK>;
-		clock-names = "apb_pclk";
+		clocks = <&gcc GCC_QDSS_DAP_CLK>,
+			 <&gcc GCC_QDSS_CFG_AHB_CLK>,
+			 <&gcc GCC_QDSS_DAP_AHB_CLK>,
+			 <&gcc GCC_QDSS_TSCTR_DIV2_CLK>,
+			 <&gcc GCC_QDSS_TSCTR_DIV8_CLK>;
+
+		clock-names = "apb_pclk",
+				"cfg_ahb_clk",
+				"dap_ahb_clk",
+				"tsctr_div2_clk",
+				"tsctr_div8_clk";
 	};
 
 	stm: stm@6002000 {
@@ -37,8 +46,9 @@
 		coresight-name = "coresight-stm";
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
-			 <&gcc GCC_QDSS_AT_CLK>;
-		clock-names = "apb_pclk", "atclk";
+			 <&gcc GCC_QDSS_AT_CLK>,
+			 <&gcc GCC_QDSS_STM_CLK>;
+		clock-names = "apb_pclk", "atclk", "stm_clk";
 
 		out-ports {
 			port {
@@ -252,8 +262,9 @@
 
 		coresight-name = "coresight-tmc-etr";
 
-		clocks = <&gcc GCC_QDSS_DAP_CLK>;
-		clock-names = "apb_pclk";
+		clocks = <&gcc GCC_QDSS_DAP_CLK>,
+			 <&gcc GCC_QDSS_ETR_USB_CLK>;
+		clock-names = "apb_pclk", "etr_usb_clk";
 
 		in-ports {
 			port {

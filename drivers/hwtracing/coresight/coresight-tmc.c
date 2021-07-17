@@ -618,6 +618,13 @@ static int tmc_probe(struct amba_device *adev, const struct amba_id *id)
 	if (!drvdata)
 		goto out;
 
+	drvdata->etr_usb_clk = devm_clk_get(&adev->dev, "etr_usb_clk");
+	if (!IS_ERR(drvdata->etr_usb_clk)) {
+		ret = clk_prepare_enable(drvdata->etr_usb_clk);
+		if (ret)
+			return ret;
+	}
+
 	dev_set_drvdata(dev, drvdata);
 
 	/* Validity for the resource is already checked by the AMBA core */

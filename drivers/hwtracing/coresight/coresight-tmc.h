@@ -232,6 +232,7 @@ struct etr_buf {
  * @idr_mutex:	Access serialisation for idr.
  * @sysfs_buf:	SYSFS buffer for ETR.
  * @perf_buf:	PERF buffer for ETR.
+ * @etr_usb_clk: Clock for the ETR block.
  */
 struct tmc_drvdata {
 	void __iomem		*base;
@@ -273,6 +274,7 @@ struct tmc_drvdata {
 	struct socket		*qld_stream_sock;
 	atomic_t		seq_no;
 	atomic_t		completed_seq_no;
+	struct clk		*etr_usb_clk;
 };
 
 struct etr_buf_operations {
