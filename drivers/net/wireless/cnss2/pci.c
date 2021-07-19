@@ -27,6 +27,47 @@
 #include "pci.h"
 #include "bus.h"
 
+/* pciX_num_msi_bmap needs to be defined in format of 0xDPCEMH
+ * where 0xDP denotes the number of MSIs available for DP, 0xCE denotes
+ * the number of MSIs available for CE and 0xMH denotes the number of
+ * MSIs available for MHI. Total number of MSIs will be DP + CE + MH
+ */
+static int pci0_num_msi_bmap;
+module_param(pci0_num_msi_bmap, int, 0644);
+MODULE_PARM_DESC(pci0_num_msi_bmap,
+		 "Bitmap to indicate number of available MSIs for PCI 0");
+
+static int pci1_num_msi_bmap;
+module_param(pci1_num_msi_bmap, int, 0644);
+MODULE_PARM_DESC(pci1_num_msi_bmap,
+		 "Bitmap to indicate number of available MSIs for PCI 1");
+
+static int pci2_num_msi_bmap;
+module_param(pci2_num_msi_bmap, int, 0644);
+MODULE_PARM_DESC(pci2_num_msi_bmap,
+		 "Bitmap to indicate number of available MSIs for PCI 2");
+
+#define MSI_MHI_VECTOR_MASK 0xFF
+#define MSI_MHI_VECTOR_SHIFT 0
+
+#define MSI_CE_VECTOR_MASK 0xFF00
+#define MSI_CE_VECTOR_SHIFT 8
+
+#define MSI_DP_VECTOR_MASK 0xFF0000
+#define MSI_DP_VECTOR_SHIFT 16
+
+/* Currently there is only support for MHI to operate with 3 MSIs. */
+#define MAX_MHI_VECTORS 3
+#define MIN_MHI_VECTORS 3
+#define DEFAULT_MHI_VECTORS 3
+
+#define MAX_CE_VECTORS 5
+#define MIN_CE_VECTORS 1
+#define DEFAULT_CE_VECTORS MIN_CE_VECTORS
+
+#define MAX_DP_VECTORS 8
+#define MIN_DP_VECTORS 1
+#define DEFAULT_DP_VECTORS MIN_DP_VECTORS
 
 #define PCI_LINK_UP			1
 #define PCI_LINK_DOWN			0
@@ -3793,7 +3834,7 @@ int cnss_get_soc_info(struct device *dev, struct cnss_soc_info *info)
 }
 EXPORT_SYMBOL(cnss_get_soc_info);
 
-static struct cnss_msi_config msi_config = {
+static struct cnss_msi_config msi_config_qcn9000_pci0 = {
 	.total_vectors = 16,
 	.total_users = 3,
 	.users = (struct cnss_msi_user[]) {
@@ -3803,12 +3844,150 @@ static struct cnss_msi_config msi_config = {
 	},
 };
 
+static struct cnss_msi_config msi_config_qcn9000_pci1 = {
+	.total_vectors = 16,
+	.total_users = 3,
+	.users = (struct cnss_msi_user[]) {
+		{ .name = "MHI", .num_vectors = 3, .base_vector = 0 },
+		{ .name = "CE", .num_vectors = 5, .base_vector = 3 },
+		{ .name = "DP", .num_vectors = 8, .base_vector = 8 },
+	},
+};
+
+static struct cnss_msi_config msi_config_qcn9224_pci0 = {
+	.total_vectors = 16,
+	.total_users = 3,
+	.users = (struct cnss_msi_user[]) {
+		{ .name = "MHI", .num_vectors = 3, .base_vector = 0 },
+		{ .name = "CE", .num_vectors = 5, .base_vector = 3 },
+		{ .name = "DP", .num_vectors = 8, .base_vector = 8 },
+	},
+};
+
+static struct cnss_msi_config msi_config_qcn9224_pci1 = {
+	.total_vectors = 16,
+	.total_users = 3,
+	.users = (struct cnss_msi_user[]) {
+		{ .name = "MHI", .num_vectors = 3, .base_vector = 0 },
+		{ .name = "CE", .num_vectors = 5, .base_vector = 3 },
+		{ .name = "DP", .num_vectors = 8, .base_vector = 8 },
+	},
+};
+
+static struct cnss_msi_config msi_config_qcn9224_pci2 = {
+	.total_vectors = 16,
+	.total_users = 3,
+	.users = (struct cnss_msi_user[]) {
+		{ .name = "MHI", .num_vectors = 3, .base_vector = 0 },
+		{ .name = "CE", .num_vectors = 5, .base_vector = 3 },
+		{ .name = "DP", .num_vectors = 8, .base_vector = 8 },
+	},
+};
+
+static void pci_update_msi_vectors(struct cnss_msi_config *msi_config,
+				   char *user_name, int num_vectors,
+				   int *vector_idx)
+{
+	int idx;
+
+	for (idx = 0; idx < msi_config->total_users; idx++) {
+		if (strcmp(user_name, msi_config->users[idx].name) == 0) {
+			msi_config->users[idx].num_vectors = num_vectors;
+			msi_config->users[idx].base_vector = *vector_idx;
+			*vector_idx += num_vectors;
+			return;
+		}
+	}
+}
+
+static void pci_override_msi_assignment(struct cnss_plat_data *plat_priv,
+					struct cnss_msi_config *msi_config)
+{
+	int num_mhi_vectors;
+	int num_ce_vectors;
+	int num_dp_vectors;
+	int interrupt_bmap = 0;
+	int vector_idx = 0;
+
+	if (plat_priv->qrtr_node_id == QCN9000_0 ||
+	    plat_priv->userpd_id == QCN6122_0 ||
+	    plat_priv->qrtr_node_id == QCN9224_0)
+		interrupt_bmap = pci0_num_msi_bmap;
+
+	if (plat_priv->qrtr_node_id == QCN9000_1 ||
+	    plat_priv->userpd_id == QCN6122_1 ||
+	    plat_priv->qrtr_node_id == QCN9224_1)
+		interrupt_bmap = pci1_num_msi_bmap;
+
+	if (plat_priv->qrtr_node_id == QCN9224_2)
+		interrupt_bmap = pci2_num_msi_bmap;
+
+	if (!interrupt_bmap)
+		return;
+
+	num_mhi_vectors = (interrupt_bmap & MSI_MHI_VECTOR_MASK) >>
+			   MSI_MHI_VECTOR_SHIFT;
+	num_ce_vectors = (interrupt_bmap & MSI_CE_VECTOR_MASK) >>
+			  MSI_CE_VECTOR_SHIFT;
+	num_dp_vectors = (interrupt_bmap & MSI_DP_VECTOR_MASK) >>
+			  MSI_DP_VECTOR_SHIFT;
+
+	if (num_mhi_vectors < MIN_MHI_VECTORS ||
+	    num_mhi_vectors > MAX_MHI_VECTORS)
+		num_mhi_vectors = DEFAULT_MHI_VECTORS;
+
+	if (num_ce_vectors < MIN_CE_VECTORS ||
+	    num_ce_vectors > MAX_CE_VECTORS)
+		num_ce_vectors = DEFAULT_CE_VECTORS;
+
+	if (num_dp_vectors < MIN_DP_VECTORS ||
+	    num_dp_vectors > MAX_DP_VECTORS)
+		num_dp_vectors = DEFAULT_DP_VECTORS;
+
+	pci_update_msi_vectors(msi_config, "MHI", num_mhi_vectors, &vector_idx);
+	pci_update_msi_vectors(msi_config, "CE", num_ce_vectors, &vector_idx);
+	pci_update_msi_vectors(msi_config, "DP", num_dp_vectors, &vector_idx);
+	msi_config->total_vectors = num_mhi_vectors + num_ce_vectors +
+				    num_dp_vectors;
+}
+
 static int cnss_pci_get_msi_assignment(struct cnss_pci_data *pci_priv)
 {
-	pci_priv->msi_config = &msi_config;
+	int qrtr_node_id = pci_priv->plat_priv->qrtr_node_id;
 
+	switch (qrtr_node_id) {
+	case QCN9000_0:
+		pci_override_msi_assignment(pci_priv->plat_priv,
+					    &msi_config_qcn9000_pci0);
+		pci_priv->msi_config = &msi_config_qcn9000_pci0;
+		break;
+	case QCN9000_1:
+		pci_override_msi_assignment(pci_priv->plat_priv,
+					    &msi_config_qcn9000_pci1);
+		pci_priv->msi_config = &msi_config_qcn9000_pci1;
+		break;
+	case QCN9224_0:
+		pci_override_msi_assignment(pci_priv->plat_priv,
+					    &msi_config_qcn9224_pci0);
+		pci_priv->msi_config = &msi_config_qcn9224_pci0;
+		break;
+	case QCN9224_1:
+		pci_override_msi_assignment(pci_priv->plat_priv,
+					    &msi_config_qcn9224_pci1);
+		pci_priv->msi_config = &msi_config_qcn9224_pci1;
+		break;
+	case QCN9224_2:
+		pci_override_msi_assignment(pci_priv->plat_priv,
+					    &msi_config_qcn9224_pci2);
+		pci_priv->msi_config = &msi_config_qcn9224_pci2;
+		break;
+	default:
+		pr_err("Unknown qrtr_node_id 0x%X", qrtr_node_id);
+		return -EINVAL;
+	}
 	return 0;
 }
+
 static int cnss_pci_enable_msi(struct cnss_pci_data *pci_priv)
 {
 	int ret = 0;
