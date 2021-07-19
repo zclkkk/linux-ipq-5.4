@@ -1477,19 +1477,36 @@
 					<0 0 0 4 &intc 0 83
 					 IRQ_TYPE_LEVEL_HIGH>; /* int_d */
 
-			clocks = <&gcc GCC_PCIE0_AXI_M_CLK>,
-				 <&gcc GCC_PCIE0_AXI_S_CLK>,
-				 <&gcc GCC_PCIE0_AHB_CLK>,
+			/* clocks and clock-names are used to enable the clock in CBCR */
+			clocks = <&gcc GCC_PCIE0_AHB_CLK>,
 				 <&gcc GCC_PCIE0_AUX_CLK>,
+				 <&gcc GCC_PCIE0_AXI_M_CLK>,
+				 <&gcc GCC_ANOC_PCIE0_1LANE_M_CLK>,
+				 <&gcc GCC_PCIE0_AXI_S_CLK>,
+				 <&gcc GCC_SNOC_PCIE0_1LANE_S_CLK>,
 				 <&gcc GCC_PCIE0_AXI_S_BRIDGE_CLK>,
 				 <&gcc GCC_PCIE0_RCHNG_CLK>;
 
-			clock-names = "axi_m",
-				      "axi_s",
-				      "ahb",
+			clock-names = "ahb",
 				      "aux",
+				      "axi_m",
+				      "anoc_lane",
+				      "axi_s",
+				      "snoc_lane",
 				      "axi_bridge",
 				      "rchng";
+
+			/* Using assinged-clock and rates, source RCG frequencies are set */
+			assigned-clocks = <&gcc PCNOC_BFDCD_CLK_SRC>,
+					  <&gcc PCIE_AUX_CLK_SRC>,
+					  <&gcc PCIE0_AXI_M_CLK_SRC>,
+					  <&gcc PCIE0_AXI_S_CLK_SRC>,
+					  <&gcc PCIE0_RCHNG_CLK_SRC>;
+			assigned-clock-rates = <100000000>,
+					       <20000000>,
+					       <240000000>,
+					       <240000000>,
+					       <100000000>;
 
 			resets = <&gcc GCC_PCIE0_PIPE_ARES>,
 				 <&gcc GCC_PCIE0_CORE_STICKY_ARES>,
@@ -1551,19 +1568,36 @@
 					<0 0 0 4 &intc 0 85
 					 IRQ_TYPE_LEVEL_HIGH>; /* int_d */
 
-			clocks = <&gcc GCC_PCIE1_AXI_M_CLK>,
-				 <&gcc GCC_PCIE1_AXI_S_CLK>,
-				 <&gcc GCC_PCIE1_AHB_CLK>,
+			/* clocks and clock-names are used to enable the clock in CBCR */
+			clocks = <&gcc GCC_PCIE1_AHB_CLK>,
 				 <&gcc GCC_PCIE1_AUX_CLK>,
+				 <&gcc GCC_PCIE1_AXI_M_CLK>,
+				 <&gcc GCC_ANOC_PCIE1_1LANE_M_CLK>,
+				 <&gcc GCC_PCIE1_AXI_S_CLK>,
+				 <&gcc GCC_SNOC_PCIE1_1LANE_S_CLK>,
 				 <&gcc GCC_PCIE1_AXI_S_BRIDGE_CLK>,
 				 <&gcc GCC_PCIE1_RCHNG_CLK>;
 
-			clock-names = "axi_m",
-				      "axi_s",
-				      "ahb",
+			clock-names = "ahb",
 				      "aux",
+				      "axi_m",
+				      "anoc_lane",
+				      "axi_s",
+				      "snoc_lane",
 				      "axi_bridge",
 				      "rchng";
+
+			/* Using assinged-clock and rates, source RCG frequencies are set */
+			assigned-clocks = <&gcc PCNOC_BFDCD_CLK_SRC>,
+					  <&gcc PCIE_AUX_CLK_SRC>,
+					  <&gcc PCIE1_AXI_M_CLK_SRC>,
+					  <&gcc PCIE1_AXI_S_CLK_SRC>,
+					  <&gcc PCIE1_RCHNG_CLK_SRC>;
+			assigned-clock-rates = <100000000>,
+					       <20000000>,
+					       <240000000>,
+					       <240000000>,
+					       <100000000>;
 
 			resets = <&gcc GCC_PCIE1_PIPE_ARES>,
 				 <&gcc GCC_PCIE1_CORE_STICKY_ARES>,
@@ -1625,19 +1659,36 @@
 					<0 0 0 4 &intc 0 187
 					 IRQ_TYPE_LEVEL_HIGH>; /* int_d */
 
-			clocks = <&gcc GCC_PCIE2_AXI_M_CLK>,
-				 <&gcc GCC_PCIE2_AXI_S_CLK>,
-				 <&gcc GCC_PCIE2_AHB_CLK>,
+			/* clocks and clock-names are used to enable the clock in CBCR */
+			clocks = <&gcc GCC_PCIE2_AHB_CLK>,
 				 <&gcc GCC_PCIE2_AUX_CLK>,
+				 <&gcc GCC_PCIE2_AXI_M_CLK>,
+				 <&gcc GCC_ANOC_PCIE2_2LANE_M_CLK>,
+				 <&gcc GCC_PCIE2_AXI_S_CLK>,
+				 <&gcc GCC_SNOC_PCIE2_2LANE_S_CLK>,
 				 <&gcc GCC_PCIE2_AXI_S_BRIDGE_CLK>,
 				 <&gcc GCC_PCIE2_RCHNG_CLK>;
 
-			clock-names = "axi_m",
-				      "axi_s",
-				      "ahb",
+			clock-names = "ahb",
 				      "aux",
+				      "axi_m",
+				      "anoc_lane",
+				      "axi_s",
+				      "snoc_lane",
 				      "axi_bridge",
 				      "rchng";
+
+			/* Using assinged-clock and rates, source RCG frequencies are set */
+			assigned-clocks = <&gcc PCNOC_BFDCD_CLK_SRC>,
+					  <&gcc PCIE_AUX_CLK_SRC>,
+					  <&gcc PCIE2_AXI_M_CLK_SRC>,
+					  <&gcc PCIE2_AXI_S_CLK_SRC>,
+					  <&gcc PCIE2_RCHNG_CLK_SRC>;
+			assigned-clock-rates = <100000000>,
+					       <20000000>,
+					       <342857143>,
+					       <240000000>,
+					       <100000000>;
 
 			resets = <&gcc GCC_PCIE2_PIPE_ARES>,
 				 <&gcc GCC_PCIE2_CORE_STICKY_ARES>,
@@ -1699,19 +1750,36 @@
 					<0 0 0 4 &intc 0 192
 					 IRQ_TYPE_LEVEL_HIGH>; /* int_d */
 
-			clocks = <&gcc GCC_PCIE3_AXI_M_CLK>,
-				 <&gcc GCC_PCIE3_AXI_S_CLK>,
-				 <&gcc GCC_PCIE3_AHB_CLK>,
+			/* clocks and clock-names are used to enable the clock in CBCR */
+			clocks = <&gcc GCC_PCIE3_AHB_CLK>,
 				 <&gcc GCC_PCIE3_AUX_CLK>,
+				 <&gcc GCC_PCIE3_AXI_M_CLK>,
+				 <&gcc GCC_ANOC_PCIE3_2LANE_M_CLK>,
+				 <&gcc GCC_PCIE3_AXI_S_CLK>,
+				 <&gcc GCC_SNOC_PCIE3_2LANE_S_CLK>,
 				 <&gcc GCC_PCIE3_AXI_S_BRIDGE_CLK>,
 				 <&gcc GCC_PCIE3_RCHNG_CLK>;
 
-			clock-names = "axi_m",
-				      "axi_s",
-				      "ahb",
+			clock-names = "ahb",
 				      "aux",
+				      "axi_m",
+				      "anoc_lane",
+				      "axi_s",
+				      "snoc_lane",
 				      "axi_bridge",
 				      "rchng";
+
+			/* Using assinged-clock and rates, source RCG frequencies are set */
+			assigned-clocks = <&gcc PCNOC_BFDCD_CLK_SRC>,
+					  <&gcc PCIE_AUX_CLK_SRC>,
+					  <&gcc PCIE3_AXI_M_CLK_SRC>,
+					  <&gcc PCIE3_AXI_S_CLK_SRC>,
+					  <&gcc PCIE3_RCHNG_CLK_SRC>;
+			assigned-clock-rates = <100000000>,
+					       <20000000>,
+					       <342857143>,
+					       <240000000>,
+					       <100000000>;
 
 			resets = <&gcc GCC_PCIE3_PIPE_ARES>,
 				 <&gcc GCC_PCIE3_CORE_STICKY_ARES>,

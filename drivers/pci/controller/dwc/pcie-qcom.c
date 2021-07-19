@@ -29,6 +29,7 @@
 #include <linux/slab.h>
 #include <linux/types.h>
 #include <linux/nvmem-consumer.h>
+#include <linux/of_clk.h>
 #include <soc/qcom/socinfo.h>
 #include "../../pci.h"
 
@@ -216,6 +217,13 @@ struct qcom_pcie_resources_2_9_0 {
 	struct reset_control *rst[8];
 };
 
+#define QCOM_PCIE_2_9_0_IPQ_MAX_CLOCKS 8
+struct qcom_pcie_resources_2_9_0_9574 {
+	struct clk_bulk_data clks[QCOM_PCIE_2_9_0_IPQ_MAX_CLOCKS];
+	int num_clks;
+	struct reset_control *rst[8];
+};
+
 union qcom_pcie_resources {
 	struct qcom_pcie_resources_1_0_0 v1_0_0;
 	struct qcom_pcie_resources_2_1_0 v2_1_0;
@@ -223,6 +231,7 @@ union qcom_pcie_resources {
 	struct qcom_pcie_resources_2_4_0 v2_4_0;
 	struct qcom_pcie_resources_2_5_0 v2_5_0;
 	struct qcom_pcie_resources_2_9_0 v2_9_0;
+	struct qcom_pcie_resources_2_9_0_9574 v2_9_0_9574;
 };
 
 struct qcom_pcie;
@@ -1382,37 +1391,29 @@ static int qcom_pcie_get_resources_2_9_0(struct qcom_pcie *pcie)
 
 static int qcom_pcie_get_resources_2_9_0_9574(struct qcom_pcie *pcie)
 {
-	struct qcom_pcie_resources_2_9_0 *res = &pcie->res.v2_9_0;
+	struct qcom_pcie_resources_2_9_0_9574 *res = &pcie->res.v2_9_0_9574;
 	struct dw_pcie *pci = pcie->pci;
 	struct device *dev = pci->dev;
 	int i;
+	int ret;
 	const char *rst_names[] = { "pipe", "sticky", "axi_s_sticky",
 				    "axi_s", "axi_m_sticky", "axi_m",
 				    "aux", "ahb" };
 
-	res->ahb_clk = devm_clk_get(dev, "ahb");
-	if (IS_ERR(res->ahb_clk))
-		res->ahb_clk = NULL;
+	res->clks[0].id = "ahb";
+	res->clks[1].id = "aux";
+	res->clks[2].id = "axi_m";
+	res->clks[3].id = "anoc_lane";
+	res->clks[4].id = "axi_s";
+	res->clks[5].id = "snoc_lane";
+	res->clks[6].id = "axi_bridge";
+	res->clks[7].id = "rchng";
 
-	res->aux_clk = devm_clk_get(dev, "aux");
-	if (IS_ERR(res->aux_clk))
-		res->aux_clk = NULL;
+	res->num_clks = of_clk_get_parent_count(dev->of_node); 
 
-	res->axi_m_clk = devm_clk_get(dev, "axi_m");
-	if (IS_ERR(res->axi_m_clk))
-		return PTR_ERR(res->axi_m_clk);
-
-	res->axi_s_clk = devm_clk_get(dev, "axi_s");
-	if (IS_ERR(res->axi_s_clk))
-		return PTR_ERR(res->axi_s_clk);
-
-	res->axi_bridge_clk = devm_clk_get(dev, "axi_bridge");
-	if (IS_ERR(res->axi_bridge_clk))
-		return PTR_ERR(res->axi_bridge_clk);
-
-	res->rchng_clk = devm_clk_get(dev, "rchng");
-	if (IS_ERR(res->rchng_clk))
-		res->rchng_clk = NULL;
+	ret = devm_clk_bulk_get(dev, res->num_clks, res->clks);
+	if (ret < 0)
+		return ret;
 
 	for (i = 0; i < ARRAY_SIZE(rst_names); i++) {
 		res->rst[i] = devm_reset_control_get(dev, rst_names[i]);
@@ -1437,6 +1438,13 @@ static void qcom_pcie_deinit_2_9_0(struct qcom_pcie *pcie)
 	clk_disable_unprepare(res->ahb_clk);
 	if (res->iface)
 		clk_disable_unprepare(res->iface);
+}
+
+static void qcom_pcie_deinit_2_9_0_9574(struct qcom_pcie *pcie)
+{
+	struct qcom_pcie_resources_2_9_0_9574 *res = &pcie->res.v2_9_0_9574;
+
+	clk_bulk_disable_unprepare(res->num_clks, res->clks);
 }
 
 static int qcom_pcie_init_2_9_0_5018(struct qcom_pcie *pcie)
@@ -1622,6 +1630,115 @@ static int qcom_pcie_post_init_2_9_0_5018(struct qcom_pcie *pcie)
 	writel(0x0, pci->atu_base + PCIE_ATU_UPPER_TARGET_OUTBOUND_7_GEN3);
 
 	return 0;
+}
+
+static int qcom_pcie_init_2_9_0_9574(struct qcom_pcie *pcie)
+{
+	struct qcom_pcie_resources_2_9_0_9574 *res = &pcie->res.v2_9_0_9574;
+	struct dw_pcie *pci = pcie->pci;
+	struct device *dev = pci->dev;
+	int i, ret;
+	u32 val;
+
+	for (i = 0; i < ARRAY_SIZE(res->rst); i++) {
+		ret = reset_control_assert(res->rst[i]);
+		if (ret) {
+			dev_err(dev, "reset #%d assert failed (%d)\n", i, ret);
+			return ret;
+		}
+	}
+
+	usleep_range(2000, 2500);
+
+	for (i = 0; i < ARRAY_SIZE(res->rst); i++) {
+		ret = reset_control_deassert(res->rst[i]);
+		if (ret) {
+			dev_err(dev, "reset #%d deassert failed (%d)\n", i,
+				ret);
+			return ret;
+		}
+	}
+
+	/*
+	 * Don't have a way to see if the reset has completed.
+	 * Wait for some time.
+	 */
+	usleep_range(2000, 2500);
+
+	ret = clk_bulk_prepare_enable(res->num_clks, res->clks);
+	if (ret)
+		goto err_clks;
+
+	if (pcie->slv_addr_space_sz)
+		writel(pcie->slv_addr_space_sz,
+			pcie->parf + PCIE20_v3_PARF_SLV_ADDR_SPACE_SIZE);
+	else
+		writel(SLV_ADDR_SPACE_SZ,
+			pcie->parf + PCIE20_v3_PARF_SLV_ADDR_SPACE_SIZE);
+
+	val = readl(pcie->parf + PCIE20_PARF_PHY_CTRL);
+	val &= ~BIT(0);
+	writel(val, pcie->parf + PCIE20_PARF_PHY_CTRL);
+
+	writel(0, pcie->parf + PCIE20_PARF_DBI_BASE_ADDR);
+
+	writel(DEVICE_TYPE_RC, pcie->parf + PCIE20_PARF_DEVICE_TYPE);
+	writel(BYPASS | MSTR_AXI_CLK_EN | AHB_CLK_EN,
+		pcie->parf + PCIE20_PARF_MHI_CLOCK_RESET_CTRL);
+	writel(RXEQ_RGRDLESS_RXTS | GEN3_ZRXDC_NONCOMPL,
+		pci->dbi_base + PCIE30_GEN3_RELATED_OFF);
+
+	writel(MST_WAKEUP_EN | SLV_WAKEUP_EN | MSTR_ACLK_CGC_DIS
+		| SLV_ACLK_CGC_DIS | CORE_CLK_CGC_DIS |
+		AUX_PWR_DET | L23_CLK_RMV_DIS | L1_CLK_RMV_DIS,
+		pcie->parf + PCIE20_PARF_SYS_CTRL);
+
+	writel(0, pcie->parf + PCIE20_PARF_Q2A_FLUSH);
+
+	writel(BUS_MASTER_EN, pci->dbi_base + PCIE20_COMMAND_STATUS);
+
+	writel(DBI_RO_WR_EN, pci->dbi_base + PCIE20_MISC_CONTROL_1_REG);
+	writel(PCIE_CAP_LINK1_VAL, pci->dbi_base + PCIE20_CAP_LINK_1);
+
+	/* Configure PCIe link capabilities for ASPM */
+	val = readl(pci->dbi_base + PCIE20_CAP_LINK_CAPABILITIES);
+	val &= ~PCIE20_CAP_ACTIVE_STATE_LINK_PM_SUPPORT;
+	writel(val, pci->dbi_base + PCIE20_CAP_LINK_CAPABILITIES);
+
+	writel(PCIE_CAP_CPL_TIMEOUT_DISABLE, pci->dbi_base +
+		PCIE20_DEVICE_CONTROL2_STATUS2);
+
+	qcom_pcie_set_link_speed(pci->dbi_base, pcie->max_speed, SPEED_GEN3);
+
+	for (i = 0;i < 256;i++)
+		writel(0x0, pcie->parf + PARF_BDF_TO_SID_TABLE + (4 * i));
+
+	writel(0x4, pci->atu_base + PCIE_ATU_CR1_OUTBOUND_6_GEN3);
+	writel(0x90000000, pci->atu_base + PCIE_ATU_CR2_OUTBOUND_6_GEN3);
+	writel(0x0, pci->atu_base + PCIE_ATU_LOWER_BASE_OUTBOUND_6_GEN3);
+	writel(0x0, pci->atu_base + PCIE_ATU_UPPER_BASE_OUTBOUND_6_GEN3);
+	writel(0x00107FFFF, pci->atu_base + PCIE_ATU_LIMIT_OUTBOUND_6_GEN3);
+	writel(0x0, pci->atu_base + PCIE_ATU_LOWER_TARGET_OUTBOUND_6_GEN3);
+	writel(0x0, pci->atu_base + PCIE_ATU_UPPER_TARGET_OUTBOUND_6_GEN3);
+	writel(0x5, pci->atu_base + PCIE_ATU_CR1_OUTBOUND_7_GEN3);
+	writel(0x90000000, pci->atu_base + PCIE_ATU_CR2_OUTBOUND_7_GEN3);
+	writel(0x200000, pci->atu_base + PCIE_ATU_LOWER_BASE_OUTBOUND_7_GEN3);
+	writel(0x0, pci->atu_base + PCIE_ATU_UPPER_BASE_OUTBOUND_7_GEN3);
+	writel(0x7FFFFF, pci->atu_base + PCIE_ATU_LIMIT_OUTBOUND_7_GEN3);
+	writel(0x0, pci->atu_base + PCIE_ATU_LOWER_TARGET_OUTBOUND_7_GEN3);
+	writel(0x0, pci->atu_base + PCIE_ATU_UPPER_TARGET_OUTBOUND_7_GEN3);
+
+	return 0;
+
+err_clks:
+	/*
+	 * Not checking for failure, will anyway return
+	 * the original failure in 'ret'.
+	 */
+	for (i = 0; i < ARRAY_SIZE(res->rst); i++)
+		reset_control_assert(res->rst[i]);
+
+	return ret;
 }
 
 static int qcom_pcie_init_2_9_0(struct qcom_pcie *pcie)
@@ -1951,8 +2068,8 @@ static const struct qcom_pcie_ops ops_2_9_0_ipq5018 = {
 /* Qcom IP rev.: 2.9.0	Synopsys IP rev.: 5.00a */
 static const struct qcom_pcie_ops ops_2_9_0_ipq9574 = {
 	.get_resources = qcom_pcie_get_resources_2_9_0_9574,
-	.init = qcom_pcie_init_2_9_0,
-	.deinit = qcom_pcie_deinit_2_9_0,
+	.init = qcom_pcie_init_2_9_0_9574,
+	.deinit = qcom_pcie_deinit_2_9_0_9574,
 	.ltssm_enable = qcom_pcie_2_3_2_ltssm_enable,
 };
 
