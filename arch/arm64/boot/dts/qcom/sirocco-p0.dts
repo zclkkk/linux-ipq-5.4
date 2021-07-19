@@ -272,3 +272,7 @@
 	pinctrl-names = "default";
 	status = "ok";
 };
+
+&usb3 {
+       device-power-gpio = <&tlmm 24 1>;
+};
