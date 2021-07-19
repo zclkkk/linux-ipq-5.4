@@ -74,6 +74,10 @@ struct csr_drvdata {
 	uint32_t		blksize;
 	struct coresight_csr		csr;
 	struct clk		*clk;
+	struct clk		*cfg_ahb_clk;
+	struct clk		*dap_ahb_clk;
+	struct clk		*tsctr_div2_clk;
+	struct clk		*tsctr_div8_clk;
 	spinlock_t		spin_lock;
 	bool			usb_bam_support;
 	bool			hwctrl_set_support;
@@ -352,6 +356,34 @@ static int csr_probe(struct platform_device *pdev)
 	drvdata->clk = devm_clk_get(dev, "apb_pclk");
 	if (IS_ERR(drvdata->clk))
 		dev_dbg(dev, "csr not config clk\n");
+
+	drvdata->cfg_ahb_clk = devm_clk_get(dev, "cfg_ahb_clk");
+	if (!IS_ERR(drvdata->cfg_ahb_clk)) {
+		ret = clk_prepare_enable(drvdata->cfg_ahb_clk);
+		if (ret)
+			return ret;
+	}
+
+	drvdata->dap_ahb_clk = devm_clk_get(dev, "dap_ahb_clk");
+	if (!IS_ERR(drvdata->dap_ahb_clk)) {
+		ret = clk_prepare_enable(drvdata->dap_ahb_clk);
+		if (ret)
+			return ret;
+	}
+
+	drvdata->tsctr_div2_clk = devm_clk_get(dev, "tsctr_div2_clk");
+	if (!IS_ERR(drvdata->tsctr_div2_clk)) {
+		ret = clk_prepare_enable(drvdata->tsctr_div2_clk);
+		if (ret)
+			return ret;
+	}
+
+	drvdata->tsctr_div8_clk = devm_clk_get(dev, "tsctr_div8_clk");
+	if (!IS_ERR(drvdata->tsctr_div8_clk)) {
+		ret = clk_prepare_enable(drvdata->tsctr_div8_clk);
+		if (ret)
+			return ret;
+	}
 
 	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "csr-base");
 	if (!res)
