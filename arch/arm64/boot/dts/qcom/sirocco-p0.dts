@@ -109,6 +109,15 @@
 			bias-disable;
 		};
 	};
+
+	blsp0_spi_pins: blsp0_spi_pins {
+		mux {
+			pins = "gpio10", "gpio11", "gpio12", "gpio13";
+			function = "blsp0_spi";
+			drive-strength = <2>;
+			bias-disable;
+		};
+	};
 };
 
 &q6v5_wcss {
@@ -226,5 +235,18 @@
 		qcom,smem-state-names = "shutdown",
 					"stop",
 					"spawn";
+	};
+};
+
+&spi_0 {
+	pinctrl-0 = <&blsp0_spi_pins>;
+	pinctrl-names = "default";
+	cs-select = <0>;
+	status = "ok";
+
+	spi@0 {
+		compatible = "qti,spidev";
+		reg = <0>;
+		spi-max-frequency = <50000000>;
 	};
 };
