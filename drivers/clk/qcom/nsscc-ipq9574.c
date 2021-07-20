@@ -31,12 +31,12 @@ enum {
 	P_BIAS_PLL_UBI_NC_CLK,
 	P_GCC_GPLL0_OUT_AUX,
 	P_UBI32_PLL_OUT_MAIN,
-	P_UNIPHY0_NSS_RX_CLK,
-	P_UNIPHY0_NSS_TX_CLK,
-	P_UNIPHY1_NSS_RX_CLK,
-	P_UNIPHY1_NSS_TX_CLK,
-	P_UNIPHY2_NSS_RX_CLK,
-	P_UNIPHY2_NSS_TX_CLK,
+	P_UNIPHY0_GCC_RX_CLK,
+	P_UNIPHY0_GCC_TX_CLK,
+	P_UNIPHY1_GCC_RX_CLK,
+	P_UNIPHY1_GCC_TX_CLK,
+	P_UNIPHY2_GCC_RX_CLK,
+	P_UNIPHY2_GCC_TX_CLK,
 	P_XO,
 };
 
@@ -90,19 +90,19 @@ static struct clk_alpha_pll_postdiv ubi32_pll = {
 static const struct parent_map nss_cc_parent_map_0[] = {
 	{ P_XO, 0 },
 	{ P_BIAS_PLL_CC_CLK, 1 },
-	{ P_UNIPHY0_NSS_RX_CLK, 2 },
-	{ P_UNIPHY0_NSS_TX_CLK, 3 },
-	{ P_UNIPHY1_NSS_RX_CLK, 4 },
-	{ P_UNIPHY1_NSS_TX_CLK, 5 },
+	{ P_UNIPHY0_GCC_RX_CLK, 2 },
+	{ P_UNIPHY0_GCC_TX_CLK, 3 },
+	{ P_UNIPHY1_GCC_RX_CLK, 4 },
+	{ P_UNIPHY1_GCC_TX_CLK, 5 },
 };
 
 static const struct clk_parent_data nss_cc_parent_data_0[] = {
 	{ .fw_name = "xo" },
 	{ .fw_name = "bias_pll_cc_clk" },
-	{ .fw_name = "uniphy0_nss_rx_clk" },
-	{ .fw_name = "uniphy0_nss_tx_clk" },
-	{ .fw_name = "uniphy1_nss_rx_clk" },
-	{ .fw_name = "uniphy1_nss_tx_clk" },
+	{ .fw_name = "uniphy0_gcc_rx_clk" },
+	{ .fw_name = "uniphy0_gcc_tx_clk" },
+	{ .fw_name = "uniphy1_gcc_rx_clk" },
+	{ .fw_name = "uniphy1_gcc_tx_clk" },
 };
 
 static const struct parent_map nss_cc_parent_map_1[] = {
@@ -146,29 +146,29 @@ static const struct clk_parent_data nss_cc_parent_data_3[] = {
 static const struct parent_map nss_cc_parent_map_4[] = {
 	{ P_XO, 0 },
 	{ P_BIAS_PLL_CC_CLK, 1 },
-	{ P_UNIPHY0_NSS_RX_CLK, 2 },
-	{ P_UNIPHY0_NSS_TX_CLK, 3 },
+	{ P_UNIPHY0_GCC_RX_CLK, 2 },
+	{ P_UNIPHY0_GCC_TX_CLK, 3 },
 };
 
 static const struct clk_parent_data nss_cc_parent_data_4[] = {
 	{ .fw_name = "xo" },
 	{ .fw_name = "bias_pll_cc_clk" },
-	{ .fw_name = "uniphy0_nss_rx_clk" },
-	{ .fw_name = "uniphy0_nss_tx_clk" },
+	{ .fw_name = "uniphy0_gcc_rx_clk" },
+	{ .fw_name = "uniphy0_gcc_tx_clk" },
 };
 
 static const struct parent_map nss_cc_parent_map_5[] = {
 	{ P_XO, 0 },
 	{ P_BIAS_PLL_CC_CLK, 1 },
-	{ P_UNIPHY2_NSS_RX_CLK, 2 },
-	{ P_UNIPHY2_NSS_TX_CLK, 3 },
+	{ P_UNIPHY2_GCC_RX_CLK, 2 },
+	{ P_UNIPHY2_GCC_TX_CLK, 3 },
 };
 
 static const struct clk_parent_data nss_cc_parent_data_5[] = {
 	{ .fw_name = "xo" },
 	{ .fw_name = "bias_pll_cc_clk" },
-	{ .fw_name = "uniphy2_nss_rx_clk" },
-	{ .fw_name = "uniphy2_nss_tx_clk" },
+	{ .fw_name = "uniphy2_gcc_rx_clk" },
+	{ .fw_name = "uniphy2_gcc_tx_clk" },
 };
 
 static const struct parent_map nss_cc_parent_map_6[] = {
@@ -328,69 +328,69 @@ static struct clk_rcg2 nss_cc_int_cfg_clk_src = {
 
 static const struct freq_tbl ftbl_nss_cc_port1_rx_clk_src[] = {
 	F(24000000, P_XO, 1, 0, 0),
-	F(25000000, P_UNIPHY0_NSS_RX_CLK, 12.5, 0, 0),
-	F(25000000, P_UNIPHY0_NSS_RX_CLK, 5, 0, 0),
-	F(78125000, P_UNIPHY0_NSS_RX_CLK, 4, 0, 0),
-	F(125000000, P_UNIPHY0_NSS_RX_CLK, 2.5, 0, 0),
-	F(125000000, P_UNIPHY0_NSS_RX_CLK, 1, 0, 0),
+	F(25000000, P_UNIPHY0_GCC_RX_CLK, 12.5, 0, 0),
+	F(25000000, P_UNIPHY0_GCC_RX_CLK, 5, 0, 0),
+	F(78125000, P_UNIPHY0_GCC_RX_CLK, 4, 0, 0),
+	F(125000000, P_UNIPHY0_GCC_RX_CLK, 2.5, 0, 0),
+	F(125000000, P_UNIPHY0_GCC_RX_CLK, 1, 0, 0),
 	{ }
 };
 
 static const struct freq_tbl ftbl_nss_cc_port1_tx_clk_src[] = {
 	F(24000000, P_XO, 1, 0, 0),
-	F(25000000, P_UNIPHY0_NSS_TX_CLK, 12.5, 0, 0),
-	F(25000000, P_UNIPHY0_NSS_TX_CLK, 5, 0, 0),
-	F(78125000, P_UNIPHY0_NSS_TX_CLK, 4, 0, 0),
-	F(125000000, P_UNIPHY0_NSS_TX_CLK, 2.5, 0, 0),
-	F(125000000, P_UNIPHY0_NSS_TX_CLK, 1, 0, 0),
+	F(25000000, P_UNIPHY0_GCC_TX_CLK, 12.5, 0, 0),
+	F(25000000, P_UNIPHY0_GCC_TX_CLK, 5, 0, 0),
+	F(78125000, P_UNIPHY0_GCC_TX_CLK, 4, 0, 0),
+	F(125000000, P_UNIPHY0_GCC_TX_CLK, 2.5, 0, 0),
+	F(125000000, P_UNIPHY0_GCC_TX_CLK, 1, 0, 0),
 	{ }
 };
 
 static const struct freq_tbl ftbl_nss_cc_port5_rx_clk_src[] = {
 	F(24000000, P_XO, 1, 0, 0),
-	F(25000000, P_UNIPHY1_NSS_RX_CLK, 12.5, 0, 0),
-	F(25000000, P_UNIPHY0_NSS_RX_CLK, 5, 0, 0),
-	F(78125000, P_UNIPHY1_NSS_RX_CLK, 4, 0, 0),
-	F(125000000, P_UNIPHY1_NSS_RX_CLK, 2.5, 0, 0),
-	F(125000000, P_UNIPHY0_NSS_RX_CLK, 1, 0, 0),
-	F(156250000, P_UNIPHY1_NSS_RX_CLK, 2, 0, 0),
-	F(312500000, P_UNIPHY1_NSS_RX_CLK, 1, 0, 0),
+	F(25000000, P_UNIPHY1_GCC_RX_CLK, 12.5, 0, 0),
+	F(25000000, P_UNIPHY0_GCC_RX_CLK, 5, 0, 0),
+	F(78125000, P_UNIPHY1_GCC_RX_CLK, 4, 0, 0),
+	F(125000000, P_UNIPHY1_GCC_RX_CLK, 2.5, 0, 0),
+	F(125000000, P_UNIPHY0_GCC_RX_CLK, 1, 0, 0),
+	F(156250000, P_UNIPHY1_GCC_RX_CLK, 2, 0, 0),
+	F(312500000, P_UNIPHY1_GCC_RX_CLK, 1, 0, 0),
 	{ }
 };
 
 static const struct freq_tbl ftbl_nss_cc_port5_tx_clk_src[] = {
 	F(24000000, P_XO, 1, 0, 0),
-	F(25000000, P_UNIPHY1_NSS_TX_CLK, 12.5, 0, 0),
-	F(25000000, P_UNIPHY0_NSS_TX_CLK, 5, 0, 0),
-	F(78125000, P_UNIPHY1_NSS_TX_CLK, 4, 0, 0),
-	F(125000000, P_UNIPHY1_NSS_TX_CLK, 2.5, 0, 0),
-	F(125000000, P_UNIPHY0_NSS_TX_CLK, 1, 0, 0),
-	F(156250000, P_UNIPHY1_NSS_TX_CLK, 2, 0, 0),
-	F(312500000, P_UNIPHY1_NSS_TX_CLK, 1, 0, 0),
+	F(25000000, P_UNIPHY1_GCC_TX_CLK, 12.5, 0, 0),
+	F(25000000, P_UNIPHY0_GCC_TX_CLK, 5, 0, 0),
+	F(78125000, P_UNIPHY1_GCC_TX_CLK, 4, 0, 0),
+	F(125000000, P_UNIPHY1_GCC_TX_CLK, 2.5, 0, 0),
+	F(125000000, P_UNIPHY0_GCC_TX_CLK, 1, 0, 0),
+	F(156250000, P_UNIPHY1_GCC_TX_CLK, 2, 0, 0),
+	F(312500000, P_UNIPHY1_GCC_TX_CLK, 1, 0, 0),
 	{ }
 };
 
 static const struct freq_tbl ftbl_nss_cc_port6_rx_clk_src[] = {
 	F(24000000, P_XO, 1, 0, 0),
-	F(25000000, P_UNIPHY2_NSS_RX_CLK, 12.5, 0, 0),
-	F(25000000, P_UNIPHY2_NSS_RX_CLK, 5, 0, 0),
-	F(78125000, P_UNIPHY2_NSS_RX_CLK, 4, 0, 0),
-	F(125000000, P_UNIPHY2_NSS_RX_CLK, 2.5, 0, 0),
-	F(125000000, P_UNIPHY2_NSS_RX_CLK, 1, 0, 0),
-	F(156250000, P_UNIPHY2_NSS_RX_CLK, 2, 0, 0),
-	F(321500000, P_UNIPHY2_NSS_RX_CLK, 1, 0, 0),
+	F(25000000, P_UNIPHY2_GCC_RX_CLK, 12.5, 0, 0),
+	F(25000000, P_UNIPHY2_GCC_RX_CLK, 5, 0, 0),
+	F(78125000, P_UNIPHY2_GCC_RX_CLK, 4, 0, 0),
+	F(125000000, P_UNIPHY2_GCC_RX_CLK, 2.5, 0, 0),
+	F(125000000, P_UNIPHY2_GCC_RX_CLK, 1, 0, 0),
+	F(156250000, P_UNIPHY2_GCC_RX_CLK, 2, 0, 0),
+	F(321500000, P_UNIPHY2_GCC_RX_CLK, 1, 0, 0),
 	{ }
 };
 
 static const struct freq_tbl ftbl_nss_cc_port6_tx_clk_src[] = {
 	F(24000000, P_XO, 1, 0, 0),
-	F(25000000, P_UNIPHY2_NSS_TX_CLK, 12.5, 0, 0),
-	F(25000000, P_UNIPHY2_NSS_TX_CLK, 5, 0, 0),
-	F(78125000, P_UNIPHY2_NSS_TX_CLK, 4, 0, 0),
-	F(125000000, P_UNIPHY2_NSS_TX_CLK, 2.5, 0, 0),
-	F(125000000, P_UNIPHY2_NSS_TX_CLK, 1, 0, 0),
-	F(156250000, P_UNIPHY2_NSS_TX_CLK, 2, 0, 0),
-	F(321500000, P_UNIPHY2_NSS_TX_CLK, 1, 0, 0),
+	F(25000000, P_UNIPHY2_GCC_TX_CLK, 12.5, 0, 0),
+	F(25000000, P_UNIPHY2_GCC_TX_CLK, 5, 0, 0),
+	F(78125000, P_UNIPHY2_GCC_TX_CLK, 4, 0, 0),
+	F(125000000, P_UNIPHY2_GCC_TX_CLK, 2.5, 0, 0),
+	F(125000000, P_UNIPHY2_GCC_TX_CLK, 1, 0, 0),
+	F(156250000, P_UNIPHY2_GCC_TX_CLK, 2, 0, 0),
+	F(321500000, P_UNIPHY2_GCC_TX_CLK, 1, 0, 0),
 	{ }
 };
 
