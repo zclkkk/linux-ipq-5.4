@@ -116,7 +116,7 @@
 		};
 
 		nsscc@39b00000 {
-			gcc-use-dummy;
+			nsscc-use-dummy;
 		};
 
 		interrupt-controller@b000000 {
