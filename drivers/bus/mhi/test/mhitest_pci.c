@@ -1017,6 +1017,7 @@ int mhitest_pci_set_mhi_state(struct mhitest_platform *mplat,
 	return ret;
 }
 
+extern int timeout_ms;
 int mhitest_pci_start_mhi(struct mhitest_platform *mplat)
 {
 	int ret;
@@ -1028,7 +1029,7 @@ int mhitest_pci_start_mhi(struct mhitest_platform *mplat)
 		return -EINVAL;
 	}
 
-	mplat->mhi_ctrl->timeout_ms = MHI_TIMEOUT_DEFAULT;
+	mplat->mhi_ctrl->timeout_ms = timeout_ms;
 
 	ret = mhitest_pci_set_mhi_state(mplat, MHI_INIT);
 	if (ret) {
