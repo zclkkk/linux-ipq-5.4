@@ -690,7 +690,6 @@
 				qcom,mhi@0 {
 					reg = <0 0 0 0 0>;
 					qrtr_instance_id = <0x20>;
-					memory-region = <&mhi_region1>;
 				};
 			};
 		};
@@ -705,7 +704,6 @@
 				qcom,mhi@1 {
 					reg = <0 0 0 0 0>;
 					qrtr_instance_id = <0x21>;
-					memory-region = <&mhi_region2>;
 				};
 			};
 		};
@@ -720,7 +718,6 @@
 				qcom,mhi@2 {
 					reg = <0 0 0 0 0>;
 					qrtr_instance_id = <0x22>;
-					memory-region = <&mhi_region1>;
 				};
 			};
 		};
@@ -735,7 +732,6 @@
 				qcom,mhi@3 {
 					reg = <0 0 0 0 0>;
 					qrtr_instance_id = <0x23>;
-					memory-region = <&mhi_region2>;
 				};
 			};
 		};
