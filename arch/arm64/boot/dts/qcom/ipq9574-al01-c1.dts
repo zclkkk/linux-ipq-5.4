@@ -498,7 +498,7 @@
 };
 
 &wifi0 {
-       status = "disabled";
+       status = "ok";
 };
 
 &wifi1 {
