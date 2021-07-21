@@ -24,7 +24,8 @@
 #define QRTR_INSTANCE_SHIFT	0
 
 #define MAX_RAMDUMP_TABLE_SIZE 6
-#define COREDUMP_DESC          "Q6-COREDUMP"
+#define COREDUMP_DESC	"Q6-COREDUMP"
+#define Q6_SFR_DESC	"Q6-SFR"
 
 typedef struct
 {
@@ -72,7 +73,9 @@ void get_crash_reason(struct mhi_controller *mhi_cntrl)
 	i = 0;
 	while(i < MAX_RAMDUMP_TABLE_SIZE) {
 		if (!strncmp(ramdump_table->description, COREDUMP_DESC,
-			     sizeof(COREDUMP_DESC))) {
+			     sizeof(COREDUMP_DESC)) ||
+			!strncmp(ramdump_table->description, Q6_SFR_DESC,
+			     sizeof(Q6_SFR_DESC))) {
 			break;
 		}
 		coredump_offset += ramdump_table->size;
