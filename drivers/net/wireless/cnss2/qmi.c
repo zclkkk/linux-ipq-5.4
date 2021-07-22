@@ -1062,9 +1062,11 @@ int cnss_wlfw_bdf_dnld_send_sync(struct cnss_plat_data *plat_priv,
 	ret = request_firmware(&fw_entry, filename, &plat_priv->plat_dev->dev);
 	if (ret) {
 		if (bdf_type == CNSS_CALDATA_WIN) {
-			/* Ideally, caldata should be present */
-			cnss_pr_err("Failed to load Caldata: %s\n", filename);
-			goto out;
+			cnss_pr_warn("WARNING: Caldata not present. Skipping caldata download: %s\n",
+				     filename);
+			ret = 0;
+			resp_error_msg = -ENOENT;
+			goto err_req_fw;
 		} else if (bdf_type == CNSS_BDF_HDS) {
 			/* HDS bin download is not mandatory */
 			ret = 0;
@@ -1125,9 +1127,10 @@ bypass_bdf:
 						 fw_bdf_type);
 			if (ret) {
 				if (bdf_type == CNSS_CALDATA_WIN) {
-					/* Caldata should be present */
-					cnss_pr_err("Failed to load Caldata: %s\n",
-						    filename);
+					cnss_pr_warn("WARNING: Caldata not present. Skipping caldata download: %s\n",
+						     filename);
+					ret = 0;
+					resp_error_msg = -ENOENT;
 					goto err_req_fw;
 				} else if (bdf_type == CNSS_BDF_HDS ||
 					   bdf_type == CNSS_BDF_REGDB) {
