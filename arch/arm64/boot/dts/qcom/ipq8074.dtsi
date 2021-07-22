@@ -1729,6 +1729,7 @@
 			qca,auto-restart;
 			status = "disabled";
 		};
+
 		wifi5: wifi5@f00000 {
 			compatible  = "qcom,cnss-qcn9224";
 			qcom,wlan-ramdump-dynamic = <0x400000>;
