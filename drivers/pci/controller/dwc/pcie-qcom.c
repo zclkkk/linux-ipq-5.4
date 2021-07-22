@@ -217,9 +217,9 @@ struct qcom_pcie_resources_2_9_0 {
 	struct reset_control *rst[8];
 };
 
-#define QCOM_PCIE_2_9_0_IPQ_MAX_CLOCKS 8
+#define QTI_PCIE_2_9_0_IPQ_MAX_CLOCKS 8
 struct qcom_pcie_resources_2_9_0_9574 {
-	struct clk_bulk_data clks[QCOM_PCIE_2_9_0_IPQ_MAX_CLOCKS];
+	struct clk_bulk_data clks[QTI_PCIE_2_9_0_IPQ_MAX_CLOCKS];
 	int num_clks;
 	struct reset_control *rst[8];
 };
@@ -1389,7 +1389,7 @@ static int qcom_pcie_get_resources_2_9_0(struct qcom_pcie *pcie)
 	return 0;
 }
 
-static int qcom_pcie_get_resources_2_9_0_9574(struct qcom_pcie *pcie)
+static int qti_pcie_get_resources_2_9_0_9574(struct qcom_pcie *pcie)
 {
 	struct qcom_pcie_resources_2_9_0_9574 *res = &pcie->res.v2_9_0_9574;
 	struct dw_pcie *pci = pcie->pci;
@@ -1440,7 +1440,7 @@ static void qcom_pcie_deinit_2_9_0(struct qcom_pcie *pcie)
 		clk_disable_unprepare(res->iface);
 }
 
-static void qcom_pcie_deinit_2_9_0_9574(struct qcom_pcie *pcie)
+static void qti_pcie_deinit_2_9_0_9574(struct qcom_pcie *pcie)
 {
 	struct qcom_pcie_resources_2_9_0_9574 *res = &pcie->res.v2_9_0_9574;
 
@@ -1632,7 +1632,7 @@ static int qcom_pcie_post_init_2_9_0_5018(struct qcom_pcie *pcie)
 	return 0;
 }
 
-static int qcom_pcie_init_2_9_0_9574(struct qcom_pcie *pcie)
+static int qti_pcie_init_2_9_0_9574(struct qcom_pcie *pcie)
 {
 	struct qcom_pcie_resources_2_9_0_9574 *res = &pcie->res.v2_9_0_9574;
 	struct dw_pcie *pci = pcie->pci;
@@ -2065,11 +2065,11 @@ static const struct qcom_pcie_ops ops_2_9_0_ipq5018 = {
 	.ltssm_enable = qcom_pcie_2_3_2_ltssm_enable,
 };
 
-/* Qcom IP rev.: 2.9.0	Synopsys IP rev.: 5.00a */
+/* QTI IP rev.: 2.9.0	Synopsys IP rev.: 5.00a */
 static const struct qcom_pcie_ops ops_2_9_0_ipq9574 = {
-	.get_resources = qcom_pcie_get_resources_2_9_0_9574,
-	.init = qcom_pcie_init_2_9_0_9574,
-	.deinit = qcom_pcie_deinit_2_9_0_9574,
+	.get_resources = qti_pcie_get_resources_2_9_0_9574,
+	.init = qti_pcie_init_2_9_0_9574,
+	.deinit = qti_pcie_deinit_2_9_0_9574,
 	.ltssm_enable = qcom_pcie_2_3_2_ltssm_enable,
 };
 
@@ -2083,7 +2083,7 @@ static const struct qcom_pcie_of_data qcom_pcie_2_9_0_ipq5018 = {
 	.version = 0x500A,
 };
 
-static const struct qcom_pcie_of_data qcom_pcie_2_9_0_ipq9574 = {
+static const struct qcom_pcie_of_data qti_pcie_2_9_0_ipq9574 = {
 	.ops = &ops_2_9_0_ipq9574,
 	.version = 0x500A,
 };
@@ -2577,7 +2577,7 @@ static const struct of_device_id qcom_pcie_match[] = {
 	{ .compatible = "qcom,pcie-ipq4019", .data = &qcom_pcie_2_4_0 },
 	{ .compatible = "qcom,pcie-qcs404", .data = &qcom_pcie_2_4_0 },
 	{ .compatible = "qcom,pcie-ipq5018", .data = &qcom_pcie_2_9_0_ipq5018 },
-	{ .compatible = "qcom,pcie-ipq9574", .data = &qcom_pcie_2_9_0_ipq9574 },
+	{ .compatible = "qti,pcie-ipq9574", .data = &qti_pcie_2_9_0_ipq9574 },
 	{ }
 };
 
