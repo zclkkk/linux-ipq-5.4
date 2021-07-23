@@ -1064,6 +1064,8 @@ out1:
 int mhitest_prepare_start_mhi(struct mhitest_platform *mplat)
 {
 	int ret;
+	bool skip_pci_sw_reset;
+	struct device *dev = &mplat->plat_dev->dev;
 
 	/*
 	 * 1. power on, resume link if needed
@@ -1079,7 +1081,10 @@ int mhitest_prepare_start_mhi(struct mhitest_platform *mplat)
 		goto out;
 	}
 
-	mhitest_pci_sw_reset(mplat);
+	skip_pci_sw_reset = of_property_read_bool(dev->of_node,
+						"skip-pci-sw-reset");
+	if (!skip_pci_sw_reset)
+		mhitest_pci_sw_reset(mplat);
 
 	/*
 	 * 2. start mhi
