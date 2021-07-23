@@ -3792,6 +3792,11 @@ void cnss_update_platform_feature_support(u8 type, u32 instance_id, u32 value)
 		cnss_pr_info("Setting hds_support=%d for instance_id 0x%x\n",
 			     value, instance_id);
 		break;
+	case CNSS_GENL_MSG_TYPE_REGDB_SUPPORT:
+		plat_priv->regdb_support = value;
+		cnss_pr_info("Setting regdb_support=%d for instance_id 0x%x\n",
+			     value, instance_id);
+		break;
 	default:
 		cnss_pr_err("Unknown type %d\n", type);
 		break;
