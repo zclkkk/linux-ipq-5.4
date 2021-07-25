@@ -44,11 +44,6 @@
 			no-map;
 			reg = <0x0 0x4D400000 0x0 0x200000>;
 		};
-
-		bt_region: bt@7000000 {
-			no-map;
-			reg = <0x0 0x07000000 0x0 0x58000>;
-		};
 	};
 };
 
@@ -110,6 +105,31 @@
 		sdc_data3 {
 			pins = "gpio4";
 			function = "sdc13";
+			drive-strength = <8>;
+			bias-disable;
+		};
+	};
+
+	blsp0_spi_pins: blsp0_spi_pins {
+		mux {
+			pins = "gpio10", "gpio11", "gpio12", "gpio13";
+			function = "blsp0_spi";
+			drive-strength = <2>;
+			bias-disable;
+		};
+	};
+
+	i2c_pins: i2c_pins {
+		i2c_scl {
+			pins = "gpio33";
+			function = "blsp2_i2c0";
+			drive-strength = <8>;
+			bias-disable;
+		};
+
+		i2c_sda {
+			pins = "gpio34";
+			function = "blsp2_i2c0";
 			drive-strength = <8>;
 			bias-disable;
 		};
@@ -232,4 +252,33 @@
 					"stop",
 					"spawn";
 	};
+};
+
+&spi_0 {
+	pinctrl-0 = <&blsp0_spi_pins>;
+	pinctrl-names = "default";
+	cs-select = <0>;
+	status = "ok";
+
+	spi@0 {
+		compatible = "qti,spidev";
+		reg = <0>;
+		spi-max-frequency = <50000000>;
+	};
+};
+
+&i2c_0 {
+	pinctrl-0 = <&i2c_pins>;
+	pinctrl-names = "default";
+	status = "ok";
+};
+
+&usb3 {
+       device-power-gpio = <&tlmm 24 1>;
+};
+
+&dwc_0 {
+	/delete-property/ #phy-cells;
+	/delete-property/ phys;
+	/delete-property/ phy-names;
 };
