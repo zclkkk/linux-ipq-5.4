@@ -1587,6 +1587,9 @@ bool ieee80211_chandef_to_operating_class(struct cfg80211_chan_def *chandef,
 	case NL80211_CHAN_WIDTH_10:
 	case NL80211_CHAN_WIDTH_5:
 		return false; /* unsupported for now */
+	case NL80211_CHAN_WIDTH_320:
+		*op_class = 137;
+		return true; /* FIXME */
 	default:
 		vht_opclass = 0;
 		break;
