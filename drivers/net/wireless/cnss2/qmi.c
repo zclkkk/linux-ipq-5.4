@@ -41,6 +41,7 @@
 #define CAL_FILE_NAME_PREFIX		"caldata.b"
 #define DEFAULT_CAL_FILE_PREFIX         "caldata_"
 #define DEFAULT_CAL_FILE_SUFFIX         ".bin"
+#define MAX_HW_LINKS			2
 
 #ifdef CONFIG_CNSS2_DEBUG
 static unsigned int qmi_timeout = 5000;
@@ -75,6 +76,10 @@ MODULE_PARM_DESC(num_wlan_clients, "num_wlan_clients");
 unsigned int num_wlan_vaps;
 module_param(num_wlan_vaps, uint, 0600);
 MODULE_PARM_DESC(num_wlan_vaps, "num_wlan_vaps");
+
+unsigned int enable_mlo_support;
+module_param(enable_mlo_support, uint, 0600);
+MODULE_PARM_DESC(enable_mlo_support, "enable_mlo_support");
 
 struct qmi_history qmi_log[QMI_HISTORY_SIZE];
 int qmi_history_index;
@@ -251,12 +256,16 @@ static int cnss_wlfw_host_cap_send_sync(struct cnss_plat_data *plat_priv)
 {
 	struct wlfw_host_cap_req_msg_v01 *req;
 	struct wlfw_host_cap_resp_msg_v01 *resp;
+	struct wlfw_host_mlo_chip_info_s_v01 *info;
 	struct qmi_txn txn;
-	int ret = 0;
+	int ret = 0, i;
 	int resp_error_msg = 0;
 	const char *model = NULL;
-	struct device_node *root;
+	struct device_node *root, *mlo_config = NULL, *chipnp;
 	struct device *dev = &plat_priv->plat_dev->dev;
+	struct device *bus_dev;
+	struct pci_dev *pcidev;
+	int chip_id;
 
 	cnss_pr_dbg("Sending host capability message, state: 0x%lx\n",
 		    plat_priv->driver_state);
@@ -318,19 +327,104 @@ static int cnss_wlfw_host_cap_send_sync(struct cnss_plat_data *plat_priv)
 			cnss_pr_err("Invalid GPIOs array length %d\n",
 				    req->gpios_len);
 			ret = -EINVAL;
-			goto out;
+			goto err;
 		}
 
 		if (of_property_read_u32_array(dev->of_node, "gpios",
 					       req->gpios, req->gpios_len)) {
 			cnss_pr_err("Failed to get gpios from device tree\n");
 			ret = -EINVAL;
-			goto out;
+			goto err;
 		}
 
 		req->gpios_valid = 1;
 		cnss_pr_info("Sending %d GPIO entries in Host Capabilities\n",
 			     req->gpios_len);
+	}
+
+	/* update MLO configuration */
+	if (plat_priv->device_id == QCN9224_DEVICE_ID)
+		mlo_config = of_find_node_by_name(NULL, "mlo_group0");
+
+	if (enable_mlo_support && mlo_config) {
+		pcidev = (struct pci_dev *)plat_priv->pci_dev;
+		bus_dev = &pcidev->dev;
+
+		req->mlo_capable_valid = 1;
+		req->mlo_capable = 1;
+
+		chip_id = cnss_get_mlo_chip_id(bus_dev);
+		if (ret < 0) {
+			cnss_pr_err("Unable to get chip id\n");
+			ret = -EINVAL;
+			goto err;
+		}
+		req->mlo_chip_id = (u16)chip_id;
+		req->mlo_chip_id_valid = 1;
+
+		req->mlo_group_id = 0;
+		req->mlo_group_id_valid = 1;
+
+		if (of_property_read_u16(mlo_config,
+					 "mlo_max_num_peer",
+					 &req->max_mlo_peer)) {
+			cnss_pr_err("mlo_max_num_peer is not configured\n");
+			ret = -EINVAL;
+			goto err;
+		}
+		req->max_mlo_peer_valid = 1;
+
+		if (of_property_read_u8(mlo_config,
+					"mlo_num_chips",
+					&req->mlo_num_chips)) {
+			cnss_pr_err("mlo_num_chips is not configured\n");
+			ret = -EINVAL;
+			goto err;
+		}
+		req->mlo_num_chips_valid = 1;
+
+		req->mlo_chip_info_valid = 1;
+		for (i = 0; i < req->mlo_num_chips; i++) {
+			chipnp = of_parse_phandle(mlo_config, "chips", i);
+			if (!chipnp) {
+				cnss_pr_err("chip info is null. num chips %d\n",
+					    req->mlo_num_chips);
+				ret = -EINVAL;
+				goto err;
+			}
+			info = &req->mlo_chip_info[i];
+			if (of_property_read_u8(chipnp, "chip_id",
+						&info->chip_id)) {
+				cnss_pr_err("chip_id is not configured\n");
+				ret = -EINVAL;
+				goto err_chip_info;
+			}
+
+			if (of_property_read_u8(chipnp, "num_local_links",
+						&info->num_local_links)) {
+				cnss_pr_err("num_local_links is missing\n");
+				ret = -EINVAL;
+				goto err_chip_info;
+			}
+
+			if (of_property_read_u8_array(chipnp, "hw_link_ids",
+						      &info->hw_link_id[0],
+						      MAX_HW_LINKS)) {
+				cnss_pr_err("hw_link_ids is not configured\n");
+				ret = -EINVAL;
+				goto err_chip_info;
+			}
+
+			if (of_property_read_u8_array(chipnp,
+						      "valid_mlo_link_ids",
+						      &info->valid_mlo_link_id[0],
+						      MAX_HW_LINKS)) {
+				cnss_pr_err("valid_mlo_link_ids read error\n");
+				ret = -EINVAL;
+				goto err_chip_info;
+			}
+			of_node_put(chipnp);
+		}
 	}
 
 	if (num_wlan_clients) {
@@ -398,6 +492,12 @@ static int cnss_wlfw_host_cap_send_sync(struct cnss_plat_data *plat_priv)
 	kfree(req);
 	kfree(resp);
 	return 0;
+
+err_chip_info:
+	of_node_put(chipnp);
+err:
+	kfree(req);
+	kfree(resp);
 out:
 	qmi_record(plat_priv->wlfw_service_instance_id,
 		   QMI_WLFW_HOST_CAP_REQ_V01, ret, resp_error_msg);
@@ -962,9 +1062,11 @@ int cnss_wlfw_bdf_dnld_send_sync(struct cnss_plat_data *plat_priv,
 	ret = request_firmware(&fw_entry, filename, &plat_priv->plat_dev->dev);
 	if (ret) {
 		if (bdf_type == CNSS_CALDATA_WIN) {
-			/* Ideally, caldata should be present */
-			cnss_pr_err("Failed to load Caldata: %s\n", filename);
-			goto out;
+			cnss_pr_warn("WARNING: Caldata not present. Skipping caldata download: %s\n",
+				     filename);
+			ret = 0;
+			resp_error_msg = -ENOENT;
+			goto err_req_fw;
 		} else if (bdf_type == CNSS_BDF_HDS) {
 			/* HDS bin download is not mandatory */
 			ret = 0;
@@ -1025,9 +1127,10 @@ bypass_bdf:
 						 fw_bdf_type);
 			if (ret) {
 				if (bdf_type == CNSS_CALDATA_WIN) {
-					/* Caldata should be present */
-					cnss_pr_err("Failed to load Caldata: %s\n",
-						    filename);
+					cnss_pr_warn("WARNING: Caldata not present. Skipping caldata download: %s\n",
+						     filename);
+					ret = 0;
+					resp_error_msg = -ENOENT;
 					goto err_req_fw;
 				} else if (bdf_type == CNSS_BDF_HDS ||
 					   bdf_type == CNSS_BDF_REGDB) {

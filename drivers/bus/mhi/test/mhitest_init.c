@@ -33,6 +33,10 @@ int debug_lvl = MHITEST_LOG_LVL_ERR; /* Let' go with default as ERR */
 module_param(debug_lvl, int, 0);
 MODULE_PARM_DESC(debug_lvl, "Debug level for mhitest driver 0-VERB,1-INFO,2-ERR");
 
+int timeout_ms = MHI_TIMEOUT_DEFAULT;
+module_param(timeout_ms, int, 0);
+MODULE_PARM_DESC(timeout_ms, "timeout mhi test");
+
 static int d_instance;
 static struct mhitest_platform *mplat_g[MHI_MAX_DEVICE];
 static struct platform_device *m_plat_dev;

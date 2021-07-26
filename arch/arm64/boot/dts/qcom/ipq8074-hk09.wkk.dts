@@ -62,6 +62,8 @@
 	 * +--------+--------------+-------------------------+
 	 * |  MHI0  |  0x50700000  |          16MB           |
 	 * +--------+--------------+-------------------------+
+	 * |  MLO   |  0x51700000  |           6MB           |
+	 * +--------+--------------+-------------------------+
 	 * |                                                 |
 	 * |      Rest of the memory for Linux               |
 	 * |                                                 |
@@ -77,6 +79,10 @@
 			compatible = "shared-dma-pool";
 			no-map;
 			reg = <0x0 0x50700000 0x0 0x01000000>;
+		};
+		mlo_global_mem: mlo_global_mem0@51700000 {
+			no-map;
+			reg = <0x0 0x51700000 0x0 0x600000>;
 		};
 #else
 	/*                   Default Profile
@@ -107,6 +113,8 @@
 	 * +--------+--------------+-------------------------+
 	 * |  MHI0  |  0x53F00000  |          24MB           |
 	 * +--------+--------------+-------------------------+
+	 * |  MLO   |  0x55700000  |           6MB           |
+	 * +--------+--------------+-------------------------+
 	 * |                                                 |
 	 * |          Rest of the memory for Linux           |
 	 * |                                                 |
@@ -121,6 +129,10 @@
 			compatible = "shared-dma-pool";
 			no-map;
 			reg = <0x0 0x53F00000 0x0 0x01800000>;
+		};
+		mlo_global_mem: mlo_global_mem0@55700000 {
+			no-map;
+			reg = <0x0 0x55700000 0x0 0x600000>;
 		};
 #endif
 #endif
@@ -222,6 +234,11 @@
 					bias-disable;
 				};
 			};
+		};
+
+		qcom,test@0 {
+			skip-pci-sw-reset;
+			status = "ok";
 		};
 
 		serial@78b3000 {
@@ -778,6 +795,30 @@
 			mdiobus = <&mdio>;
 		};
 	};
+#if !defined(__IPQ_MEM_PROFILE_256_MB__)
+	mlo_chip_info0: mlo_chip0 {
+		chip_id =  /bits/ 8 <0>;
+		num_local_links =  /bits/ 8 <2>;
+		hw_link_ids =  /bits/ 8 <0x0 0x1>;
+		valid_mlo_link_ids =  /bits/ 8 <0x1 0x1>;
+	};
+
+	mlo_chip_info1: mlo_chip1 {
+		chip_id =  /bits/ 8 <1>;
+		num_local_links =  /bits/ 8 <2>;
+		hw_link_ids =  /bits/ 8 <0x2 0x3>;
+		valid_mlo_link_ids =  /bits/ 8 <0x1 0x1>;
+	};
+
+	mlo_info: mlo_group0 {
+		mlo_group_id = /bits/ 8 <0>;
+		mlo_max_num_peer = /bits/ 16 <256>;
+		mlo_num_chips = /bits/ 8 <1>;
+		mlo_global_mem = <&mlo_global_mem>;
+		chips = <&mlo_chip_info0>, <&mlo_chip_info1>;
+
+	};
+#endif
 };
 
 #if !defined(__IPQ_MEM_PROFILE_256_MB__)
@@ -826,6 +867,8 @@
 	caldb-size = <0x800000>;
 	hremote_node = <&qcn9224_pcie0>;
 	mhi_node = <&mhi_region0>;
+	mlo_group_info = <&mlo_info>;
+	mlo_chip_info = <&mlo_chip_info0>;
 	status = "ok";
 };
 #endif

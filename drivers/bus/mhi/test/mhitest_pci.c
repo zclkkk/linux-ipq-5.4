@@ -1017,6 +1017,7 @@ int mhitest_pci_set_mhi_state(struct mhitest_platform *mplat,
 	return ret;
 }
 
+extern int timeout_ms;
 int mhitest_pci_start_mhi(struct mhitest_platform *mplat)
 {
 	int ret;
@@ -1028,7 +1029,7 @@ int mhitest_pci_start_mhi(struct mhitest_platform *mplat)
 		return -EINVAL;
 	}
 
-	mplat->mhi_ctrl->timeout_ms = MHI_TIMEOUT_DEFAULT;
+	mplat->mhi_ctrl->timeout_ms = timeout_ms;
 
 	ret = mhitest_pci_set_mhi_state(mplat, MHI_INIT);
 	if (ret) {
@@ -1064,6 +1065,8 @@ out1:
 int mhitest_prepare_start_mhi(struct mhitest_platform *mplat)
 {
 	int ret;
+	bool skip_pci_sw_reset;
+	struct device *dev = &mplat->plat_dev->dev;
 
 	/*
 	 * 1. power on, resume link if needed
@@ -1079,7 +1082,10 @@ int mhitest_prepare_start_mhi(struct mhitest_platform *mplat)
 		goto out;
 	}
 
-	mhitest_pci_sw_reset(mplat);
+	skip_pci_sw_reset = of_property_read_bool(dev->of_node,
+						"skip-pci-sw-reset");
+	if (!skip_pci_sw_reset)
+		mhitest_pci_sw_reset(mplat);
 
 	/*
 	 * 2. start mhi
