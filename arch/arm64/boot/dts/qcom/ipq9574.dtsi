@@ -31,31 +31,31 @@
 			#clock-cells = <0>;
 		};
 
-		bias_pll_ubi_nc_clk {
+		bias_pll_ubi_nc_clk: bias_pll_ubi_nc_clk {
 			compatible = "fixed-clock";
 			clock-frequency = <353000000>;
 			#clock-cells = <0>;
 		};
 
-		usb3phy_0_cc_pipe_clk {
+		usb3phy_0_cc_pipe_clk: usb3phy_0_cc_pipe_clk {
 			compatible = "fixed-clock";
 			clock-frequency = <125000000>;
 			#clock-cells = <0>;
 		};
 
-		bias_pll_cc_clk {
+		bias_pll_cc_clk: bias_pll_cc_clk {
 			compatible = "fixed-clock";
 			clock-frequency = <1200000000>;
 			#clock-cells = <0>;
 		};
 
-		bias_pll_nss_noc_clk {
+		bias_pll_nss_noc_clk: bias_pll_nss_noc_clk {
 			compatible = "fixed-clock";
 			clock-frequency = <461500000>;
 			#clock-cells = <0>;
 		};
 
-		gcc_gpll0_out_aux {
+		gcc_gpll0_out_aux: gcc_gpll0_out_aux {
 			compatible = "fixed-clock";
 			clock-frequency = <800000000>;
 			#clock-cells = <0>;
@@ -749,6 +749,16 @@
 		nsscc: nsscc@39b00000 {
 			compatible = "qcom,nsscc-ipq9574";
 			reg = <0x39b00000 0x80000>;
+			clocks = <&bias_pll_cc_clk>,
+				<&bias_pll_nss_noc_clk>,
+				<&bias_pll_ubi_nc_clk>,
+				<&gcc_gpll0_out_aux>,
+				<&xo>;
+			clock-names = "bias_pll_cc_clk",
+				"bias_pll_nss_noc_clk",
+				"bias_pll_ubi_nc_clk",
+				"gcc_gpll0_out_aux",
+				"xo";
 			#clock-cells = <0x1>;
 			#reset-cells = <0x1>;
 		};

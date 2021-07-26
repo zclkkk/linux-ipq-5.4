@@ -574,7 +574,7 @@ static struct clk_rcg2 apss_axi_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "apss_axi_clk_src",
 		.parent_data = gcc_xo_gpll0_gpll0_div2_gpll0,
-		.num_parents = 5,
+		.num_parents = 4,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -1325,7 +1325,7 @@ static struct clk_rcg2 pcie2_axi_m_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "pcie2_axi_m_clk_src",
 		.parent_data = gcc_xo_gpll0_gpll4_bias_pll_ubi_nc_clk,
-		.num_parents = 3,
+		.num_parents = 4,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -1370,7 +1370,7 @@ static struct clk_rcg2 pcie3_axi_m_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "pcie3_axi_m_clk_src",
 		.parent_data = gcc_xo_gpll0_gpll4_bias_pll_ubi_nc_clk,
-		.num_parents = 3,
+		.num_parents = 4,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -1919,7 +1919,7 @@ static struct clk_rcg2 pcie_aux_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "pcie_aux_clk_src",
 		.parent_data = gcc_xo_gpll0_gpll0_aux_core_pi_sleep_clk,
-		.num_parents = 3,
+		.num_parents = 4,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -3199,7 +3199,7 @@ static struct clk_rcg2 system_noc_bfdcd_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "system_noc_bfdcd_clk_src",
 		.parent_data = gcc_xo_gpll0_gpll4,
-		.num_parents = 4,
+		.num_parents = 3,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -3613,7 +3613,7 @@ static struct clk_rcg2 rpm_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "rpm_clk_src",
 		.parent_data = gcc_xo_gpll0_gpll6_gpll0_div2_gpll4,
-		.num_parents = 2,
+		.num_parents = 5,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -4576,7 +4576,7 @@ static struct clk_rcg2 qpic_io_macro_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "qpic_io_macro_clk_src",
 		.parent_data = gcc_xo_gpll0_gpll2,
-		.num_parents = 5,
+		.num_parents = 3,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -4683,7 +4683,7 @@ static struct clk_rcg2 q6_axim2_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "q6_axim2_clk_src",
 		.parent_data = gcc_xo_gpll0_gpll4_bias_pll_ubi_nc_clk,
-		.num_parents = 5,
+		.num_parents = 4,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -4717,7 +4717,7 @@ static struct clk_rcg2 nssnoc_memnoc_bfdcd_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "nssnoc_memnoc_bfdcd_clk_src",
 		.parent_data = gcc_xo_gpll0_gpll0_aux_gpll2,
-		.num_parents = 5,
+		.num_parents = 4,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -4799,7 +4799,7 @@ static struct clk_rcg2 lpass_axim_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "lpass_axim_clk_src",
 		.parent_data = gcc_xo_gpll0,
-		.num_parents = 5,
+		.num_parents = 2,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -4844,7 +4844,7 @@ static struct clk_rcg2 lpass_sway_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "lpass_sway_clk_src",
 		.parent_data = gcc_xo_gpll0,
-		.num_parents = 5,
+		.num_parents = 2,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -4929,7 +4929,7 @@ static struct clk_rcg2 acc_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "acc_clk_src",
 		.parent_data = gcc_xo_gpll0_gpll0_out_main_div2,
-		.num_parents = 2,
+		.num_parents = 3,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -4963,7 +4963,7 @@ static struct clk_rcg2 apc0_voltage_droop_detector_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "apc0_voltage_droop_detector_clk_src",
 		.parent_data = gcc_xo_gpll0_gpll4,
-		.num_parents = 2,
+		.num_parents = 3,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -5029,7 +5029,7 @@ static struct clk_rcg2 apss_tcu_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "apss_tcu_clk_src",
 		.parent_data = gcc_xo_gpll0_gpll0_out_main_div2,
-		.num_parents = 2,
+		.num_parents = 3,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -5080,7 +5080,7 @@ static struct clk_rcg2 tme_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "tme_clk_src",
 		.parent_data = gcc_xo_gpll0_gpll6_gpll4_gpll2_pi_sleep,
-		.num_parents = 2,
+		.num_parents = 6,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -5175,7 +5175,7 @@ static struct clk_rcg2 tme_dmi_dbg_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "tme_dmi_dbg_clk_src",
 		.parent_data = gcc_xo_gpll0_gpll6_gpll4_gpll2_pi_sleep,
-		.num_parents = 2,
+		.num_parents = 6,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -5244,7 +5244,7 @@ static struct clk_rcg2 gp1_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "gp1_clk_src",
 		.parent_data = gcc_xo_gpll0_gpll6_gpll0_sleep_clk,
-		.num_parents = 2,
+		.num_parents = 5,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -5273,7 +5273,7 @@ static struct clk_rcg2 gp2_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "gp2_clk_src",
 		.parent_data = gcc_xo_gpll0_gpll6_gpll0_sleep_clk,
-		.num_parents = 2,
+		.num_parents = 5,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -5302,7 +5302,7 @@ static struct clk_rcg2 gp3_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "gp3_clk_src",
 		.parent_data = gcc_xo_gpll0_gpll6_gpll0_sleep_clk,
-		.num_parents = 2,
+		.num_parents = 5,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -6656,9 +6656,8 @@ static const struct qcom_cc_desc gcc_ipq9574_dummy_desc = {
 
 static int gcc_ipq9574_probe(struct platform_device *pdev)
 {
-	int i, ret;
+	int ret;
 	struct regmap *regmap;
-	struct clk *clk;
 	struct device *dev = &pdev->dev;
 	struct qcom_cc_desc ipq9574_desc = gcc_ipq9574_desc;
 	struct device_node *np = (&pdev->dev)->of_node;
@@ -6669,12 +6668,6 @@ static int gcc_ipq9574_probe(struct platform_device *pdev)
 	regmap = qcom_cc_map(pdev, &ipq9574_desc);
 	if (IS_ERR(regmap))
 		return PTR_ERR(regmap);
-
-	for (i = 0; i < ARRAY_SIZE(gcc_ipq9574_hws); i++) {
-		clk = devm_clk_register(&pdev->dev, gcc_ipq9574_hws[i]);
-		if (IS_ERR(clk))
-			return PTR_ERR(clk);
-	}
 
 	clk_register_fixed_rate(dev, "pcie30_phy0_pipe_clk", NULL, 0,
 							250000000);
@@ -6687,7 +6680,7 @@ static int gcc_ipq9574_probe(struct platform_device *pdev)
 
 	ret = qcom_cc_really_probe(pdev, &ipq9574_desc, regmap);
 
-	dev_dbg(&pdev->dev, "Registered ipq9574 dummy clock provider");
+	dev_info(&pdev->dev, "Registered ipq9574 GCC clock provider");
 
 	return ret;
 }
