@@ -629,6 +629,7 @@ struct key_params {
 	enum nl80211_key_mode mode;
 };
 
+#define IEEE80211_EHT_PUNCTURE_BITMAP_DEFAULT 0xffff
 /**
  * struct cfg80211_chan_def - channel definition
  * @chan: the (control) channel
@@ -640,6 +641,7 @@ struct key_params {
  *	If edmg is requested (i.e. the .channels member is non-zero),
  *	chan will define the primary channel and all other
  *	parameters are ignored.
+ * @puncture_bitmap: puncture bitmap
  */
 struct cfg80211_chan_def {
 	struct ieee80211_channel *chan;
@@ -647,6 +649,7 @@ struct cfg80211_chan_def {
 	u32 center_freq1;
 	u32 center_freq2;
 	struct ieee80211_edmg edmg;
+	u32 puncture_bitmap;
 };
 
 /**
