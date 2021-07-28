@@ -115,7 +115,7 @@ static int mhi_wwan_ctrl_start(struct wwan_port *port)
 		return ret;
 
 	/* Don't allocate more buffers than MHI channel queue size */
-	mhiwwan->rx_budget = mhi_get_free_desc_count(mhiwwan->mhi_dev, DMA_FROM_DEVICE);
+	mhiwwan->rx_budget = mhi_get_no_free_descriptors(mhiwwan->mhi_dev, DMA_FROM_DEVICE);
 
 	/* Add buffers to the MHI inbound queue */
 	if (test_bit(MHI_WWAN_DL_CAP, &mhiwwan->flags)) {
