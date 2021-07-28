@@ -1332,6 +1332,11 @@
 				compatible = "qcom,eip197";
 				reg-names = "crypto_pbase";
 				reg = <0x39800000 0x7ffff>;
+				clocks = <&nsscc NSS_CC_CRYPTO_CLK>,
+					<&nsscc NSS_CC_NSSNOC_CRYPTO_CLK>,
+					<&nsscc NSS_CC_CRYPTO_PPE_CLK>;
+				clock-names = "crypto_clk", "crypto_nocclk",
+						"crypto_ppeclk";
 				clock-frequency = /bits/ 64 <600000000 600000000 300000000>;
 				qcom,dma-mask = <0xff>;
 				qcom,transform-enabled;
