@@ -29,7 +29,7 @@
 					pins = "gpio4";
 					function = "sdc_cmd";
 					drive-strength = <8>;
-					bias-disable;
+					bias-pull-up;
 				};
 				emmc_data {
 					pins = "gpio0", "gpio1", "gpio2",
@@ -37,13 +37,13 @@
 						"gpio8", "gpio9";
 					function = "sdc_data";
 					drive-strength = <8>;
-					bias-disable;
+					bias-pull-up;
 				};
 				emmc_rclk {
 					pins = "gpio10";
 					function = "sdc_rclk";
 					drive-strength = <8>;
-					bias-disable;
+					bias-pull-down;
 				};
 			};
 		};

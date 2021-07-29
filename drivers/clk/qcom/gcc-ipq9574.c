@@ -2194,12 +2194,12 @@ static struct clk_branch gcc_usb0_sleep_clk = {
 static const struct freq_tbl ftbl_sdcc_apps_clk_src[] = {
 	F(144000, P_XO, 16, 12, 125),
 	F(400000, P_XO, 12, 1, 5),
-	F(24000000, P_GPLL2, 12, 1, 2),
-	F(48000000, P_GPLL2, 12, 0, 2),
-	F(96000000, P_GPLL2, 6, 0, 0),
+	F(24000000, P_GPLL2, 12, 1, 4),
+	F(48000000, P_GPLL2, 12, 1, 2),
+	F(96000000, P_GPLL2, 12, 0, 0),
 	F(177777778, P_GPLL0, 4.5, 0, 0),
-	F(192000000, P_GPLL2, 3, 0, 0),
-	F(384000000, P_GPLL2, 1.5, 0, 0),
+	F(192000000, P_GPLL2, 6, 0, 0),
+	F(384000000, P_GPLL2, 3, 0, 0),
 	F(400000000, P_GPLL0, 2, 0, 0),
 	{ }
 };
