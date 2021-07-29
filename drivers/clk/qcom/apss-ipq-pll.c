@@ -51,14 +51,14 @@ static const struct alpha_pll_config ipq6018_pll_config = {
 };
 
 static const struct alpha_pll_config ipq9574_pll_config = {
-	.l = 0x37,
-	.config_ctl_val = 0x240D4828,
+	.l = 0x3b,
+	.config_ctl_val = 0x200D4828,
 	.config_ctl_hi_val = 0x6,
 	.early_output_mask = BIT(3),
 	.aux2_output_mask = BIT(2),
 	.aux_output_mask = BIT(1),
 	.main_output_mask = BIT(0),
-	.test_ctl_val = 0x1C0000C0,
+	.test_ctl_val = 0x0,
 	.test_ctl_hi_val = 0x4000,
 };
 
