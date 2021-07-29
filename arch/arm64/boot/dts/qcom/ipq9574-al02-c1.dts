@@ -549,7 +549,8 @@
         hremote_node = <&qcn9000_pcie0>;
         mhi_node = <&mhi_region0>;
         caldb-size = <0x800000>;
-        status = "disabled";
+        board_id = <0xa4>;
+        status = "ok";
 #endif
 };
 
@@ -599,6 +600,7 @@
         hremote_node = <&qcn9000_pcie1>;
         mhi_node = <&mhi_region1>;
         caldb-size = <0x800000>;
-        status = "disabled";
+        board_id = <0xa3>;
+        status = "ok";
 #endif
 };
