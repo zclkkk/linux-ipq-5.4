@@ -1359,7 +1359,8 @@
 				      "wcss_reset",
 				      "wcss_q6_reset";
 
-			clocks = <&gcc GCC_WCSS_AHB_S_CLK>,
+			clocks = <&gcc GCC_ANOC_WCSS_AXI_M_CLK>,
+				 <&gcc GCC_WCSS_AHB_S_CLK>,
 				 <&gcc GCC_WCSS_ECAHB_CLK>,
 				 <&gcc GCC_WCSS_ACMT_CLK>,
 				 <&gcc GCC_WCSS_AXI_M_CLK>,
@@ -1369,7 +1370,8 @@
 				 <&gcc GCC_Q6_AHB_S_CLK>,
 				 <&gcc GCC_Q6_AHB_S_CLK>,
 				 <&gcc GCC_Q6SS_BOOT_CLK>;
-			clock-names = "wcss_ahb_s",
+			clock-names = "anoc_wcss_axi_m",
+				      "wcss_ahb_s",
 				      "wcss_ecahb",
 				      "wcss_acmt",
 				      "wcss_axi_m",
