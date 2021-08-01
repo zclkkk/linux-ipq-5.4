@@ -1253,6 +1253,7 @@
 			qcom,vxlan-enabled;
 			qcom,match-enabled;
 			qcom,mirror-enabled;
+			npu-supply = <&ipq9574_s2>;
 		};
 
 		nss1: nss@40800000 {
@@ -2278,6 +2279,21 @@
 		rpm_requests: glink-channel {
 			compatible = "qcom,rpm-ipq9574";
 			qcom,glink-channels = "rpm_requests";
+
+			regulators {
+				compatible = "qcom,rpm-ipq9574-mp5496-regulators";
+
+				ipq9574_s1: s1 {
+					regulator-min-microvolt = <587500>;
+					regulator-max-microvolt = <1075000>;
+					regulator-always-on;
+				};
+				ipq9574_s2: s2 {
+					regulator-min-microvolt = <700000>;
+					regulator-max-microvolt = <1000000>;
+					regulator-always-on;
+				};
+			};
 		};
 	};
 

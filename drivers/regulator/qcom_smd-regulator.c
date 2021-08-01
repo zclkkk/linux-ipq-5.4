@@ -527,12 +527,36 @@ static const struct regulator_desc mp5496_ldoa2 = {
 	.ops = &rpm_mp5496_ops,
 };
 
+static const struct regulator_desc ipq9574_mp5496_smpa1 = {
+	.linear_ranges = (struct regulator_linear_range[]) {
+		REGULATOR_LINEAR_RANGE(600000, 0, 37, 12500),
+	},
+	.n_linear_ranges = 1,
+	.n_voltages = 38,
+	.ops = &rpm_mp5496_ops,
+};
+
+static const struct regulator_desc ipq9574_mp5496_smpa2 = {
+	.linear_ranges = (struct regulator_linear_range[]) {
+		REGULATOR_LINEAR_RANGE(712500, 0, 22, 12500),
+	},
+	.n_linear_ranges = 1,
+	.n_voltages = 23,
+	.ops = &rpm_mp5496_ops,
+};
+
 struct rpm_regulator_data {
 	const char *name;
 	u32 type;
 	u32 id;
 	const struct regulator_desc *desc;
 	const char *supply;
+};
+
+static const struct rpm_regulator_data rpm_ipq9574_mp5496_regulators[] = {
+	{ "s1", QCOM_SMD_RPM_SMPA, 1, &ipq9574_mp5496_smpa1, "s1" },
+	{ "s2", QCOM_SMD_RPM_SMPA, 2, &ipq9574_mp5496_smpa2, "s2" },
+	{}
 };
 
 static const struct rpm_regulator_data rpm_mp5496_regulators[] = {
@@ -797,6 +821,7 @@ static const struct rpm_regulator_data rpm_pms405_regulators[] = {
 };
 
 static const struct of_device_id rpm_of_match[] = {
+	{ .compatible = "qcom,rpm-ipq9574-mp5496-regulators", .data = &rpm_ipq9574_mp5496_regulators },
 	{ .compatible = "qcom,rpm-mp5496-regulators", .data = &rpm_mp5496_regulators },
 	{ .compatible = "qcom,rpm-pm8841-regulators", .data = &rpm_pm8841_regulators },
 	{ .compatible = "qcom,rpm-pm8916-regulators", .data = &rpm_pm8916_regulators },
