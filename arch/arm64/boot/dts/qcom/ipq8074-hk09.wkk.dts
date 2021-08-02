@@ -111,9 +111,9 @@
 	 * +--------+--------------+-------------------------+
 	 * |  Wkk   |  0x51100000  |          46MB           |
 	 * +--------+--------------+-------------------------+
-	 * |  MHI0  |  0x53F00000  |          24MB           |
+	 * |  MHI0  |  0x53F00000  |          26MB           |
 	 * +--------+--------------+-------------------------+
-	 * |  MLO   |  0x55700000  |           6MB           |
+	 * |  MLO   |  0x55900000  |           6MB           |
 	 * +--------+--------------+-------------------------+
 	 * |                                                 |
 	 * |          Rest of the memory for Linux           |
@@ -128,11 +128,11 @@
 		mhi_region0: dma_pool0@53f00000 {
 			compatible = "shared-dma-pool";
 			no-map;
-			reg = <0x0 0x53F00000 0x0 0x01800000>;
+			reg = <0x0 0x53F00000 0x0 0x01A00000>;
 		};
-		mlo_global_mem: mlo_global_mem0@55700000 {
+		mlo_global_mem: mlo_global_mem0@55900000 {
 			no-map;
-			reg = <0x0 0x55700000 0x0 0x600000>;
+			reg = <0x0 0x55900000 0x0 0x600000>;
 		};
 #endif
 #endif
@@ -238,6 +238,7 @@
 
 		qcom,test@0 {
 			skip-pci-sw-reset;
+			qcom,wlan-ramdump-dynamic = <0x600000>;
 			status = "ok";
 		};
 
