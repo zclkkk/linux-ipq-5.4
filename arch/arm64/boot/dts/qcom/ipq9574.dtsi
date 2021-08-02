@@ -1397,9 +1397,9 @@
 			};
 		};
 
-		ssphy_0: ssphy@78000 {
+		ssphy_0: ssphy@7D000 {
 			compatible = "qcom,ipq9574-qmp-usb3-phy";
-			reg = <0x78000 0x1C4>;
+			reg = <0x7D000 0x1C4>;
 			#clock-cells = <1>;
 			#address-cells = <1>;
 			#size-cells = <1>;
@@ -1414,11 +1414,11 @@
 			reset-names = "phy","common";
 			status = "disabled";
 
-			usb0_ssphy: lane@78200 {
-				reg = <0x00078200 0x130>,	/* Tx */
-				      <0x00078400 0x200>,	/* Rx */
-				      <0x00078800 0x1F8>,	/* PCS  */
-				      <0x00078600 0x044>;	/* PCS misc */
+			usb0_ssphy: lane@7D200 {
+				reg = <0x0007D200 0x130>,	/* Tx */
+				      <0x0007D400 0x200>,	/* Rx */
+				      <0x0007D800 0x1F8>,	/* PCS  */
+				      <0x0007D600 0x044>;	/* PCS misc */
 				#phy-cells = <0>;
 				clocks = <&gcc GCC_USB0_PIPE_CLK>;
 				clock-names = "pipe0";
@@ -1426,9 +1426,9 @@
 			};
 		};
 
-		qusb_phy_0: qusb@79000 {
+		qusb_phy_0: qusb@7B000 {
 		    compatible = "qcom,ipq9574-qusb2-phy";
-		    reg = <0x079000 0x180>;
+		    reg = <0x07B000 0x180>;
 		    #phy-cells = <0>;
 
 		    clocks = <&gcc GCC_USB0_PHY_CFG_AHB_CLK>,

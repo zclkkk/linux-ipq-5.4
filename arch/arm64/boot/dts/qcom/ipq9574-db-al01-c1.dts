@@ -358,11 +358,11 @@
 			status = "ok";
 		};
 
-		qusb_phy_0: qusb@79000 {
+		qusb_phy_0: qusb@7B000 {
 			status = "ok";
 		};
 
-		ssphy_0: ssphy@78000 {
+		ssphy_0: ssphy@7D000 {
 			status = "ok";
 		};
 
