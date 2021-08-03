@@ -338,17 +338,10 @@ static int q6v7_wcss_reset(struct q6v5_wcss *wcss)
 		return ret;
 	}
 
-	ret = clk_bulk_prepare_enable(wcss->num_clks, wcss->clks);
-	if (ret) {
-		dev_err(wcss->dev, "failed to enable clocks, err=%d\n", ret);
-		return ret;
-	};
-
 	/*2. Deassert AON Reset */
 	ret = reset_control_deassert(wcss->wcss_aon_reset);
 	if (ret) {
 		dev_err(wcss->dev, "wcss_aon_reset failed\n");
-		clk_bulk_disable_unprepare(wcss->num_clks, wcss->clks);
 		return ret;
 	}
 
@@ -404,6 +397,14 @@ static int q6v7_wcss_reset(struct q6v5_wcss *wcss)
 		dev_err(wcss->dev, " Boot Error, SSCAON=0x%08X\n", val);
 		return ret;
 	}
+
+	ret = clk_bulk_prepare_enable(wcss->num_clks, wcss->clks);
+	if (ret) {
+		dev_err(wcss->dev, "failed to enable clocks, err=%d\n", ret);
+		return ret;
+	};
+
+
 	return 0;
 }
 
@@ -1139,7 +1140,6 @@ static int q6v5_q6_powerdown(struct q6v5_wcss *wcss)
 		q6v6_q6_powerdown(wcss);
 		goto reset;
 	} else if (wcss->q6_version == Q6V7) {
-		clk_bulk_disable_unprepare(wcss->num_clks, wcss->clks);
 		goto reset;
 	}
 
@@ -1235,7 +1235,8 @@ static int q6v5_wcss_stop(struct rproc *rproc)
 	}
 
 pas_done:
-	clk_disable_unprepare(wcss->prng_clk);
+	if (wcss->q6_version != Q6V7)
+		clk_disable_unprepare(wcss->prng_clk);
 	qcom_q6v5_unprepare(&wcss->q6v5);
 
 	return 0;
@@ -1456,7 +1457,7 @@ static int q6v5_alloc_memory_region(struct q6v5_wcss *wcss)
 static int ipq9574_init_clock(struct q6v5_wcss *wcss)
 {
 	int i;
-	const char* clks[] = { "q6_axim", "q6_axim2", "q6_ahb", "q6_ahb_s",
+	const char* clks[] = { "anoc_wcss_axi_m", "q6_axim", "q6_axim2", "q6_ahb", "q6_ahb_s",
 				"q6ss_boot", "wcss_ecahb", "wcss_acmt",
 				"wcss_ahb_s", "wcss_axi_m" };
 	int num_clks = ARRAY_SIZE(clks);
