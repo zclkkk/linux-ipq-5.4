@@ -686,7 +686,6 @@ static struct clk_rcg2 nss_cc_ubi_axi_clk_src = {
 		.name = "nss_cc_ubi_axi_clk_src",
 		.parent_data = nss_cc_parent_data_7,
 		.num_parents = ARRAY_SIZE(nss_cc_parent_data_7),
-		.flags = CLK_SET_RATE_PARENT,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -3247,6 +3246,9 @@ static int nss_cc_ipq9574_probe(struct platform_device *pdev)
 	regmap = qcom_cc_map(pdev, &nsscc_ipq9574_desc);
 	if (IS_ERR(regmap))
 		return PTR_ERR(regmap);
+
+	/* SW Workaround for UBI Huayra PLL */
+	regmap_update_bits(regmap, 0x2800C, BIT(26), BIT(26));
 
 	clk_alpha_pll_configure(&ubi32_pll_main, regmap, &ubi32_pll_config);
 
