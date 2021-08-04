@@ -2292,3 +2292,4 @@
 };
 
 #include "ipq9574-coresight.dtsi"
+#include "ipq9574-thermal.dtsi"
