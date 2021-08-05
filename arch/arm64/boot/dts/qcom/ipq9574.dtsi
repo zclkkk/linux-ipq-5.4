@@ -1561,8 +1561,10 @@
 			#size-cells = <1>;
 			ranges;
 			clocks = <&gcc GCC_PCIE0_AUX_CLK>,
-				 <&gcc GCC_PCIE0_AHB_CLK>;
-			clock-names = "aux", "cfg_ahb";
+				 <&gcc GCC_PCIE0_AHB_CLK>,
+				 <&gcc GCC_ANOC_PCIE0_1LANE_M_CLK>,
+				 <&gcc GCC_SNOC_PCIE0_1LANE_S_CLK>;
+			clock-names = "aux", "cfg_ahb", "anoc_lane", "snoc_lane";
 
 			resets = <&gcc GCC_PCIE0_PHY_BCR>,
 				<&gcc GCC_PCIE0PHY_PHY_BCR>;
@@ -1592,8 +1594,10 @@
 			ranges;
 
 			clocks = <&gcc GCC_PCIE1_AUX_CLK>,
-				 <&gcc GCC_PCIE1_AHB_CLK>;
-			clock-names = "aux", "cfg_ahb";
+				 <&gcc GCC_PCIE1_AHB_CLK>,
+				 <&gcc GCC_ANOC_PCIE1_1LANE_M_CLK>,
+				 <&gcc GCC_SNOC_PCIE1_1LANE_S_CLK>;
+			clock-names = "aux", "cfg_ahb", "anoc_lane", "snoc_lane";
 
 			resets = <&gcc GCC_PCIE1_PHY_BCR>,
 				<&gcc GCC_PCIE1PHY_PHY_BCR>;
@@ -1608,7 +1612,7 @@
 				#phy-cells = <0>;
 
 				clocks = <&gcc GCC_PCIE1_PIPE_CLK>;
-				clock-names = "pipe1";
+				clock-names = "pipe0";
 				clock-output-names = "gcc_pcie1_pipe_clk_src";
 				#clock-cells = <0>;
 				gen3 = <1>;
@@ -1623,8 +1627,10 @@
 			ranges;
 
 			clocks = <&gcc GCC_PCIE2_AUX_CLK>,
-				 <&gcc GCC_PCIE2_AHB_CLK>;
-			clock-names = "aux", "cfg_ahb";
+				 <&gcc GCC_PCIE2_AHB_CLK>,
+				 <&gcc GCC_ANOC_PCIE2_2LANE_M_CLK>,
+				 <&gcc GCC_SNOC_PCIE2_2LANE_S_CLK>;
+			clock-names = "aux", "cfg_ahb", "anoc_lane", "snoc_lane";
 
 			resets = <&gcc GCC_PCIE2_PHY_BCR>,
 				<&gcc GCC_PCIE2PHY_PHY_BCR>;
@@ -1642,7 +1648,7 @@
 				#phy-cells = <0>;
 
 				clocks = <&gcc GCC_PCIE2_PIPE_CLK>;
-				clock-names = "pipe2";
+				clock-names = "pipe0";
 				clock-output-names = "gcc_pcie2_pipe_clk_src";
 				#clock-cells = <0>;
 				gen3 = <1>;
@@ -1657,8 +1663,10 @@
 			ranges;
 
 			clocks = <&gcc GCC_PCIE3_AUX_CLK>,
-				 <&gcc GCC_PCIE3_AHB_CLK>;
-			clock-names = "aux", "cfg_ahb";
+				 <&gcc GCC_PCIE3_AHB_CLK>,
+				 <&gcc GCC_ANOC_PCIE3_2LANE_M_CLK>,
+				 <&gcc GCC_SNOC_PCIE3_2LANE_S_CLK>;
+			clock-names = "aux", "cfg_ahb", "anoc_lane", "snoc_lane";
 
 			resets = <&gcc GCC_PCIE3_PHY_BCR>,
 				<&gcc GCC_PCIE3PHY_PHY_BCR>;
@@ -1676,7 +1684,7 @@
 				#phy-cells = <0>;
 
 				clocks = <&gcc GCC_PCIE3_PIPE_CLK>;
-				clock-names = "pipe3";
+				clock-names = "pipe0";
 				clock-output-names = "gcc_pcie3_pipe_clk_src";
 				#clock-cells = <0>;
 				gen3 = <1>;
@@ -1721,18 +1729,14 @@
 			clocks = <&gcc GCC_PCIE0_AHB_CLK>,
 				 <&gcc GCC_PCIE0_AUX_CLK>,
 				 <&gcc GCC_PCIE0_AXI_M_CLK>,
-				 <&gcc GCC_ANOC_PCIE0_1LANE_M_CLK>,
 				 <&gcc GCC_PCIE0_AXI_S_CLK>,
-				 <&gcc GCC_SNOC_PCIE0_1LANE_S_CLK>,
 				 <&gcc GCC_PCIE0_AXI_S_BRIDGE_CLK>,
 				 <&gcc GCC_PCIE0_RCHNG_CLK>;
 
 			clock-names = "ahb",
 				      "aux",
 				      "axi_m",
-				      "anoc_lane",
 				      "axi_s",
-				      "snoc_lane",
 				      "axi_bridge",
 				      "rchng";
 
@@ -1812,18 +1816,14 @@
 			clocks = <&gcc GCC_PCIE1_AHB_CLK>,
 				 <&gcc GCC_PCIE1_AUX_CLK>,
 				 <&gcc GCC_PCIE1_AXI_M_CLK>,
-				 <&gcc GCC_ANOC_PCIE1_1LANE_M_CLK>,
 				 <&gcc GCC_PCIE1_AXI_S_CLK>,
-				 <&gcc GCC_SNOC_PCIE1_1LANE_S_CLK>,
 				 <&gcc GCC_PCIE1_AXI_S_BRIDGE_CLK>,
 				 <&gcc GCC_PCIE1_RCHNG_CLK>;
 
 			clock-names = "ahb",
 				      "aux",
 				      "axi_m",
-				      "anoc_lane",
 				      "axi_s",
-				      "snoc_lane",
 				      "axi_bridge",
 				      "rchng";
 
@@ -1903,18 +1903,14 @@
 			clocks = <&gcc GCC_PCIE2_AHB_CLK>,
 				 <&gcc GCC_PCIE2_AUX_CLK>,
 				 <&gcc GCC_PCIE2_AXI_M_CLK>,
-				 <&gcc GCC_ANOC_PCIE2_2LANE_M_CLK>,
 				 <&gcc GCC_PCIE2_AXI_S_CLK>,
-				 <&gcc GCC_SNOC_PCIE2_2LANE_S_CLK>,
 				 <&gcc GCC_PCIE2_AXI_S_BRIDGE_CLK>,
 				 <&gcc GCC_PCIE2_RCHNG_CLK>;
 
 			clock-names = "ahb",
 				      "aux",
 				      "axi_m",
-				      "anoc_lane",
 				      "axi_s",
-				      "snoc_lane",
 				      "axi_bridge",
 				      "rchng";
 
@@ -1994,18 +1990,14 @@
 			clocks = <&gcc GCC_PCIE3_AHB_CLK>,
 				 <&gcc GCC_PCIE3_AUX_CLK>,
 				 <&gcc GCC_PCIE3_AXI_M_CLK>,
-				 <&gcc GCC_ANOC_PCIE3_2LANE_M_CLK>,
 				 <&gcc GCC_PCIE3_AXI_S_CLK>,
-				 <&gcc GCC_SNOC_PCIE3_2LANE_S_CLK>,
 				 <&gcc GCC_PCIE3_AXI_S_BRIDGE_CLK>,
 				 <&gcc GCC_PCIE3_RCHNG_CLK>;
 
 			clock-names = "ahb",
 				      "aux",
 				      "axi_m",
-				      "anoc_lane",
 				      "axi_s",
-				      "snoc_lane",
 				      "axi_bridge",
 				      "rchng";
 
