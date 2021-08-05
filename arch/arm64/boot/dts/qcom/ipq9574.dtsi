@@ -1124,6 +1124,12 @@
 			reset-names = "edma_rst", "edma_cfg_reset";
 		};
 
+		qcom,test@0 {
+			compatible = "qcom,testmhi";
+			qcom,wlan-ramdump-dynamic = <0x400000>;
+			status = "disabled";
+		};
+
 		sdhc_1: sdhci@7804000 {
 			compatible = "qcom,sdhci-msm-v5";
 			reg = <0x7804000 0x1000>, <0x7805000 0x1000>;
