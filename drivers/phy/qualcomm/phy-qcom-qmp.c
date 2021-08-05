@@ -444,7 +444,7 @@ static const struct qmp_phy_init_tbl ipq9574_gen3x1_pcie_serdes_tbl[] = {
 	QMP_PHY_INIT_CFG(QSERDES_PLL_CLK_SELECT, 0x32),
 	QMP_PHY_INIT_CFG(QSERDES_PLL_SYS_CLK_CTRL, 0x02),
 	QMP_PHY_INIT_CFG(QSERDES_PLL_SYSCLK_BUF_ENABLE, 0x07),
-	QMP_PHY_INIT_CFG(QSERDES_PLL_SYSCLK_EN_SEL, 0x00),
+	QMP_PHY_INIT_CFG(QSERDES_PLL_SYSCLK_EN_SEL, 0x08),
 	QMP_PHY_INIT_CFG(QSERDES_PLL_BG_TIMER, 0x0A),
 	QMP_PHY_INIT_CFG(QSERDES_PLL_HSCLK_SEL, 0x01),
 	QMP_PHY_INIT_CFG(QSERDES_PLL_DEC_START_MODE1, 0x53),
@@ -514,7 +514,7 @@ static const struct qmp_phy_init_tbl ipq9574_gen3x2_pcie_serdes_tbl[] = {
 	QMP_PHY_INIT_CFG(QSERDES_PLL_CLK_SELECT, 0x32),
 	QMP_PHY_INIT_CFG(QSERDES_PLL_SYS_CLK_CTRL, 0x02),
 	QMP_PHY_INIT_CFG(QSERDES_PLL_SYSCLK_BUF_ENABLE, 0x07),
-	QMP_PHY_INIT_CFG(QSERDES_PLL_SYSCLK_EN_SEL, 0x00),
+	QMP_PHY_INIT_CFG(QSERDES_PLL_SYSCLK_EN_SEL, 0x08),
 	QMP_PHY_INIT_CFG(QSERDES_PLL_BG_TIMER, 0x0A),
 	QMP_PHY_INIT_CFG(QSERDES_PLL_HSCLK_SEL, 0x01),
 	QMP_PHY_INIT_CFG(QSERDES_PLL_DEC_START_MODE1, 0x53),
@@ -1609,6 +1609,10 @@ static const char * const ipq_pciephy_reset_l[] = {
 	"phy", "common",
 };
 
+static const char * const ipq9574_pciephy_clk_l[] = {
+	"aux", "cfg_ahb", "anoc_lane", "snoc_lane",
+};
+
 static const struct qmp_phy_cfg ipq9574_gen3x1_pciephy_cfg = {
 	.type			= PHY_TYPE_PCIE,
 	.nlanes			= 1,
@@ -1621,8 +1625,8 @@ static const struct qmp_phy_cfg ipq9574_gen3x1_pciephy_cfg = {
 	.rx_tbl_num		= ARRAY_SIZE(ipq9574_pcie_rx_tbl),
 	.pcs_tbl		= ipq9574_gen3x1_pcie_pcs_tbl,
 	.pcs_tbl_num		= ARRAY_SIZE(ipq9574_gen3x1_pcie_pcs_tbl),
-	.clk_list		= ipq_pciephy_clk_l,
-	.num_clks		= ARRAY_SIZE(ipq_pciephy_clk_l),
+	.clk_list		= ipq9574_pciephy_clk_l,
+	.num_clks		= ARRAY_SIZE(ipq9574_pciephy_clk_l),
 	.reset_list		= ipq_pciephy_reset_l,
 	.num_resets		= ARRAY_SIZE(ipq_pciephy_reset_l),
 	.vreg_list		= NULL,
@@ -1651,8 +1655,8 @@ static const struct qmp_phy_cfg ipq9574_gen3x2_pciephy_cfg = {
 	.rx_tbl_num		= ARRAY_SIZE(ipq9574_pcie_rx_tbl),
 	.pcs_tbl		= ipq9574_gen3x2_pcie_pcs_tbl,
 	.pcs_tbl_num		= ARRAY_SIZE(ipq9574_gen3x2_pcie_pcs_tbl),
-	.clk_list		= ipq_pciephy_clk_l,
-	.num_clks		= ARRAY_SIZE(ipq_pciephy_clk_l),
+	.clk_list		= ipq9574_pciephy_clk_l,
+	.num_clks		= ARRAY_SIZE(ipq9574_pciephy_clk_l),
 	.reset_list		= ipq_pciephy_reset_l,
 	.num_resets		= ARRAY_SIZE(ipq_pciephy_reset_l),
 	.vreg_list		= NULL,
