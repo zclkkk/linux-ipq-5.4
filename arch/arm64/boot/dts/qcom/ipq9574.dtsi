@@ -1696,7 +1696,7 @@
 			reg =  <0x28000000 0xf1d>,
 			       <0x28000F20 0xa8>,
 			       <0x28001000 0x1000>,
-			       <0x00080000 0x3000>,
+			       <0x00080000 0x2000>,
 			       <0x28100000 0x1000>;
 			reg-names = "dbi", "elbi", "atu", "parf", "config";
 			device_type = "pci";
@@ -1712,8 +1712,6 @@
 				  0x82000000 0 0x28300000 0x28300000
 				  0 0x07d00000>; /* non-prefetchable memory */
 
-			interrupts = <GIC_SPI 52 IRQ_TYPE_LEVEL_HIGH>;
-			interrupt-names = "msi";
 			#interrupt-cells = <1>;
 			interrupt-map-mask = <0 0 0 0x7>;
 			interrupt-map = <0 0 0 1 &intc 0 75
@@ -1739,18 +1737,6 @@
 				      "axi_s",
 				      "axi_bridge",
 				      "rchng";
-
-			/* Using assinged-clock and rates, source RCG frequencies are set */
-			assigned-clocks = <&gcc PCNOC_BFDCD_CLK_SRC>,
-					  <&gcc PCIE_AUX_CLK_SRC>,
-					  <&gcc PCIE0_AXI_M_CLK_SRC>,
-					  <&gcc PCIE0_AXI_S_CLK_SRC>,
-					  <&gcc PCIE0_RCHNG_CLK_SRC>;
-			assigned-clock-rates = <100000000>,
-					       <20000000>,
-					       <240000000>,
-					       <240000000>,
-					       <100000000>;
 
 			resets = <&gcc GCC_PCIE0_PIPE_ARES>,
 				 <&gcc GCC_PCIE0_CORE_STICKY_ARES>,
@@ -1783,7 +1769,7 @@
 			reg =  <0x10000000 0xf1d>,
 			       <0x10000F20 0xa8>,
 			       <0x10001000 0x1000>,
-			       <0x000F8000 0x3000>,
+			       <0x000F8000 0x2000>,
 			       <0x10100000 0x1000>;
 			reg-names = "dbi", "elbi", "atu", "parf", "config";
 			device_type = "pci";
@@ -1799,8 +1785,6 @@
 				  0x82000000 0 0x10300000 0x10300000
 				  0 0x07d00000>; /* non-prefetchable memory */
 
-			interrupts = <GIC_SPI 26 IRQ_TYPE_LEVEL_HIGH>;
-			interrupt-names = "msi";
 			#interrupt-cells = <1>;
 			interrupt-map-mask = <0 0 0 0x7>;
 			interrupt-map = <0 0 0 1 &intc 0 35
@@ -1826,18 +1810,6 @@
 				      "axi_s",
 				      "axi_bridge",
 				      "rchng";
-
-			/* Using assinged-clock and rates, source RCG frequencies are set */
-			assigned-clocks = <&gcc PCNOC_BFDCD_CLK_SRC>,
-					  <&gcc PCIE_AUX_CLK_SRC>,
-					  <&gcc PCIE1_AXI_M_CLK_SRC>,
-					  <&gcc PCIE1_AXI_S_CLK_SRC>,
-					  <&gcc PCIE1_RCHNG_CLK_SRC>;
-			assigned-clock-rates = <100000000>,
-					       <20000000>,
-					       <240000000>,
-					       <240000000>,
-					       <100000000>;
 
 			resets = <&gcc GCC_PCIE1_PIPE_ARES>,
 				 <&gcc GCC_PCIE1_CORE_STICKY_ARES>,
@@ -1870,7 +1842,7 @@
 			reg =  <0x20000000 0xf1d>,
 			       <0x20000F20 0xa8>,
 			       <0x20001000 0x1000>,
-			       <0x88000 0x3000>,
+			       <0x88000 0x2000>,
 			       <0x20100000 0x1000>;
 			reg-names = "dbi", "elbi", "atu", "parf", "config";
 			device_type = "pci";
@@ -1886,8 +1858,6 @@
 				  0x82000000 0 0x20300000 0x20300000
 				  0 0x07d00000>; /* non-prefetchable memory */
 
-			interrupts = <GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>;
-			interrupt-names = "msi";
 			#interrupt-cells = <1>;
 			interrupt-map-mask = <0 0 0 0x7>;
 			interrupt-map = <0 0 0 1 &intc 0 164
@@ -1914,18 +1884,6 @@
 				      "axi_bridge",
 				      "rchng";
 
-			/* Using assinged-clock and rates, source RCG frequencies are set */
-			assigned-clocks = <&gcc PCNOC_BFDCD_CLK_SRC>,
-					  <&gcc PCIE_AUX_CLK_SRC>,
-					  <&gcc PCIE2_AXI_M_CLK_SRC>,
-					  <&gcc PCIE2_AXI_S_CLK_SRC>,
-					  <&gcc PCIE2_RCHNG_CLK_SRC>;
-			assigned-clock-rates = <100000000>,
-					       <20000000>,
-					       <342857143>,
-					       <240000000>,
-					       <100000000>;
-
 			resets = <&gcc GCC_PCIE2_PIPE_ARES>,
 				 <&gcc GCC_PCIE2_CORE_STICKY_ARES>,
 				 <&gcc GCC_PCIE2_AXI_S_STICKY_ARES>,
@@ -1947,7 +1905,7 @@
 			phys = <&pcie2_lanes>;
 			phy-names = "pciephy";
 
-			msi-parent = <&v2m1>;
+			msi-parent = <&v2m0>;
 			nvmem-cells = <&pcie2_disable>;
 			status = "disabled";
 		};
@@ -1957,7 +1915,7 @@
 			reg =  <0x18000000 0xf1d>,
 			       <0x18000F20 0xa8>,
 			       <0x18001000 0x1000>,
-			       <0x000F0000 0x3000>,
+			       <0x000F0000 0x2000>,
 			       <0x18100000 0x1000>;
 			reg-names = "dbi", "elbi", "atu", "parf", "config";
 			device_type = "pci";
@@ -1973,8 +1931,6 @@
 				  0x82000000 0 0x18300000 0x18300000
 				  0 0x07d00000>; /* non-prefetchable memory */
 
-			interrupts = <GIC_SPI 221 IRQ_TYPE_LEVEL_HIGH>;
-			interrupt-names = "msi";
 			#interrupt-cells = <1>;
 			interrupt-map-mask = <0 0 0 0x7>;
 			interrupt-map = <0 0 0 1 &intc 0 189
@@ -2001,18 +1957,6 @@
 				      "axi_bridge",
 				      "rchng";
 
-			/* Using assinged-clock and rates, source RCG frequencies are set */
-			assigned-clocks = <&gcc PCNOC_BFDCD_CLK_SRC>,
-					  <&gcc PCIE_AUX_CLK_SRC>,
-					  <&gcc PCIE3_AXI_M_CLK_SRC>,
-					  <&gcc PCIE3_AXI_S_CLK_SRC>,
-					  <&gcc PCIE3_RCHNG_CLK_SRC>;
-			assigned-clock-rates = <100000000>,
-					       <20000000>,
-					       <342857143>,
-					       <240000000>,
-					       <100000000>;
-
 			resets = <&gcc GCC_PCIE3_PIPE_ARES>,
 				 <&gcc GCC_PCIE3_CORE_STICKY_ARES>,
 				 <&gcc GCC_PCIE3_AXI_S_STICKY_ARES>,
@@ -2034,7 +1978,7 @@
 			phys = <&pcie3_lanes>;
 			phy-names = "pciephy";
 
-			msi-parent = <&v2m2>;
+			msi-parent = <&v2m0>;
 			nvmem-cells = <&pcie3_disable>;
 			status = "disabled";
 		};
