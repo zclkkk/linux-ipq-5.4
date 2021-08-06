@@ -2721,6 +2721,7 @@ static struct clk_branch gcc_msg_ram_ahb_clk = {
 
 static struct clk_branch gcc_prng_ahb_clk = {
 	.halt_reg = 0x13024,
+	.halt_check = BRANCH_HALT_VOTED,
 	.clkr = {
 		.enable_reg = 0x13024,
 		.enable_mask = BIT(0),
