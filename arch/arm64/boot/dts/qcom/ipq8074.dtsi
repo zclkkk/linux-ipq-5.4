@@ -1740,6 +1740,16 @@
 			status = "disabled";
 		};
 
+		wifi6: wifi6@f00000 {
+			compatible  = "qcom,cnss-qcn9224";
+			qcom,wlan-ramdump-dynamic = <0x400000>;
+			mhi,max-channels = <30>;
+			mhi,timeout = <10000>;
+			qrtr_node_id = <0x31>;
+			qca,auto-restart;
+			status = "disabled";
+		};
+
 	};
 
 	cpus: cpus {
