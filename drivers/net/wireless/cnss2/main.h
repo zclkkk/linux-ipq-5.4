@@ -268,6 +268,10 @@ enum cnss_mem_type {
 	CNSS_MEM_CAL_V01,
 	CNSS_MEM_DPD_V01,
 	CNSS_MEM_ETR,
+	CNSS_MEM_HANG_DATA,
+	CNSS_MEM_MLO_GLOBAL,
+	CNSS_MEM_PAGEABLE,
+	CNSS_MEM_AFC,
 };
 
 enum cnss_fw_dump_type {

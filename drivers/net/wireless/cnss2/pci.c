@@ -4574,6 +4574,40 @@ void cnss_pci_collect_dump_info(struct cnss_pci_data *pci_priv, bool in_panic)
 		}
 	}
 
+	cnss_pr_dbg("Collect AFC dump segment\n");
+	for (i = 0; i < plat_priv->fw_mem_seg_len; i++) {
+		if (fw_mem[i].type == CNSS_MEM_AFC) {
+			if (!fw_mem[i].pa)
+				continue;
+			dump_seg->address = fw_mem[i].pa;
+			dump_seg->v_address = fw_mem[i].va;
+			dump_seg->size = fw_mem[i].size;
+			dump_seg->type = CNSS_FW_REMOTE_HEAP;
+			cnss_pr_dbg("seg-%d: address 0x%lx, v_address %pK, size 0x%lx\n",
+				    i, dump_seg->address, dump_seg->v_address,
+				    dump_seg->size);
+			dump_seg++;
+			dump_data->nentries++;
+		}
+	}
+
+	cnss_pr_dbg("Collect MLO global dump segment\n");
+	for (i = 0; i < plat_priv->fw_mem_seg_len; i++) {
+		if (fw_mem[i].type == CNSS_MEM_MLO_GLOBAL) {
+			if (!fw_mem[i].pa)
+				continue;
+			dump_seg->address = fw_mem[i].pa;
+			dump_seg->v_address = fw_mem[i].va;
+			dump_seg->size = fw_mem[i].size;
+			dump_seg->type = CNSS_FW_REMOTE_HEAP;
+			cnss_pr_dbg("seg-%d: address 0x%lx, v_address %pK, size 0x%lx\n",
+				    i, dump_seg->address, dump_seg->v_address,
+				    dump_seg->size);
+			dump_seg++;
+			dump_data->nentries++;
+		}
+	}
+
 	if (dump_data->nentries > 0)
 		plat_priv->ramdump_info_v2.dump_data_valid = true;
 
