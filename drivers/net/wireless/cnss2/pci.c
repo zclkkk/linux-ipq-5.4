@@ -68,6 +68,7 @@ MODULE_PARM_DESC(pci2_num_msi_bmap,
 #define MAX_DP_VECTORS 8
 #define MIN_DP_VECTORS 1
 #define DEFAULT_DP_VECTORS MIN_DP_VECTORS
+static void *mlo_global_mem;
 
 #define PCI_LINK_UP			1
 #define PCI_LINK_DOWN			0
@@ -3331,9 +3332,13 @@ int cnss_pci_alloc_fw_mem(struct cnss_plat_data *plat_priv)
 					    (unsigned int)fw_mem[i].size);
 			}
 			fw_mem[i].pa = mlo_mem.start;
-			fw_mem[i].va = ioremap(fw_mem[i].pa, fw_mem[i].size);
+			if (!mlo_global_mem)
+				mlo_global_mem = ioremap(fw_mem[i].pa,
+							 fw_mem[i].size);
 
-			if (!fw_mem[i].va) {
+			fw_mem[i].va = mlo_global_mem;
+
+			if (!mlo_global_mem) {
 				cnss_pr_err("WARNING: Host DDR remap failed\n");
 			} else {
 				pci_bus_dev = &pci_priv->pci_dev->dev;
@@ -3341,7 +3346,7 @@ int cnss_pci_alloc_fw_mem(struct cnss_plat_data *plat_priv)
 				if (chip_id == 0 &&
 				    !test_bit(CNSS_DRIVER_RECOVERY,
 					      &plat_priv->driver_state)) {
-					memset_io(fw_mem[i].va, 0,
+					memset_io(mlo_global_mem, 0,
 						  mlo_global_mem_size);
 				}
 			}
@@ -3497,12 +3502,15 @@ void cnss_pci_free_fw_mem(struct cnss_plat_data *plat_priv)
 		if (fw_mem[i].va) {
 			cnss_pr_dbg("Freeing FW mem of type %d\n",
 				    fw_mem[i].type);
-			if (fw_mem[i].type != AFC_REGION_TYPE) {
+			if (fw_mem[i].type == AFC_REGION_TYPE) {
+				memset(fw_mem[i].va, 0, AFC_MEM_SIZE);
+			} else if (fw_mem[i].type ==
+				   QMI_WLFW_MLO_GLOBAL_MEM_V01) {
+				/* Do not iounmap or reset */
+			} else {
 				iounmap(fw_mem[i].va);
 				fw_mem[i].va = NULL;
 				fw_mem[i].size = 0;
-			} else {
-				memset(fw_mem[i].va, 0, AFC_MEM_SIZE);
 			}
 		}
 	}
