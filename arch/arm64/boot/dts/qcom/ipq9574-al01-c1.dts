@@ -283,6 +283,10 @@
 			status = "ok";
 		};
 
+		nss0: nss@40000000 {
+			npu-supply = <&dummy_reg>;
+		};
+
 		dp1 {
 			device_type = "network";
 			compatible = "qcom,nss-dp";
