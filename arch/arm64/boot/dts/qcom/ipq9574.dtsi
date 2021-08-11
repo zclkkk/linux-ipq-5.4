@@ -1119,8 +1119,8 @@
 				   <0 362 4>,
 				   <0 354 4>,
 				   <0 261 4>;
-			resets = <&gcc PPE_EDMA_ARES>,
-				 <&gcc PPE_EDMA_CFG_ARES>;
+			resets = <&nsscc PPE_EDMA_ARES>,
+				 <&nsscc PPE_EDMA_CFG_ARES>;
 			reset-names = "edma_rst", "edma_cfg_reset";
 		};
 
