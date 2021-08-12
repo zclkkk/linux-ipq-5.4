@@ -23,6 +23,15 @@
 		regulator-always-on;
 		regulator-boot-on;
 	};
+
+	dummy_reg_cpu: dummy-regulator@1 {
+		compatible = "regulator-fixed";
+		regulator-name = "dummy-reg-cpu";
+		regulator-min-microvolt = <1075000>;
+		regulator-max-microvolt = <1075000>;
+		regulator-always-on;
+		regulator-boot-on;
+	};
 };
 
 &CPU0 {
