@@ -775,9 +775,9 @@ EXPORT_SYMBOL(cnss_get_mlo_chip_id);
 bool cnss_get_mlo_capable(struct device *dev)
 {
 	struct cnss_plat_data *plat_priv = cnss_bus_dev_to_plat_priv(dev);
-	struct device_node *mlo_group_info_node;
 	bool mlo_capable = false;
 	struct device *bus_dev;
+	phandle mlo_group_phandle = 0;
 
 	if (!plat_priv)
 		return false;
@@ -786,7 +786,6 @@ bool cnss_get_mlo_capable(struct device *dev)
 		return false;
 
 	bus_dev = &plat_priv->plat_dev->dev;
-	phandle mlo_group_phandle = 0;
 
 	if (of_property_read_u32(bus_dev->of_node, "mlo_group_info",
 				 &mlo_group_phandle)) {
@@ -831,7 +830,6 @@ EXPORT_SYMBOL(cnss_get_mlo_global_config_region);
 int cnss_get_num_mlo_links(struct device *dev)
 {
 	struct cnss_plat_data *plat_priv = cnss_bus_dev_to_plat_priv(dev);
-	struct device_node *mlo_chip_info = NULL;
 	u8 num_local_links = 0;
 	struct device *bus_dev;
 	struct device_node *mlo_chip_node = NULL;
@@ -870,7 +868,6 @@ EXPORT_SYMBOL(cnss_get_num_mlo_links);
 
 int cnss_get_num_mlo_capable_devices(unsigned int *device_id, int num_elements)
 {
-	struct device_node *mlo_group_info_node;
 	struct cnss_plat_data *plat_priv = NULL;
 	struct device *dev;
 	int num_capable = 0;
