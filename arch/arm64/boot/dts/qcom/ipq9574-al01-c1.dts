@@ -309,6 +309,18 @@
 			status = "ok";
 		};
 
+		pcie2_x2: pci@20000000 {
+			perst-gpio = <&tlmm 29 1>;
+			status = "disabled";
+			pcie2_rp {
+				reg = <0 0 0 0 0>;
+			};
+		};
+
+		pcie2_phy: phy@8c000 {
+			status = "disabled";
+		};
+
 		mdio@90000 {
 			status = "ok";
 			pinctrl-0 = <&mdio_pins>;
