@@ -1774,8 +1774,8 @@
 				 <&gcc GCC_Q6_AXIM2_CLK>,
 				 <&gcc GCC_Q6_AHB_CLK>,
 				 <&gcc GCC_Q6_AHB_S_CLK>,
-				 <&gcc GCC_Q6_AHB_S_CLK>,
 				 <&gcc GCC_Q6SS_BOOT_CLK>;
+
 			clock-names = "anoc_wcss_axi_m",
 				      "wcss_ahb_s",
 				      "wcss_ecahb",
