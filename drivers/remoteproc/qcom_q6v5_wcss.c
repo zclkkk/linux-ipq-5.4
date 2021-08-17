@@ -206,6 +206,11 @@ struct wcss_data {
 	bool need_auto_boot;
 };
 
+struct wcss_clk {
+	const char* clk;
+	unsigned long rate;
+};
+
 #ifdef CONFIG_IPQ_SUBSYSTEM_RAMDUMP
 static void crashdump_init(struct rproc *rproc, struct rproc_dump_segment *segment, void *dest)
 {
@@ -349,6 +354,42 @@ static void ipq9574_wcss_clks_prepare_disable(struct q6v5_wcss *wcss)
 	clk_disable_unprepare(wcss->qdsp6ss_axim_cbcr);
 }
 
+static int ipq9574_enable_dbg_clks(struct device *dev)
+{
+	int i, ret;
+	struct clk* dclk;
+
+	struct wcss_clk dbg_clks[] = {
+		{ .clk = "dbg-apb-bdg", .rate = 150000000 },
+		{ .clk = "dbg-atb-bdg", .rate = 240000000 },
+		{ .clk = "dbg-dapbus-bdg", .rate = 150000000 },
+		{ .clk = "dbg-nts-bdg", .rate = 300000000 },
+	};
+
+	for (i = 0; i < ARRAY_SIZE(dbg_clks); i++) {
+		dclk = devm_clk_get(dev, dbg_clks[i].clk);
+		if (IS_ERR(dclk)) {
+			ret = PTR_ERR(dclk);
+			if (ret != -EPROBE_DEFER)
+				dev_err(dev, "failed to get gcc %s", dbg_clks[i].clk);
+			return PTR_ERR(dclk);
+		}
+
+		ret = clk_set_rate(dclk, dbg_clks[i].rate);
+		if (ret) {
+			dev_err(dev, "failed to set rate for %s", dbg_clks[i].clk);
+			return ret;
+		}
+
+		ret = clk_prepare_enable(dclk);
+		if (ret) {
+			dev_err(dev, "failed to enable %s", dbg_clks[i].clk);
+			return ret;
+		}
+	}
+	return 0;
+}
+
 static int q6v7_wcss_reset(struct q6v5_wcss *wcss, struct rproc *rproc)
 {
 	int ret;
@@ -445,6 +486,12 @@ static int q6v7_wcss_reset(struct q6v5_wcss *wcss, struct rproc *rproc)
 		return ret;
 	}
 
+	/* Enable WCSS dbg clocks */
+	ret = ipq9574_enable_dbg_clks(wcss->dev);
+	if (ret) {
+		dev_err(wcss->dev, "wcss dbg clks enable failed");
+		return ret;
+	}
 
 	return 0;
 }
