@@ -743,7 +743,8 @@ static int cnss_hds_support_show(struct seq_file *s, void *data)
 {
 	struct cnss_plat_data *plat_priv = s->private;
 
-	seq_printf(s, "hds_support: 0x%lx\n", plat_priv->hds_support);
+	seq_printf(s, "hds_support: %s\n",
+		   plat_priv->hds_support ? "true" : "false");
 
 	return 0;
 }

@@ -56,6 +56,7 @@
 #define CNSS_TIME_SYNC_PERIOD_DEFAULT	900000
 #define QCN9000_DEFAULT_FW_FILE_NAME	"qcn9000/amss.bin"
 #define QCN9224_DEFAULT_FW_FILE_NAME	"qcn9224/amss.bin"
+#define QCN9224_MLO_MIN_LINKS 2
 
 #define MAX_NUMBER_OF_SOCS 4
 struct cnss_plat_data *plat_env[MAX_NUMBER_OF_SOCS];
@@ -447,7 +448,9 @@ int cnss_wlan_enable(struct device *dev,
 
 	/* Set wmi diag logging */
 	if (plat_priv->device_id == QCN9000_DEVICE_ID ||
-	    plat_priv->device_id == QCN9224_DEVICE_ID)
+	    plat_priv->device_id == QCN9224_DEVICE_ID ||
+	    plat_priv->device_id == QCN6122_DEVICE_ID ||
+	    plat_priv->device_id == QCA5018_DEVICE_ID)
 		cnss_set_fw_log_mode(dev, 1);
 
 	cnss_pr_dbg("Mode: %d, config: %pK, host_version: %s\n",
@@ -775,9 +778,9 @@ EXPORT_SYMBOL(cnss_get_mlo_chip_id);
 bool cnss_get_mlo_capable(struct device *dev)
 {
 	struct cnss_plat_data *plat_priv = cnss_bus_dev_to_plat_priv(dev);
-	struct device_node *mlo_group_info_node;
 	bool mlo_capable = false;
 	struct device *bus_dev;
+	phandle mlo_group_phandle = 0;
 
 	if (!plat_priv)
 		return false;
@@ -786,7 +789,6 @@ bool cnss_get_mlo_capable(struct device *dev)
 		return false;
 
 	bus_dev = &plat_priv->plat_dev->dev;
-	phandle mlo_group_phandle = 0;
 
 	if (of_property_read_u32(bus_dev->of_node, "mlo_group_info",
 				 &mlo_group_phandle)) {
@@ -800,38 +802,55 @@ bool cnss_get_mlo_capable(struct device *dev)
 }
 EXPORT_SYMBOL(cnss_get_mlo_capable);
 
-phys_addr_t cnss_get_mlo_global_config_region(struct device *dev)
+int cnss_get_mlo_global_config_region_info(struct device *dev,
+					   void **bar,
+					   int *num_bytes)
 {
 	struct cnss_plat_data *plat_priv = cnss_bus_dev_to_plat_priv(dev);
 	struct device_node *mlo_global_mem_node;
 	struct resource mlo_mem;
+	struct cnss_fw_mem *fw_mem;
+	int i;
 
 	if (!plat_priv)
-		return 0;
+		return -EINVAL;
 
 	if (plat_priv->device_id != QCN9224_DEVICE_ID)
-		return 0;
+		return -EINVAL;
 
-	mlo_global_mem_node = of_find_node_by_name(NULL, "mlo_global_mem0"); 
+	mlo_global_mem_node = of_find_node_by_name(NULL, "mlo_global_mem0");
 	if (!mlo_global_mem_node) {
 		cnss_pr_err("could not get mlo_global_mem_node\n");
-		return 0;
+		return -EINVAL;
 	}
 
 	if (of_address_to_resource(mlo_global_mem_node, 0, &mlo_mem)) {
 		cnss_pr_err("%s: Unable to read mlo_mem", __func__);
 		of_node_put(mlo_global_mem_node);
-		return 0;
+		return -EINVAL;
 	}
 	of_node_put(mlo_global_mem_node);
-	return mlo_mem.start;
+
+	*bar = 0;
+	fw_mem = plat_priv->fw_mem;
+	for (i = 0; i < plat_priv->fw_mem_seg_len; i++) {
+		if (fw_mem[i].va) {
+			if (fw_mem[i].type == QMI_WLFW_MLO_GLOBAL_MEM_V01)
+				*bar = plat_priv->fw_mem[i].va;
+		}
+	}
+	if (!*bar) {
+		cnss_pr_err("%s: no mlo mem found", __func__);
+		return -EINVAL;
+	}
+	*num_bytes = resource_size(&mlo_mem);
+	return 0;
 }
-EXPORT_SYMBOL(cnss_get_mlo_global_config_region);
+EXPORT_SYMBOL(cnss_get_mlo_global_config_region_info);
 
 int cnss_get_num_mlo_links(struct device *dev)
 {
 	struct cnss_plat_data *plat_priv = cnss_bus_dev_to_plat_priv(dev);
-	struct device_node *mlo_chip_info = NULL;
 	u8 num_local_links = 0;
 	struct device *bus_dev;
 	struct device_node *mlo_chip_node = NULL;
@@ -870,7 +889,6 @@ EXPORT_SYMBOL(cnss_get_num_mlo_links);
 
 int cnss_get_num_mlo_capable_devices(unsigned int *device_id, int num_elements)
 {
-	struct device_node *mlo_group_info_node;
 	struct cnss_plat_data *plat_priv = NULL;
 	struct device *dev;
 	int num_capable = 0;
@@ -900,6 +918,59 @@ int cnss_get_num_mlo_capable_devices(unsigned int *device_id, int num_elements)
 	return num_capable;
 }
 EXPORT_SYMBOL(cnss_get_num_mlo_capable_devices);
+
+int cnss_get_dev_link_ids(struct device *dev, u8 *link_ids, int max_elements)
+{
+	struct cnss_plat_data *plat_priv = cnss_bus_dev_to_plat_priv(dev);
+	struct device *bus_dev;
+	struct device_node *mlo_chip_node = NULL;
+	phandle mlo_chip_phandle;
+	int num_elements;
+
+	if (!plat_priv)
+		return -EINVAL;
+
+	if (plat_priv->device_id != QCN9224_DEVICE_ID)
+		return -EINVAL;
+
+	if (!link_ids) {
+		cnss_pr_err("link_ids buffer is null\n");
+		return -ENOMEM;
+	}
+
+	if (max_elements < QCN9224_MLO_MIN_LINKS) {
+		cnss_pr_err("link ids size is less %d\n", max_elements);
+		return -EINVAL;
+	}
+
+	bus_dev = &plat_priv->plat_dev->dev;
+
+	if (of_property_read_u32(bus_dev->of_node, "mlo_chip_info",
+				 &mlo_chip_phandle)) {
+		cnss_pr_err("could not get mlo_chip_phandle\n");
+		return -EINVAL;
+	}
+
+	mlo_chip_node = of_find_node_by_phandle(mlo_chip_phandle);
+	if (!mlo_chip_node) {
+		cnss_pr_err("could not get mlo_chip_node\n");
+		return -EINVAL;
+	}
+	memset(link_ids, 0, max_elements);
+
+	num_elements = of_property_read_variable_u8_array(mlo_chip_node,
+							  "hw_link_ids",
+							  link_ids,
+							  QCN9224_MLO_MIN_LINKS,
+							  0);
+	of_node_put(mlo_chip_node);
+	if (num_elements < 0) {
+		cnss_pr_err("Error: couldn't read hw_ids(%d)\n", num_elements);
+		return -EINVAL;
+	}
+	return num_elements;
+}
+EXPORT_SYMBOL(cnss_get_dev_link_ids);
 
 void cnss_wait_for_fw_ready(struct device *dev)
 {
@@ -3790,6 +3861,11 @@ void cnss_update_platform_feature_support(u8 type, u32 instance_id, u32 value)
 	case CNSS_GENL_MSG_TYPE_HDS_SUPPORT:
 		plat_priv->hds_support = value;
 		cnss_pr_info("Setting hds_support=%d for instance_id 0x%x\n",
+			     value, instance_id);
+		break;
+	case CNSS_GENL_MSG_TYPE_REGDB_SUPPORT:
+		plat_priv->regdb_support = value;
+		cnss_pr_info("Setting regdb_support=%d for instance_id 0x%x\n",
 			     value, instance_id);
 		break;
 	default:
