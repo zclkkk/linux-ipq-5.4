@@ -3208,6 +3208,7 @@ static struct clk_rcg2 system_noc_bfdcd_clk_src = {
 
 static struct clk_branch gcc_q6ss_boot_clk = {
 	.halt_reg = 0x25080,
+	.halt_check = BRANCH_HALT_SKIP,
 	.clkr = {
 		.enable_reg = 0x25080,
 		.enable_mask = BIT(0),
