@@ -802,33 +802,51 @@ bool cnss_get_mlo_capable(struct device *dev)
 }
 EXPORT_SYMBOL(cnss_get_mlo_capable);
 
-phys_addr_t cnss_get_mlo_global_config_region(struct device *dev)
+int cnss_get_mlo_global_config_region_info(struct device *dev,
+					   void **bar,
+					   int *num_bytes)
 {
 	struct cnss_plat_data *plat_priv = cnss_bus_dev_to_plat_priv(dev);
 	struct device_node *mlo_global_mem_node;
 	struct resource mlo_mem;
+	struct cnss_fw_mem *fw_mem;
+	int i;
 
 	if (!plat_priv)
-		return 0;
+		return -EINVAL;
 
 	if (plat_priv->device_id != QCN9224_DEVICE_ID)
-		return 0;
+		return -EINVAL;
 
 	mlo_global_mem_node = of_find_node_by_name(NULL, "mlo_global_mem0");
 	if (!mlo_global_mem_node) {
 		cnss_pr_err("could not get mlo_global_mem_node\n");
-		return 0;
+		return -EINVAL;
 	}
 
 	if (of_address_to_resource(mlo_global_mem_node, 0, &mlo_mem)) {
 		cnss_pr_err("%s: Unable to read mlo_mem", __func__);
 		of_node_put(mlo_global_mem_node);
-		return 0;
+		return -EINVAL;
 	}
 	of_node_put(mlo_global_mem_node);
-	return mlo_mem.start;
+
+	*bar = 0;
+	fw_mem = plat_priv->fw_mem;
+	for (i = 0; i < plat_priv->fw_mem_seg_len; i++) {
+		if (fw_mem[i].va) {
+			if (fw_mem[i].type == QMI_WLFW_MLO_GLOBAL_MEM_V01)
+				*bar = plat_priv->fw_mem[i].va;
+		}
+	}
+	if (!*bar) {
+		cnss_pr_err("%s: no mlo mem found", __func__);
+		return -EINVAL;
+	}
+	*num_bytes = resource_size(&mlo_mem);
+	return 0;
 }
-EXPORT_SYMBOL(cnss_get_mlo_global_config_region);
+EXPORT_SYMBOL(cnss_get_mlo_global_config_region_info);
 
 int cnss_get_num_mlo_links(struct device *dev)
 {

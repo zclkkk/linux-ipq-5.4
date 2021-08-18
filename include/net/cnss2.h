@@ -390,7 +390,9 @@ static inline bool cnss_get_mlo_capable(struct device *dev)
 {
 	return false;
 }
-static inline phys_addr_t cnss_get_mlo_global_config_region(struct device *dev)
+static inline int cnss_get_mlo_global_config_region_info(struct device *dev,
+							 void **bar,
+							 int *num_bytes)
 {
 	return 0;
 }
@@ -504,7 +506,8 @@ int cnss_send_buffer_to_afcmem(struct device *dev, char *afcdb, uint32_t len,
 int cnss_reset_afcmem(struct device *dev, uint8_t slotid);
 int cnss_get_mlo_chip_id(struct device *dev);
 bool cnss_get_mlo_capable(struct device *dev);
-phys_addr_t cnss_get_mlo_global_config_region(struct device *dev);
+int cnss_get_mlo_global_config_region_info(struct device *dev, void **bar,
+					   int *num_bytes);
 int cnss_get_num_mlo_links(struct device *dev);
 int cnss_get_num_mlo_capable_devices(unsigned int *device_id,
 				     int num_elements);
