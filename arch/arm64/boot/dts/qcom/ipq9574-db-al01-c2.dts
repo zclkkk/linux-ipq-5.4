@@ -56,6 +56,10 @@
 			status = "disabled";
 		};
 
+		sdcc1_ice: sdcc1ice@7808000 {
+			status = "ok";
+		};
+
 		sdhc_1: sdhci@7804000 {
 			status = "ok";
 			pinctrl-0 = <&emmc_pins>;
