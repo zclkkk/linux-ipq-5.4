@@ -411,6 +411,11 @@ static inline int cnss_reg_write(struct device *dev, u32 addr, u32 val)
 {
 	return -EINVAL;
 }
+static inline int cnss_get_dev_link_ids(struct device *dev, u8 *link_ids,
+					int max_elements)
+{
+	return -EINVAL;
+}
 #else
 extern int cnss_wlan_register_driver(struct cnss_wlan_driver *driver);
 extern void cnss_wlan_unregister_driver(struct cnss_wlan_driver *driver);
@@ -505,5 +510,6 @@ int cnss_get_num_mlo_capable_devices(unsigned int *device_id,
 				     int num_elements);
 int cnss_reg_read(struct device *dev, u32 addr, u32 *val);
 int cnss_reg_write(struct device *dev, u32 addr, u32 val);
+int cnss_get_dev_link_ids(struct device *dev, u8 *link_ids, int max_elements);
 #endif
 #endif /* _NET_CNSS2_H */

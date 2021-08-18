@@ -56,6 +56,7 @@
 #define CNSS_TIME_SYNC_PERIOD_DEFAULT	900000
 #define QCN9000_DEFAULT_FW_FILE_NAME	"qcn9000/amss.bin"
 #define QCN9224_DEFAULT_FW_FILE_NAME	"qcn9224/amss.bin"
+#define QCN9224_MLO_MIN_LINKS 2
 
 #define MAX_NUMBER_OF_SOCS 4
 struct cnss_plat_data *plat_env[MAX_NUMBER_OF_SOCS];
@@ -813,7 +814,7 @@ phys_addr_t cnss_get_mlo_global_config_region(struct device *dev)
 	if (plat_priv->device_id != QCN9224_DEVICE_ID)
 		return 0;
 
-	mlo_global_mem_node = of_find_node_by_name(NULL, "mlo_global_mem0"); 
+	mlo_global_mem_node = of_find_node_by_name(NULL, "mlo_global_mem0");
 	if (!mlo_global_mem_node) {
 		cnss_pr_err("could not get mlo_global_mem_node\n");
 		return 0;
@@ -899,6 +900,59 @@ int cnss_get_num_mlo_capable_devices(unsigned int *device_id, int num_elements)
 	return num_capable;
 }
 EXPORT_SYMBOL(cnss_get_num_mlo_capable_devices);
+
+int cnss_get_dev_link_ids(struct device *dev, u8 *link_ids, int max_elements)
+{
+	struct cnss_plat_data *plat_priv = cnss_bus_dev_to_plat_priv(dev);
+	struct device *bus_dev;
+	struct device_node *mlo_chip_node = NULL;
+	phandle mlo_chip_phandle;
+	int num_elements;
+
+	if (!plat_priv)
+		return -EINVAL;
+
+	if (plat_priv->device_id != QCN9224_DEVICE_ID)
+		return -EINVAL;
+
+	if (!link_ids) {
+		cnss_pr_err("link_ids buffer is null\n");
+		return -ENOMEM;
+	}
+
+	if (max_elements < QCN9224_MLO_MIN_LINKS) {
+		cnss_pr_err("link ids size is less %d\n", max_elements);
+		return -EINVAL;
+	}
+
+	bus_dev = &plat_priv->plat_dev->dev;
+
+	if (of_property_read_u32(bus_dev->of_node, "mlo_chip_info",
+				 &mlo_chip_phandle)) {
+		cnss_pr_err("could not get mlo_chip_phandle\n");
+		return -EINVAL;
+	}
+
+	mlo_chip_node = of_find_node_by_phandle(mlo_chip_phandle);
+	if (!mlo_chip_node) {
+		cnss_pr_err("could not get mlo_chip_node\n");
+		return -EINVAL;
+	}
+	memset(link_ids, 0, max_elements);
+
+	num_elements = of_property_read_variable_u8_array(mlo_chip_node,
+							  "hw_link_ids",
+							  link_ids,
+							  QCN9224_MLO_MIN_LINKS,
+							  0);
+	of_node_put(mlo_chip_node);
+	if (num_elements < 0) {
+		cnss_pr_err("Error: couldn't read hw_ids(%d)\n", num_elements);
+		return -EINVAL;
+	}
+	return num_elements;
+}
+EXPORT_SYMBOL(cnss_get_dev_link_ids);
 
 void cnss_wait_for_fw_ready(struct device *dev)
 {
