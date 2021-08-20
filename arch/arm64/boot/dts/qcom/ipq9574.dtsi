@@ -1736,7 +1736,7 @@
 			assigned-clock-rates = <200000000>,
 					       <200000000>,
 					       <200000000>,
-					       <60000000>;
+					       <24000000>;
 
 			resets = <&gcc GCC_USB_BCR>;
 			status = "disabled";
@@ -1753,7 +1753,8 @@
 				snps,hird-threshold = /bits/ 8 <0x0>;
 				snps,dis_u2_susphy_quirk;
 				snps,dis_u3_susphy_quirk;
-				snps,quirk-ref-clock-period = <0x32>;
+				snps,quirk-ref-clock-adjustment = <0xA87F0>;
+				snps,quirk-ref-clock-period = <0x29>;
 				dr_mode = "host";
 			};
 		};
