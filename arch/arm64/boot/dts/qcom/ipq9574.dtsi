@@ -1130,7 +1130,7 @@
 		qcom,test@0 {
 			compatible = "qcom,testmhi";
 			qcom,wlan-ramdump-dynamic = <0x400000>;
-			status = "disabled";
+			status = "ok";
 		};
 
 		sdcc1_ice: sdcc1ice@7808000 {

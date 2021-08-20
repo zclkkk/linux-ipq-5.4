@@ -241,26 +241,26 @@
 
 		pcie0_x1: pci@28000000 {
 			perst-gpio = <&tlmm 23 1>;
-			status = "disabled";
+			status = "ok";
 			pcie0_rp {
 				reg = <0 0 0 0 0>;
 			};
 		};
 
 		pcie0_phy: phy@84000 {
-			status = "disabled";
+			status = "ok";
 		};
 
 		pcie1_x1: pci@10000000 {
 			perst-gpio = <&tlmm 26 1>;
-			status = "disabled";
+			status = "ok";
 			pcie1_rp {
 				reg = <0 0 0 0 0>;
 			};
 		};
 
 		pcie1_phy: phy@fc000 {
-			status = "disabled";
+			status = "ok";
 		};
 
 		pcie2_x2: pci@20000000 {
