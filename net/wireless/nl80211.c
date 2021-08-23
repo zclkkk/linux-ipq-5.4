@@ -633,6 +633,7 @@ const struct nla_policy nl80211_policy[NUM_NL80211_ATTR] = {
 	[NL80211_ATTR_EHT_CAPABILITY] = { .type = NLA_BINARY,
 					 .len = NL80211_EHT_MAX_CAPABILITY_LEN },
 	[NL80211_ATTR_EHT_PUNCTURE_BITMAP] = { .type = NLA_U32 },
+	[NL80211_ATTR_CONTROL_PORT_NO_PREAUTH] = { .type = NLA_FLAG },
 };
 
 /* policy for the key attributes */
@@ -13692,6 +13693,7 @@ static int nl80211_external_auth(struct sk_buff *skb, struct genl_info *info)
 
 static int nl80211_tx_control_port(struct sk_buff *skb, struct genl_info *info)
 {
+	bool dont_wait_for_ack = info->attrs[NL80211_ATTR_DONT_WAIT_FOR_ACK];
 	struct cfg80211_registered_device *rdev = info->user_ptr[0];
 	struct net_device *dev = info->user_ptr[1];
 	struct wireless_dev *wdev = dev->ieee80211_ptr;
@@ -13700,6 +13702,7 @@ static int nl80211_tx_control_port(struct sk_buff *skb, struct genl_info *info)
 	u8 *dest;
 	u16 proto;
 	bool noencrypt;
+	u64 cookie = 0;
 	int err;
 
 	if (!wiphy_ext_feature_isset(&rdev->wiphy,
@@ -13744,9 +13747,12 @@ static int nl80211_tx_control_port(struct sk_buff *skb, struct genl_info *info)
 	noencrypt =
 		nla_get_flag(info->attrs[NL80211_ATTR_CONTROL_PORT_NO_ENCRYPT]);
 
-	return rdev_tx_control_port(rdev, dev, buf, len,
-				    dest, cpu_to_be16(proto), noencrypt);
-
+	err = rdev_tx_control_port(rdev, dev, buf, len,
+				   dest, cpu_to_be16(proto), noencrypt,
+				   dont_wait_for_ack ? NULL : &cookie);
+	if (!err && !dont_wait_for_ack)
+		nl_set_extack_cookie_u64(info->extack, cookie);
+	return err;
  out:
 	wdev_unlock(wdev);
 	return err;
@@ -15982,8 +15988,9 @@ int nl80211_send_mgmt(struct cfg80211_registered_device *rdev,
 	return -ENOBUFS;
 }
 
-void cfg80211_mgmt_tx_status(struct wireless_dev *wdev, u64 cookie,
-			     const u8 *buf, size_t len, bool ack, gfp_t gfp)
+static void nl80211_frame_tx_status(struct wireless_dev *wdev, u64 cookie,
+				    const u8 *buf, size_t len, bool ack,
+				    gfp_t gfp, enum nl80211_commands command)
 {
 	struct wiphy *wiphy = wdev->wiphy;
 	struct cfg80211_registered_device *rdev = wiphy_to_rdev(wiphy);
@@ -15991,13 +15998,16 @@ void cfg80211_mgmt_tx_status(struct wireless_dev *wdev, u64 cookie,
 	struct sk_buff *msg;
 	void *hdr;
 
-	trace_cfg80211_mgmt_tx_status(wdev, cookie, ack);
+	if (command == NL80211_CMD_FRAME_TX_STATUS)
+		trace_cfg80211_mgmt_tx_status(wdev, cookie, ack);
+	else
+		trace_cfg80211_control_port_tx_status(wdev, cookie, ack);
 
 	msg = nlmsg_new(100 + len, gfp);
 	if (!msg)
 		return;
 
-	hdr = nl80211hdr_put(msg, 0, 0, 0, NL80211_CMD_FRAME_TX_STATUS);
+	hdr = nl80211hdr_put(msg, 0, 0, 0, command);
 	if (!hdr) {
 		nlmsg_free(msg);
 		return;
@@ -16020,8 +16030,24 @@ void cfg80211_mgmt_tx_status(struct wireless_dev *wdev, u64 cookie,
 				NL80211_MCGRP_MLME, gfp);
 	return;
 
- nla_put_failure:
+nla_put_failure:
 	nlmsg_free(msg);
+}
+
+void cfg80211_control_port_tx_status(struct wireless_dev *wdev, u64 cookie,
+				     const u8 *buf, size_t len, bool ack,
+				     gfp_t gfp)
+{
+	nl80211_frame_tx_status(wdev, cookie, buf, len, ack, gfp,
+				NL80211_CMD_CONTROL_PORT_FRAME_TX_STATUS);
+}
+EXPORT_SYMBOL(cfg80211_control_port_tx_status);
+
+void cfg80211_mgmt_tx_status(struct wireless_dev *wdev, u64 cookie,
+			     const u8 *buf, size_t len, bool ack, gfp_t gfp)
+{
+	nl80211_frame_tx_status(wdev, cookie, buf, len, ack, gfp,
+				NL80211_CMD_FRAME_TX_STATUS);
 }
 EXPORT_SYMBOL(cfg80211_mgmt_tx_status);
 
