@@ -292,7 +292,6 @@ ramdump_done:
 	kfree(finalbuf);
 	rd_dev->data_ready = 0;
 	*pos = 0;
-	complete(&rd_dev->ramdump_complete);
 	return ret;
 }
 
