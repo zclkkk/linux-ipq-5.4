@@ -173,6 +173,18 @@
 			};
 		};
 
+		usb: usb3@8A00000 {
+			status = "ok";
+		};
+
+		qusb_phy_0: qusb@7B000 {
+			status = "ok";
+		};
+
+		ssphy_0: ssphy@7D000 {
+			status = "ok";
+		};
+
 		pcie0_x1: pci@28000000 {
 			perst-gpio = <&tlmm 23 1>;
 			status = "ok";
