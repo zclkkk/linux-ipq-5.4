@@ -272,6 +272,10 @@
 			};
 		};
 
+		eud: qcom,msm-eud {
+			status = "ok";
+		};
+
 		usb: usb3@8A00000 {
 			status = "ok";
 		};
