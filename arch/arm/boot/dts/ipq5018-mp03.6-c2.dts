@@ -15,9 +15,4 @@
  */
 
 #include "../../../arm64/boot/dts/qcom/ipq5018-mp03.6-c2.dts"
-
-/ {
-	pmuv8: pmu {
-		compatible = "arm,cortex-a7-pmu";
-	};
-};
+#include "ipq5018.dtsi"
