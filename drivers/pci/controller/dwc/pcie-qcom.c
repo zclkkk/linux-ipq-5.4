@@ -255,6 +255,7 @@ struct qcom_pcie {
 	u32 max_speed;
 	uint32_t slv_addr_space_sz;
 	uint32_t num_lanes;
+	uint32_t compliance;
 	struct work_struct handle_wake_work;
 	struct work_struct handle_e911_work;
 	int wake_irq;
@@ -2030,12 +2031,18 @@ static int qcom_pcie_host_init(struct pcie_port *pp)
 
 	return 0;
 err:
+	if (pcie->compliance == 1)
+		return 0;
+
 	qcom_ep_reset_assert(pcie);
 	if (pcie->ops->post_deinit)
 		pcie->ops->post_deinit(pcie);
 err_disable_phy:
 	phy_power_off(pcie->phy);
 err_deinit:
+	if (pcie->compliance == 1)
+		return 0;
+
 	pcie->ops->deinit(pcie);
 
 	return ret;
@@ -2358,6 +2365,7 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 	u32 link_retries_count = 0;
 	uint32_t slv_addr_space_sz = 0;
 	uint32_t num_lanes = 0;
+	uint32_t compliance = 0;
 	static int rc_idx;
 	struct nvmem_cell *pcie_nvmem;
 	u8 *disable_status;
@@ -2415,6 +2423,9 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 		ret = PTR_ERR(pcie->reset);
 		goto err_pm_runtime_put;
 	}
+
+	of_property_read_u32(pdev->dev.of_node, "compliance", &compliance);
+	pcie->compliance = compliance;
 
 	of_property_read_u32(pdev->dev.of_node, "link_retries_count",
 			     &link_retries_count);
