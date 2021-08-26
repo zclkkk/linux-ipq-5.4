@@ -1821,7 +1821,10 @@
 			qcom,smem-state-names = "stop",
 						"shutdown";
 
-			memory-region = <&q6_region>, <&q6_etr_region>;
+			memory-region = <&q6_region>,
+					<&m3_dump>,
+					<&q6_etr_region>,
+					<&q6_caldb_region>;
 
 			glink-edge {
 				interrupts = <GIC_SPI 321 IRQ_TYPE_EDGE_RISING>;
@@ -2288,9 +2291,9 @@
 			qcom,rproc = <&q6v5_wcss>;
 			qcom,bdf-addr = <0x4B700000 0x4B700000 0x4B700000
 					 0x0 0x0>;
-			qcom,caldb-addr = <0x0 0x0 0x0
+			qcom,caldb-addr = <0x4D800000 0x4D800000 0x0
 					   0x0 0x0>;
-			qcom,caldb-size = <0x0>;
+			qcom,caldb-size = <0x500000>;
 			interrupts = <0 320 1>, /* o_wcss_apps_intr[0] =  */
 				<0 319 1>,
 				<0 318 1>,
