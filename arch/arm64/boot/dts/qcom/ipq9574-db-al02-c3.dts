@@ -15,4 +15,20 @@
 	model = "Qualcomm Technologies, Inc. IPQ9574/DB-AL02-C3";
 	compatible = "qcom,ipq9574-db-al02-c3", "qcom,ipq9574-db-al02", "qcom,ipq9574";
 	interrupt-parent = <&intc>;
+
+	aliases {
+		/delete-property/ serial1;
+	};
+
+	soc {
+		pinctrl@1000000 {
+			/delete-node/ ziggy_pins;
+		};
+
+		blsp1_uart4: serial@78b3000 {
+			/delete-property/ pinctrl-0;
+			/delete-property/ pinctrl-names;
+			status = "disabled";
+		};
+	};
 };
