@@ -405,6 +405,8 @@ static int q6v7_wcss_reset(struct q6v5_wcss *wcss, struct rproc *rproc)
 		return ret;
 	}
 
+	mdelay(60);
+
 	/* Enable Q6 clocks */
 	ret = clk_bulk_prepare_enable(wcss->num_clks, wcss->clks);
 	if (ret) {
@@ -423,6 +425,33 @@ static int q6v7_wcss_reset(struct q6v5_wcss *wcss, struct rproc *rproc)
 	if (ret) {
 		dev_err(wcss->dev, "wcss_aon_reset failed\n");
 		clk_bulk_disable_unprepare(wcss->num_clks, wcss->clks);
+		return ret;
+	}
+
+	mdelay(60);
+
+	/*8. Set mpm configs*/
+	/*set CFG[18:15]=1*/
+	val = readl(wcss->rmb_base + SSCAON_CONFIG);
+	val &= ~SSCAON_MASK;
+	val |= SSCAON_BUS_EN;
+	writel(val, wcss->rmb_base + SSCAON_CONFIG);
+
+	val = readl(wcss->rmb_base + SSCAON_CONFIG);
+	val |= 0x1;
+	writel(val, wcss->rmb_base + SSCAON_CONFIG);
+
+	val = readl(wcss->rmb_base + SSCAON_CONFIG);
+	val &= ~(1<<1);
+	writel(val, wcss->rmb_base + SSCAON_CONFIG);
+
+	/*9. Wait for SSCAON_STATUS */
+	val = readl(wcss->rmb_base + SSCAON_STATUS);
+	ret = readl_poll_timeout(wcss->rmb_base + SSCAON_STATUS,
+				 val, (val & 0xffff) == 0x10, 1000,
+				 Q6SS_TIMEOUT_US * 1000);
+	if (ret) {
+		dev_err(wcss->dev, " Boot Error, SSCAON=0x%08X\n", val);
 		return ret;
 	}
 
@@ -452,31 +481,6 @@ static int q6v7_wcss_reset(struct q6v5_wcss *wcss, struct rproc *rproc)
 			break;
 		mdelay(1);
 		temp++;
-	}
-
-	/*8. Set mpm configs*/
-	/*set CFG[18:15]=1*/
-	val = readl(wcss->rmb_base + SSCAON_CONFIG);
-	val &= ~SSCAON_MASK;
-	val |= SSCAON_BUS_EN;
-	writel(val, wcss->rmb_base + SSCAON_CONFIG);
-
-	val = readl(wcss->rmb_base + SSCAON_CONFIG);
-	val |= 0x1;
-	writel(val, wcss->rmb_base + SSCAON_CONFIG);
-
-	val = readl(wcss->rmb_base + SSCAON_CONFIG);
-	val &= ~(1<<1);
-	writel(val, wcss->rmb_base + SSCAON_CONFIG);
-
-	/*9. Wait for SSCAON_STATUS */
-	val = readl(wcss->rmb_base + SSCAON_STATUS);
-	ret = readl_poll_timeout(wcss->rmb_base + SSCAON_STATUS,
-				 val, (val & 0xffff) == 0x10, 1000,
-				 Q6SS_TIMEOUT_US * 1000);
-	if (ret) {
-		dev_err(wcss->dev, " Boot Error, SSCAON=0x%08X\n", val);
-		return ret;
 	}
 
 	/* Enable WCSS clocks */
