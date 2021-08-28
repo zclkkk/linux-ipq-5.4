@@ -40,6 +40,7 @@
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/random.h>
+#include <linux/of_reserved_mem.h>
 
 #define CLIENT_CMD_CRYPTO_AES_DECRYPT	8
 #define CLIENT_CMD_CRYPTO_AES_ENCRYPT	7
