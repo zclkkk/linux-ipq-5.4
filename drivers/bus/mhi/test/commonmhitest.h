@@ -43,6 +43,9 @@
 #define MHICTRL				0x38
 #define MHICTRL_RESET_MASK		0x2
 
+#define PCIE_SOC_GLOBAL_RESET_VALUE     0x5
+#define MAX_SOC_GLOBAL_RESET_WAIT_CNT   50 /* x 20msec */
+
 /* Add DEBUG related here  */
 enum MHITEST_DEBUG_KLVL{
 	MHITEST_LOG_LVL_VERBOSE,
