@@ -715,68 +715,57 @@ out:
 
 void mhitest_global_soc_reset(struct mhitest_platform *mplat)
 {
-	u32 val;
-	u32 delay;
+	u32 current_ee;
+	u32 count = 0;
 
-	val = readl(PCIE_SOC_GLOBAL_RESET_ADDRESS + mplat->bar);
+	current_ee = mhi_get_exec_env(mplat->mhi_ctrl);
+	MHITEST_EMERG("Soc Globle Reset issued\n");
 
-	val |= PCIE_SOC_GLOBAL_RESET_V;
+	do {
+		writel_relaxed(PCIE_SOC_GLOBAL_RESET_VALUE,
+			       PCIE_SOC_GLOBAL_RESET_ADDRESS +
+			       mplat->bar);
+		msleep(20);
+		current_ee = mhi_get_exec_env(mplat->mhi_ctrl);
+		count++;
+	} while (current_ee != MHI_EE_PBL &&
+		 count < MAX_SOC_GLOBAL_RESET_WAIT_CNT);
 
-	writel(val, PCIE_SOC_GLOBAL_RESET_ADDRESS + mplat->bar);
-
-	/* TODO: exact time to sleep is uncertain */
-	delay = 10;
-	mdelay(delay);
-
-	/* Need to toggle V bit back otherwise stuck in reset status */
-	val &= ~PCIE_SOC_GLOBAL_RESET_V;
-
-	writel(val, PCIE_SOC_GLOBAL_RESET_ADDRESS + mplat->bar);
-
-	mdelay(delay);
-
-	val = readl(PCIE_SOC_GLOBAL_RESET_ADDRESS + mplat->bar);
-	if (val == 0xffffffff)
-		MHITEST_EMERG("link down error during global reset\n");
-}
-
-void mhitest_clear_mhi_vector(struct mhitest_platform *mplat)
-{
-	writel(0, PCIE_TXVECDB + mplat->bar);
-	writel(0, PCIE_TXVECSTATUS + mplat->bar);
-	writel(0, PCIE_RXVECDB + mplat->bar);
-	writel(0, PCIE_RXVECSTATUS + mplat->bar);
-}
-
-void mhitest_set_mhi_mhictrl_reset(struct mhitest_platform *mplat)
-{
-	u32 val;
-
-	val = readl(MHISTATUS + mplat->bar);
-
-	MHITEST_LOG("MHISTATUS 0x%x\n", val);
-
-	/* Observed on QCN9000 that after SOC_GLOBAL_RESET, MHISTATUS
-	 * has SYSERR bit set and thus need to set MHICTRL_RESET
-	 * to clear SYSERR.
-	 */
-	writel(MHICTRL_RESET_MASK, MHICTRL + mplat->bar);
-
-	mdelay(10);
-}
-
-void mhitest_pci_sw_reset(struct mhitest_platform *mplat)
-{
-	mhitest_global_soc_reset(mplat);
-	mhitest_clear_mhi_vector(mplat);
-	mhitest_global_soc_reset(mplat);
-	mhitest_set_mhi_mhictrl_reset(mplat);
-	/* TODO: Clear pci dbg registers */
+	if (current_ee != MHI_EE_PBL && count >= MAX_SOC_GLOBAL_RESET_WAIT_CNT)
+		MHITEST_EMERG("SoC global reset failed! Reset count : %d\n",
+			      count);
+	else
+		MHITEST_ERR("SOC Global reset count: %d\n", count);
 }
 
 void mhitest_pci_disable_bus(struct mhitest_platform *mplat)
 {
 	struct pci_dev *pci_dev = mplat->pci_dev;
+	u32 in_reset = -1, temp = -1, retries = 3;
+
+	mhitest_global_soc_reset(mplat);
+
+	msleep(2000);
+
+	mhi_set_mhi_state(mplat->mhi_ctrl, MHI_STATE_RESET);
+
+        while (retries--) {
+                temp = readl_relaxed(mplat->mhi_ctrl->regs  + 0x38);
+                in_reset = (temp & 0x2) >> 0x1;
+                if (in_reset){
+                        MHITEST_LOG("Number of retry left:%d- trying again\n",
+                                                                retries);
+                        udelay(10);
+                        continue;
+                }
+                break;
+        }
+
+	if (in_reset) {
+		MHITEST_ERR("Device failed to exit RESET state\n");
+		return;
+	}
+	MHITEST_EMERG("MHI Reset good!\n");
 
 	if (mplat->bar) {
 		pci_iounmap(pci_dev, mplat->bar);
@@ -1065,8 +1054,6 @@ out1:
 int mhitest_prepare_start_mhi(struct mhitest_platform *mplat)
 {
 	int ret;
-	bool skip_pci_sw_reset;
-	struct device *dev = &mplat->plat_dev->dev;
 
 	/*
 	 * 1. power on, resume link if needed
@@ -1081,11 +1068,6 @@ int mhitest_prepare_start_mhi(struct mhitest_platform *mplat)
 		MHITEST_ERR("Error ret: %d\n", ret);
 		goto out;
 	}
-
-	skip_pci_sw_reset = of_property_read_bool(dev->of_node,
-						"skip-pci-sw-reset");
-	if (!skip_pci_sw_reset)
-		mhitest_pci_sw_reset(mplat);
 
 	/*
 	 * 2. start mhi
