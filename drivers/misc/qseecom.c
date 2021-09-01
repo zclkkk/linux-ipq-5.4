@@ -2459,36 +2459,44 @@ static int __init qtiapp_init(void)
 static int __init qseecom_probe(struct platform_device *pdev)
 {
 	struct device_node *of_node = pdev->dev.of_node;
+	struct device_node *node;
 	const struct of_device_id *id;
-	unsigned int start = 0, size = 0;
+	struct reserved_mem *rmem = NULL;
 	struct qsee_notify_app notify_app;
 	struct qseecom_command_scm_resp resp;
-	int ret = 0, ret1 = 0;
+	int ret = 0;
 
 	if (!of_node)
 		return -ENODEV;
 
 	qdev = &pdev->dev;
 	id = of_match_device(qseecom_of_table, &pdev->dev);
-
 	if (!id)
 		return -ENODEV;
 
-	ret = of_property_read_u32(of_node, "mem-start", &start);
-	ret1 = of_property_read_u32(of_node, "mem-size", &size);
-	if (ret || ret1) {
-		pr_err("No mem-region specified, using default\n");
+	node = of_parse_phandle(of_node, "memory-region", 0);
+	if (node)
+		rmem = of_reserved_mem_lookup(node);
+
+	of_node_put(node);
+
+	if (!rmem) {
+		/* Note returning error here because other functionalities
+		 * outside tzapp in qseecom can still be used */
+		pr_err("QSEECom: Unable to acquire memory-region\n");
+		pr_err("QSEECom: TZApp cannot be used\n");
 		goto load;
 	}
+	notify_app.applications_region_addr = rmem->base;
+	notify_app.applications_region_size = rmem->size;
+
 	/* 4KB adjustment is to ensure QTIApp does not overlap
 	 * the region alloted for SMMU WAR
 	 */
 	if (of_property_read_bool(of_node, "notify-align")) {
-		start += PAGE_SIZE;
-		size -= PAGE_SIZE;
+		notify_app.applications_region_addr += PAGE_SIZE;
+		notify_app.applications_region_size -= PAGE_SIZE;
 	}
-	notify_app.applications_region_addr = start;
-	notify_app.applications_region_size = size;
 
 	ret = qti_scm_qseecom_notify(&notify_app,
 				     sizeof(struct qsee_notify_app),
@@ -2497,6 +2505,12 @@ static int __init qseecom_probe(struct platform_device *pdev)
 		pr_err("Notify App failed\n");
 		return -1;
 	}
+	pr_info("QSEECom: Notify App Region Successful\n");
+	pr_info("QSEECom: TZApp using Memory Region of size 0x%llx from:0x%llx to 0x%llx\n",
+		(long long unsigned int) notify_app.applications_region_size,
+		(long long unsigned int) notify_app.applications_region_addr,
+		(long long unsigned int) notify_app.applications_region_addr +
+		(long long unsigned int) notify_app.applications_region_size);
 
 load:
 	props = ((struct qseecom_props *)id->data);

@@ -9,9 +9,10 @@ the secure world(QSEE).
 Multiplication and Crypto functionalities are currently available in the sample
 app. Similarly an app can be written to support any required functionalities.
 
-For each platform, memory has been reserved in the QTI default device tree.
-For ipq806x, ipq6018, the region is fixed, while it can be changed for ipq807x
-and ipq40xx.
+For each platform, memory has been reserved in the QTI default device tree and
+the reference of that reserved memory node should be given in qseecom node
+for using the TZ App functionalities. If in case, the reserved memory node
+reference is not given, Notify region will fail -> TZApp cannot be used.
 
 Available APIs in kernel which can be reused/extended:
 
@@ -26,7 +27,7 @@ can be modified or extended to support vendor applications.
 
 Sampleapp Usage Instructions:
 
-Note: We support only 64 bit sampleapp in ipq807x, ipq6018 platform.
+Note: We support only 64 bit sampleapp in ipq platforms.
 
 Across any platforms, apps can be loaded and functionalities can be performed
 securely from the non-secure world via the scm interface. Below are the steps
@@ -37,25 +38,14 @@ loaded.
 
 (1) To load sample app libraries
 
-This step can be skipped if its platform ipq8064 as we use a different
-framework. In ipq8064 platform, the libraries are in-built.
-
-This step is needed only for ipq807x, ipq6018, and ipq40xx platforms.
-
 Concatenate all the seg files into 1 segment file and feed it as
 input to sys/firmware/seg_file and feed the mdt file as input to
 sys/firmware/mdt_file as below:
-
-In platform ipq40xx, the common lib is divided into 4 segments
-whereas in platform ipq807x, the common lib is divided into 6 segments.
 
 cat cmnlib.b00 > cmnlib.b0x
 cat cmnlib.b01 >> cmnlib.b0x
 cat cmnlib.b02 >> cmnlib.b0x
 cat cmnlib.b03 >> cmnlib.b0x
-
-Below 2 steps are needed only if its platform ipq807x or ipq6018:
-
 cat cmnlib.b04 >> cmnlib.b0x
 cat cmnlib.b05 >> cmnlib.b0x
 
@@ -74,22 +64,13 @@ Concatenate all the seg files into 1 segment file and feed it as
 input to sys/firmware/seg_file and feed the mdt file as input to
 sys/firmware/mdt_file as below:
 
-In platform ipq8064 or ipq40xx, the sample app is divided into 4
-segments whereas in ipq807x, the sample app is divided into 7 segments
-
 cat sampleapp.b00 > sampleapp.b0x
 cat sampleapp.b01 >> sampleapp.b0x
 cat sampleapp.b02 >> sampleapp.b0x
 cat sampleapp.b03 >> sampleapp.b0x
-
-Below 3 steps are required if its platform ipq807x or ipq6018:
-
 cat sampleapp.b04 >> sampleapp.b0x
 cat sampleapp.b05 >> sampleapp.b0x
 cat sampleapp.b06 >> sampleapp.b0x
-
-Below step is required if its platform ipq6018:
-
 cat sampleapp.b07 >> sampleapp.b0x
 
 Now cat the mdt and combined binary files to sysfs entries as below:
@@ -98,6 +79,10 @@ cat sampleapp.mdt > /sys/firmware/mdt_file
 cat sampleapp.b0x > /sys/firmware/seg_file
 
 echo 1 > /sys/firmware/tzapp/load_start
+
+Note that number of segment files in lib/app can change between
+platforms and all the segment files as avail in app should be
+concatenated using above/similar commands accordingly.
 
 (3) Perform operations required in the application
 
@@ -109,29 +94,11 @@ echo 100 > /sys/firmware/tzapp/basic_data
 To view Secure Multiplication output:
 cat /sys/firmware/tzapp/basic_data
 
-The following crypto operation can be tested in all platforms other
-than ipq806x:
-
 The "crypto" sysfs entry triggers the sample test encryption and decryption
 inside secure app and displays the result if the test has passed or failed.
 
 To test Crypto functionality:
 echo 1 > /sys/firmware/tzapp/crypto
-
-The following encrypt/decrypt operation can be tested only in
-ipq806x platform:
-
-To give input to Encryption:
-echo '6bc1bee22e409f9' > /sys/firmware/tzapp/encrypt
-
-To view encryption output:
-cat /sys/firmware/tzapp/encrypt
-
-To give input to Decryption:
-cat /sys/firmware/tzapp/encrypt > /sys/firmware/tzapp/decrypt
-
-To view decryption output:
-cat /sys/firmware/tzapp/decrypt
 
 (4) To unload the sampleapp
 
@@ -148,9 +115,9 @@ any point after loading the sample app from kernel, please use below command:
 
 cat /sys/firmware/tzapp/log_buf > log.txt
 
-QSEE APIs in ipq40xx:
+Other QSEE APIs supported in ipq platforms:
 
-In ipq40xx, there are RSA and AES APIs available to perform crypto operations.
+There are RSA and AES APIs available to perform crypto operations.
 The steps to use AES and RSA APIs are as below:
 
 RSA API:
@@ -223,7 +190,7 @@ because in this RSA algorithm we have to generate 2 random numbers with certain
 properties and then proceed. We can use the RSA import functionality if in case
 time is a concern.
 
-shk value is 0 by default in non-secure ipq40xx target systems.
+shk value is 0 by default in non-secure ipq targets.
 
 To make the keyblobs target dependent, shk values must be changed from default
 value in non-secure target systems.

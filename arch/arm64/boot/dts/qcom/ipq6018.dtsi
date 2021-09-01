@@ -168,7 +168,8 @@
 
 	qseecom: qseecom {
 		compatible = "ipq6018-qseecom";
-		status = "disabled";
+		memory-region = <&tzapp>;
+		status = "ok";
 	};
 
 	soc: soc {
