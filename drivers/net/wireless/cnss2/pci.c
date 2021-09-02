@@ -47,6 +47,11 @@ module_param(pci2_num_msi_bmap, int, 0644);
 MODULE_PARM_DESC(pci2_num_msi_bmap,
 		 "Bitmap to indicate number of available MSIs for PCI 2");
 
+static int pci3_num_msi_bmap;
+module_param(pci3_num_msi_bmap, int, 0644);
+MODULE_PARM_DESC(pci3_num_msi_bmap,
+		 "Bitmap to indicate number of available MSIs for PCI 3");
+
 #define MSI_MHI_VECTOR_MASK 0xFF
 #define MSI_MHI_VECTOR_SHIFT 0
 
@@ -3936,6 +3941,26 @@ static struct cnss_msi_config msi_config_qcn9000_pci1 = {
 	},
 };
 
+static struct cnss_msi_config msi_config_qcn9000_pci2 = {
+	.total_vectors = 16,
+	.total_users = 3,
+	.users = (struct cnss_msi_user[]) {
+		{ .name = "MHI", .num_vectors = 3, .base_vector = 0 },
+		{ .name = "CE", .num_vectors = 5, .base_vector = 3 },
+		{ .name = "DP", .num_vectors = 8, .base_vector = 8 },
+	},
+};
+
+static struct cnss_msi_config msi_config_qcn9000_pci3 = {
+	.total_vectors = 16,
+	.total_users = 3,
+	.users = (struct cnss_msi_user[]) {
+		{ .name = "MHI", .num_vectors = 3, .base_vector = 0 },
+		{ .name = "CE", .num_vectors = 5, .base_vector = 3 },
+		{ .name = "DP", .num_vectors = 8, .base_vector = 8 },
+	},
+};
+
 static struct cnss_msi_config msi_config_qcn9224_pci0 = {
 	.total_vectors = 16,
 	.total_users = 3,
@@ -3957,6 +3982,16 @@ static struct cnss_msi_config msi_config_qcn9224_pci1 = {
 };
 
 static struct cnss_msi_config msi_config_qcn9224_pci2 = {
+	.total_vectors = 16,
+	.total_users = 3,
+	.users = (struct cnss_msi_user[]) {
+		{ .name = "MHI", .num_vectors = 3, .base_vector = 0 },
+		{ .name = "CE", .num_vectors = 5, .base_vector = 3 },
+		{ .name = "DP", .num_vectors = 8, .base_vector = 8 },
+	},
+};
+
+static struct cnss_msi_config msi_config_qcn9224_pci3 = {
 	.total_vectors = 16,
 	.total_users = 3,
 	.users = (struct cnss_msi_user[]) {
@@ -4001,8 +4036,13 @@ static void pci_override_msi_assignment(struct cnss_plat_data *plat_priv,
 	    plat_priv->qrtr_node_id == QCN9224_1)
 		interrupt_bmap = pci1_num_msi_bmap;
 
-	if (plat_priv->qrtr_node_id == QCN9224_2)
+	if (plat_priv->qrtr_node_id == QCN9224_2 ||
+	    plat_priv->qrtr_node_id == QCN9000_2)
 		interrupt_bmap = pci2_num_msi_bmap;
+
+	if (plat_priv->qrtr_node_id == QCN9000_3 ||
+	    plat_priv->qrtr_node_id == QCN9224_3)
+		interrupt_bmap = pci3_num_msi_bmap;
 
 	if (!interrupt_bmap)
 		return;
@@ -4048,6 +4088,16 @@ static int cnss_pci_get_msi_assignment(struct cnss_pci_data *pci_priv)
 					    &msi_config_qcn9000_pci1);
 		pci_priv->msi_config = &msi_config_qcn9000_pci1;
 		break;
+	case QCN9000_2:
+		pci_override_msi_assignment(pci_priv->plat_priv,
+					    &msi_config_qcn9000_pci2);
+		pci_priv->msi_config = &msi_config_qcn9000_pci2;
+		break;
+	case QCN9000_3:
+		pci_override_msi_assignment(pci_priv->plat_priv,
+					    &msi_config_qcn9000_pci3);
+		pci_priv->msi_config = &msi_config_qcn9000_pci3;
+		break;
 	case QCN9224_0:
 		pci_override_msi_assignment(pci_priv->plat_priv,
 					    &msi_config_qcn9224_pci0);
@@ -4062,6 +4112,11 @@ static int cnss_pci_get_msi_assignment(struct cnss_pci_data *pci_priv)
 		pci_override_msi_assignment(pci_priv->plat_priv,
 					    &msi_config_qcn9224_pci2);
 		pci_priv->msi_config = &msi_config_qcn9224_pci2;
+		break;
+	case QCN9224_3:
+		pci_override_msi_assignment(pci_priv->plat_priv,
+					    &msi_config_qcn9224_pci3);
+		pci_priv->msi_config = &msi_config_qcn9224_pci3;
 		break;
 	default:
 		pr_err("Unknown qrtr_node_id 0x%X", qrtr_node_id);
