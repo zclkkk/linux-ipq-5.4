@@ -22,6 +22,7 @@
 
 		coresight-name = "coresight-csr";
 		qcom,blk-size = <1>;
+		qcom,set-byte-cntr-support;
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_CFG_AHB_CLK>,
@@ -257,8 +258,9 @@
 		interrupt-names = "byte-cntr-irq";
 
 		arm,buffer-size = <0x100000>;
-		arm,sg-enable;
+		arm,scatter-gather;
 		memory-region = <&q6_etr_region>;
+		coresight-csr = <&csr>;
 
 		coresight-name = "coresight-tmc-etr";
 
