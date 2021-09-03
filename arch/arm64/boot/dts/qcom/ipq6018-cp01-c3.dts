@@ -129,19 +129,21 @@
 	status = "ok";
 };
 
-#if 0
-&pcie0_rp {
-	status = "ok";
-
-	mhi_0: qcom,mhi@0 {
+&pcie0 {
+	pcie0_rp {
 		reg = <0 0 0 0 0 >;
-		qrtr_instance_id = <0x20>;
+
+		mhi_0: qcom,mhi@0 {
+			reg = <0 0 0 0 0 >;
+			qrtr_instance_id = <0x20>;
 #if !defined(__IPQ_MEM_PROFILE_256_MB__)
-		memory-region = <&mhi_region0>;
+			memory-region = <&mhi_region0>;
 #endif
+		};
 	};
 };
 
+#if 0
 &mhi_test {
        status = "ok";
 };

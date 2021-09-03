@@ -555,6 +555,7 @@
 				      "axi_s_sticky";
 
 			msi-parent = <&v2m0>;
+			perst-gpio = <&tlmm 60 GPIO_ACTIVE_LOW>;
 			status = "disabled";
 		};
 
