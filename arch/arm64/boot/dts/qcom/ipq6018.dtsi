@@ -912,6 +912,12 @@
 		compatible = "qti,msm-sps-4k";
 		qti,pipe-attr-ee;
 	};
+
+	mhi_test: qcom,test@0 {
+		compatible = "qcom,testmhi";
+		qcom,wlan-ramdump-dynamic = <0x400000>;
+		status = "disabled";
+	};
 };
 
 #include "ipq6018-coresight.dtsi"
