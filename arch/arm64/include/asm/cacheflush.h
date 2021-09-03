@@ -117,10 +117,16 @@ extern void __dma_unmap_area(const void *, size_t, int);
 extern void __dma_flush_area(const void *, size_t);
 extern void __dma_inv_area(const void *start, size_t size);
 extern void __dma_clean_area(const void *start, size_t size);
+extern void __dma_flush_area_no_dsb(const void *, size_t);
+extern void __dma_inv_area_no_dsb(const void *start, size_t size);
+extern void __dma_clean_area_no_dsb(const void *start, size_t size);
 
 extern void dmac_flush_range(const void *, const void *);
 extern void dmac_inv_range(const void *, const void *);
 extern void dmac_clean_range(const void *, const void *);
+extern void dmac_flush_range_no_dsb(const void *, const void *);
+extern void dmac_inv_range_no_dsb(const void *start, const void *end);
+extern void dmac_clean_range_no_dsb(const void *start, const void *end);
 
 /*
 
