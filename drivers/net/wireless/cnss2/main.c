@@ -134,6 +134,8 @@ enum skip_cnss_options {
 #define SKIP_INTEGRATED		0x1
 #define SKIP_PCI_0		0x2
 #define SKIP_PCI_1		0x4
+#define SKIP_PCI_2		0x8
+#define SKIP_PCI_3		0x10
 
 static struct cnss_fw_files FW_FILES_QCA6174_FW_3_0 = {
 	"qwlan30.bin", "bdwlan30.bin", "otp30.bin", "utf30.bin",
@@ -3752,7 +3754,11 @@ cnss_set_mod_param_feature_support(struct cnss_plat_data *plat_priv,
 		if ((plat_priv->qrtr_node_id == QCN9000_0 &&
 		     (bmap & SKIP_PCI_0)) ||
 		    (plat_priv->qrtr_node_id == QCN9000_1 &&
-		     (bmap & SKIP_PCI_1))) {
+		     (bmap & SKIP_PCI_1)) ||
+		    (plat_priv->qrtr_node_id == QCN9000_2 &&
+		     (bmap & SKIP_PCI_2)) ||
+		    (plat_priv->qrtr_node_id == QCN9000_3 &&
+		     (bmap & SKIP_PCI_3))) {
 			*ptr = 0;
 			cnss_pr_info("Disabling %s support for %s", fname,
 				     plat_priv->device_name);
@@ -3772,7 +3778,11 @@ cnss_set_mod_param_feature_support(struct cnss_plat_data *plat_priv,
 		if ((plat_priv->qrtr_node_id == QCN9224_0 &&
 		     (bmap & SKIP_PCI_0)) ||
 		    (plat_priv->qrtr_node_id == QCN9224_1 &&
-		     (bmap & SKIP_PCI_1))) {
+		     (bmap & SKIP_PCI_1)) ||
+		    (plat_priv->qrtr_node_id == QCN9224_2 &&
+		     (bmap & SKIP_PCI_2)) ||
+		    (plat_priv->qrtr_node_id == QCN9224_3 &&
+		     (bmap & SKIP_PCI_3))) {
 			*ptr = 0;
 			cnss_pr_info("Disabling %s support for %s", fname,
 				     plat_priv->device_name);
@@ -3957,6 +3967,20 @@ cnss_check_skip_target_probe(const struct platform_device_id *device_id,
 		   (device_id->driver_data == QCN9000_DEVICE_ID ||
 		    device_id->driver_data == QCN9224_DEVICE_ID)))) {
 		pr_err("Skipping cnss_probe for PCI_1 device 0x%lx\n",
+		       device_id->driver_data);
+		return true;
+	} else if ((skip_radio_bmap & SKIP_PCI_2) &&
+		   ((node_id == QCN9000_2 || node_id == QCN9224_2) &&
+		   (device_id->driver_data == QCN9000_DEVICE_ID ||
+		    device_id->driver_data == QCN9224_DEVICE_ID))) {
+		pr_err("Skipping cnss_probe for PCI_2 device 0x%lx\n",
+		       device_id->driver_data);
+		return true;
+	} else if ((skip_radio_bmap & SKIP_PCI_3) &&
+		   ((node_id == QCN9000_3 || node_id == QCN9224_3) &&
+		   (device_id->driver_data == QCN9000_DEVICE_ID ||
+		    device_id->driver_data == QCN9224_DEVICE_ID))) {
+		pr_err("Skipping cnss_probe for PCI_3 device 0x%lx\n",
 		       device_id->driver_data);
 		return true;
 	}
