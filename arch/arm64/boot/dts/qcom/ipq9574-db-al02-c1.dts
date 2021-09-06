@@ -323,7 +323,7 @@
 			status = "ok";
 		};
 
-		mdio@90000 {
+		mdio:mdio@90000 {
 			status = "ok";
 			pinctrl-0 = <&mdio_pins>;
 			pinctrl-names = "default";
@@ -392,6 +392,11 @@
 				};
 
 			};
+		};
+		nss-macsec0 {
+			compatible = "qcom,nss-macsec";
+			phy_addr = <0x1c>;
+			mdiobus = <&mdio>;
 		};
 	};
 };

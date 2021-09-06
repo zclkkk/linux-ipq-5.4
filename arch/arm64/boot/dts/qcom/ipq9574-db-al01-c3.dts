@@ -44,5 +44,6 @@
 				};
 			};
 		};
+		/delete-node/ nss-macsec1;
 	};
 };
