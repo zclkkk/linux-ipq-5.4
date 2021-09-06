@@ -1312,7 +1312,7 @@ static int bam_dma_probe(struct platform_device *pdev)
 	bdev->config_pipe_trust_reg = of_property_read_bool(pdev->dev.of_node,
 						"qti,config-pipe-trust-reg");
 
-	bdev->bamclk = devm_clk_get(bdev->dev, "bam_clk");
+	bdev->bamclk = devm_clk_get_optional(bdev->dev, "bam_clk");
 	if (IS_ERR(bdev->bamclk)) {
 		if (!bdev->controlled_remotely) {
 			ret = PTR_ERR(bdev->bamclk);
