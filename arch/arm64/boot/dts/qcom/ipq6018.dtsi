@@ -451,6 +451,13 @@
 				<0x0b001000 0x1000>,  /*GICH*/
 				<0x0b004000 0x1000>;  /*GICV*/
 			interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
+			ranges = <0 0xb00a000 0xffd>;
+
+			v2m0: v2m@0 {
+				compatible = "arm,gic-v2m-frame";
+				msi-controller;
+				reg = <0x0 0xffd>;
+			};
 		};
 
 		pcie_phy: phy@84000 {
@@ -508,12 +515,6 @@
 				 <0x82000000 0 0x20220000 0x20220000
 				  0 0xfde0000>; /* non-prefetchable memory */
 
-			interrupts = <GIC_SPI 52 IRQ_TYPE_LEVEL_HIGH>,
-				     <GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>,
-				     <GIC_SPI 56 IRQ_TYPE_LEVEL_HIGH>,
-				     <GIC_SPI 57 IRQ_TYPE_LEVEL_HIGH>;
-			interrupt-names = "msi_dev0", "msi_dev1", "msi_dev2",
-					  "msi_dev3";
 			#interrupt-cells = <1>;
 			interrupt-map-mask = <0 0 0 0x7>;
 			interrupt-map = <0 0 0 1 &intc 0 75
@@ -553,6 +554,7 @@
 				      "axi_m_sticky",
 				      "axi_s_sticky";
 
+			msi-parent = <&v2m0>;
 			status = "disabled";
 		};
 
