@@ -1596,6 +1596,49 @@ const struct ctx_save_props ctx_save_props_ipq807x = {
 				(15 * SZ_1K) + (82 * SZ_1K) + (12 * SZ_1K)),
 };
 
+const struct ctx_save_props ctx_save_props_ipq9574 = {
+	.tlv_msg_offset = (500 * SZ_1K),
+
+	/* Allocating 300K for TME-L Crashdump
+	 * 80K for regsave
+	 * 3K for DCC Memory
+	 * 117K is unused currently and can be used based on future needs.
+	 * 12K is used for crashdump TLV buffer for Minidump feature.
+	 *
+	 * get_order function returns the next higher order as output,
+	 * so when we pass 395K as argument 512K will be allocated.
+	 *
+	 * The memory is allocated using alloc_pages, hence it will be in
+	 * power of 2. The unused memory is the result of using alloc_pages.
+	 * As we need contigous memory for > 256K we have to use alloc_pages.
+	 *
+	 *              -----------------
+	 *              |           	|
+	 *              |      300K	|
+	 *              |    TMEL ctxt  |
+	 *              |               |
+	 *              |               |
+	 *              -----------------
+	 *              |     80K       |
+	 *              |    regsave    |
+	 *              |               |
+	 *              -----------------
+	 *              |    3K - DCC   |
+	 *              -----------------
+	 *              |               |
+	 *              |     117K      |
+	 *              |    Unused     |
+	 *              |               |
+	 *              -----------------
+	 *              |     12 K      |
+	 *              |   TLV Buffer  |
+	 *              -----------------
+	 *
+	 */
+	.crashdump_page_size = ((300 * SZ_1K) + (80 * SZ_1K) + (3 * SZ_1K) +
+				(117 * SZ_1K) + (12 * SZ_1K)),
+};
+
 static const struct of_device_id ctx_save_of_table[] = {
 	{
 		.compatible = "qti,ctxt-save-ipq5018",
@@ -1611,7 +1654,7 @@ static const struct of_device_id ctx_save_of_table[] = {
 	},
 	{
 		.compatible = "qti,ctxt-save-ipq9574",
-		.data = (void *)&ctx_save_props_ipq6018,
+		.data = (void *)&ctx_save_props_ipq9574,
 	},
 	{}
 };
