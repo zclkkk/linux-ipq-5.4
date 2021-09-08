@@ -337,6 +337,10 @@ extern const struct tsens_plat_data data_8916, data_8974;
 /* TSENS v1 targets */
 extern const struct tsens_plat_data data_tsens_v1;
 
+/* TSENS target */
+extern const struct tsens_ops ops_ipq5018;
+extern const struct tsens_plat_data data_ipq5018;
+
 /* TSENS v2 targets */
 extern const struct tsens_plat_data data_8996, data_tsens_v2;
 

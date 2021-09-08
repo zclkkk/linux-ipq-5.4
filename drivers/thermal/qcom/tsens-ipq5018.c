@@ -22,20 +22,17 @@
 #define TSENS_THRESHOLD_MIN_CODE	0x0
 #define TSENS_SN_CTRL_EN		BIT(0)
 
-#define TSENS_TM_TRDY			0x10e4
-#define TSENS_TRDY_MASK			BIT(0)
-
-#define TSENS_TM_INT_EN_ADDR		0x1000
+#define TSENS_TM_INT_EN_ADDR		0x0
 #define TSENS_TM_INT_EN			BIT(0)
 
-#define TSENS_TM_SN_STATUS			0x1044
+#define TSENS_TM_SN_STATUS			0x0044
 #define TSENS_TM_SN_STATUS_VALID_BIT		BIT(14)
 #define TSENS_TM_SN_STATUS_CRITICAL_STATUS	BIT(19)
 #define TSENS_TM_SN_STATUS_UPPER_STATUS		BIT(12)
 #define TSENS_TM_SN_STATUS_LOWER_STATUS		BIT(11)
 #define TSENS_TM_SN_LAST_TEMP_MASK		0x3ff
 
-#define TSENS_TM_UPPER_LOWER_STATUS_CTRL(n)	((0x4 * n) + 0x1004)
+#define TSENS_TM_UPPER_LOWER_STATUS_CTRL(n)	((0x4 * n) + 0x0004)
 #define TSENS_TM_UPPER_STATUS_CLEAR		BIT(21)
 #define TSENS_TM_LOWER_STATUS_CLEAR		BIT(20)
 #define TSENS_TM_UPPER_THRESHOLD_SET(n)		((n) << 10)
@@ -107,7 +104,7 @@
 
 static bool int_clr_deassert_quirk;
 
-static int get_temp_ipq5018(struct tsens_device *tmdev, int id, int *temp);
+static int get_temp_ipq5018(struct tsens_priv *tmdev, int id, int *temp);
 
 int code2degc_lut_degc[MAX_SENSOR][1024];
 
@@ -136,7 +133,7 @@ int degc_to_code(int temp, int sensor)
 /*
  * Set Trip temp in degree Celcius
  */
-static int set_trip_temp(struct tsens_device *tmdev, int sensor,
+static int set_trip_temp(struct tsens_priv *tmdev, int sensor,
 					enum tsens_trip_type trip, int temp)
 {
 	u32 reg_th, th_hi, th_lo, reg_th_offset;
@@ -153,7 +150,7 @@ static int set_trip_temp(struct tsens_device *tmdev, int sensor,
 	temp = degc_to_code(temp, sensor);
 
 	reg_th_offset = TSENS_TM_UPPER_LOWER_STATUS_CTRL(sensor);
-	regmap_read(tmdev->map,
+	regmap_read(tmdev->tm_map,
 		TSENS_TM_UPPER_LOWER_STATUS_CTRL(sensor), &reg_th);
 
 	th_hi = TSENS_TM_UPPER_THRESHOLD_VALUE(reg_th);
@@ -181,9 +178,9 @@ static int set_trip_temp(struct tsens_device *tmdev, int sensor,
 		return -EINVAL;
 	}
 
-	regmap_write(tmdev->map, TSENS_TM_INT_EN_ADDR, 0);
-	regmap_write(tmdev->map, reg_th_offset, reg_th);
-	regmap_write(tmdev->map, TSENS_TM_INT_EN_ADDR, TSENS_TM_INT_EN);
+	regmap_write(tmdev->tm_map, TSENS_TM_INT_EN_ADDR, 0);
+	regmap_write(tmdev->tm_map, reg_th_offset, reg_th);
+	regmap_write(tmdev->tm_map, TSENS_TM_INT_EN_ADDR, TSENS_TM_INT_EN);
 
 	/* Sync registers */
 	mb();
@@ -205,13 +202,13 @@ static void notify_uspace_tsens_fn(struct work_struct *work)
 
 static void tsens_scheduler_fn(struct work_struct *work)
 {
-	struct tsens_device *tmdev = container_of(work, struct tsens_device,
+	struct tsens_priv *tmdev = container_of(work, struct tsens_priv,
 					tsens_work);
 	int i, reg_thr, temp, th_upper = 0, th_lower = 0;
 	u32 reg_val, reg_addr;
 
 	/*Check whether TSENS is enabled */
-	regmap_read(tmdev->map, TSENS_CNTL_ADDR, &reg_val);
+	regmap_read(tmdev->srot_map, TSENS_CNTL_ADDR, &reg_val);
 	if (!(reg_val & TSENS_SN_CTRL_EN))
 		return;
 
@@ -220,7 +217,7 @@ static void tsens_scheduler_fn(struct work_struct *work)
 		/* Reset for each iteration */
 		reg_thr = th_upper = th_lower = 0;
 
-		regmap_read(tmdev->map, tmdev->sensor[i].status, &reg_val);
+		regmap_read(tmdev->tm_map, tmdev->sensor[i].status, &reg_val);
 
 		/* Check whether the temp is valid */
 		if (!(reg_val & TSENS_TM_SN_STATUS_VALID_BIT))
@@ -240,12 +237,12 @@ static void tsens_scheduler_fn(struct work_struct *work)
 		}
 
 		if (th_upper || th_lower) {
-			regmap_write(tmdev->map, reg_addr, reg_thr);
+			regmap_write(tmdev->tm_map, reg_addr, reg_thr);
 			/* Notify user space */
 			schedule_work(&tmdev->sensor[i].notify_work);
 
 			if (int_clr_deassert_quirk)
-				regmap_write(tmdev->map, reg_addr, 0);
+				regmap_write(tmdev->tm_map, reg_addr, 0);
 
 			if (!get_temp_ipq5018(tmdev, i, &temp))
 				pr_debug("Trigger (%d degrees) for sensor %d\n",
@@ -259,20 +256,20 @@ static void tsens_scheduler_fn(struct work_struct *work)
 
 static irqreturn_t tsens_isr(int irq, void *data)
 {
-	struct tsens_device *tmdev = data;
+	struct tsens_priv *tmdev = data;
 
 	schedule_work(&tmdev->tsens_work);
 	return IRQ_HANDLED;
 }
 
-static int init_ipq5018(struct tsens_device *tmdev)
+static int init_ipq5018(struct tsens_priv *tmdev)
 {
 	int ret;
 	int i;
 	u32 reg_cntl;
 
 	init_common(tmdev);
-	if (!tmdev->map)
+	if (!tmdev->tm_map)
 		return -ENODEV;
 
 	/* Store all sensor address for future use */
@@ -283,22 +280,22 @@ static int init_ipq5018(struct tsens_device *tmdev)
 	}
 
 	reg_cntl = SW_RST;
-	ret = regmap_update_bits(tmdev->map, TSENS_CNTL_ADDR, SW_RST, reg_cntl);
+	ret = regmap_update_bits(tmdev->srot_map, TSENS_CNTL_ADDR, SW_RST, reg_cntl);
 	if (ret)
 		return ret;
 
 	reg_cntl |= SLP_CLK_ENA | (MEASURE_PERIOD << 18);
 	reg_cntl &= ~SW_RST;
-	ret = regmap_update_bits(tmdev->map, TSENS_CONFIG_ADDR,
+	ret = regmap_update_bits(tmdev->srot_map, TSENS_CONFIG_ADDR,
 				CONFIG_MASK, CONFIG);
 
 	reg_cntl |= GENMASK(MAX_SENSOR - 1, 0) << SENSOR0_SHIFT;
-	ret = regmap_write(tmdev->map, TSENS_CNTL_ADDR, reg_cntl);
+	ret = regmap_write(tmdev->srot_map, TSENS_CNTL_ADDR, reg_cntl);
 	if (ret)
 		return ret;
 
 	reg_cntl |= EN;
-	ret = regmap_write(tmdev->map, TSENS_CNTL_ADDR, reg_cntl);
+	ret = regmap_write(tmdev->srot_map, TSENS_CNTL_ADDR, reg_cntl);
 	if (ret)
 		return ret;
 
@@ -314,7 +311,7 @@ static int init_ipq5018(struct tsens_device *tmdev)
 	}
 	enable_irq_wake(tmdev->tsens_irq);
 
-	regmap_write(tmdev->map, TSENS_TM_INT_EN_ADDR, TSENS_TM_INT_EN);
+	regmap_write(tmdev->tm_map, TSENS_TM_INT_EN_ADDR, TSENS_TM_INT_EN);
 
 	int_clr_deassert_quirk = device_property_read_bool(tmdev->dev,
 				"tsens-up-low-int-clr-deassert-quirk");
@@ -324,7 +321,26 @@ static int init_ipq5018(struct tsens_device *tmdev)
 	return 0;
 }
 
-static int calibrate_ipq5018(struct tsens_device *tmdev)
+static inline int code_to_degc(u32 adc_code, const struct tsens_sensor *s)
+{
+	int degc, num, den;
+
+	num = (adc_code * SLOPE_FACTOR) - s->offset;
+	den = s->slope;
+
+	if (num > 0)
+		degc = num + (den / 2);
+	else if (num < 0)
+		degc = num - (den / 2);
+	else
+		degc = num;
+
+	degc /= den;
+
+	return degc;
+}
+
+static int calibrate_ipq5018(struct tsens_priv *tmdev)
 {
 	u32 base0 = 0, base1 = 0;
 	u32 p1[MAX_SENSOR], p2[MAX_SENSOR];
@@ -402,10 +418,10 @@ static int set_trip_temp_ipq5018(void *data, int trip, int temp)
 	if (!s)
 		return -EINVAL;
 
-	return set_trip_temp(s->tmdev, s->id, trip, temp);
+	return set_trip_temp(s->priv, s->id, trip, temp);
 }
 
-static int get_temp_ipq5018(struct tsens_device *tmdev, int id, int *temp)
+static int get_temp_ipq5018(struct tsens_priv *tmdev, int id, int *temp)
 {
 	const struct tsens_sensor *s = &tmdev->sensor[id];
 	u32 code;
@@ -413,7 +429,7 @@ static int get_temp_ipq5018(struct tsens_device *tmdev, int id, int *temp)
 	int ret, last_temp = 0, last_temp2 = 0, last_temp3 = 0;
 
 	sensor_addr = TSENS_TM_SN_STATUS + s->hw_id * 4;
-	ret = regmap_read(tmdev->map, sensor_addr, &code);
+	ret = regmap_read(tmdev->tm_map, sensor_addr, &code);
 	if (ret)
 		return ret;
 	last_temp = code & TSENS_TM_SN_LAST_TEMP_MASK;
@@ -421,7 +437,7 @@ static int get_temp_ipq5018(struct tsens_device *tmdev, int id, int *temp)
 		goto done;
 
 	/* Try a second time */
-	ret = regmap_read(tmdev->map, sensor_addr, &code);
+	ret = regmap_read(tmdev->tm_map, sensor_addr, &code);
 	if (ret)
 		return ret;
 	if (code & TSENS_TM_SN_STATUS_VALID_BIT) {
@@ -432,7 +448,7 @@ static int get_temp_ipq5018(struct tsens_device *tmdev, int id, int *temp)
 	}
 
 	/* Try a third/last time */
-	ret = regmap_read(tmdev->map, sensor_addr, &code);
+	ret = regmap_read(tmdev->tm_map, sensor_addr, &code);
 	if (ret)
 		return ret;
 	if (code & TSENS_TM_SN_STATUS_VALID_BIT) {
@@ -453,14 +469,9 @@ done:
 	return 0;
 }
 
-static const struct tsens_ops ops_ipq5018 = {
+const struct tsens_ops ops_ipq5018 = {
 	.init		= init_ipq5018,
 	.calibrate	= calibrate_ipq5018,
 	.get_temp	= get_temp_ipq5018,
 	.set_trip_temp	= set_trip_temp_ipq5018,
-};
-
-const struct tsens_data data_ipq5018 = {
-	.num_sensors	= MAX_SENSOR,
-	.ops		= &ops_ipq5018,
 };
