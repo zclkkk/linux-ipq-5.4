@@ -1054,3 +1054,5 @@
 		compatible = "qti,ctxt-save-ipq5018";
 	};
 };
+
+#include "ipq5018-thermal.dtsi"
