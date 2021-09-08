@@ -599,9 +599,10 @@ int mhi_destroy_device(struct device *dev, void *data);
 void mhi_create_devices(struct mhi_controller *mhi_cntrl);
 
 int mhi_alloc_bhie_table(struct mhi_controller *mhi_cntrl,
-			 struct image_info **image_info, size_t alloc_size);
+			 struct image_info **image_info, size_t alloc_size,
+			 bool is_fbc);
 void mhi_free_bhie_table(struct mhi_controller *mhi_cntrl,
-			 struct image_info *image_info);
+			 struct image_info *image_info, bool is_fbc);
 
 /* Power management APIs */
 enum mhi_pm_state __must_check mhi_tryset_pm_state(
