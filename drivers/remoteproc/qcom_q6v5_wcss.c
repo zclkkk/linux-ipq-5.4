@@ -364,6 +364,14 @@ static int ipq9574_enable_dbg_clks(struct device *dev)
 		{ .clk = "dbg-atb-bdg", .rate = 240000000 },
 		{ .clk = "dbg-dapbus-bdg", .rate = 150000000 },
 		{ .clk = "dbg-nts-bdg", .rate = 300000000 },
+		{ .clk = "dbg-apb", .rate = 150000000 },
+		{ .clk = "dbg-atb", .rate = 240000000 },
+		{ .clk = "dbg-dapbus", .rate = 150000000 },
+		{ .clk = "dbg-nts", .rate = 300000000 },
+		{ .clk = "q6_tsctr_1to2_clk", .rate = 300000000 },
+		{ .clk = "q6ss_atbm_clk", .rate = 240000000 },
+		{ .clk = "q6ss_pclkdbg_clk", .rate = 150000000 },
+		{ .clk = "q6ss_trig_clk", .rate = 150000000 },
 	};
 
 	for (i = 0; i < ARRAY_SIZE(dbg_clks); i++) {
