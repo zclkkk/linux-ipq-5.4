@@ -440,6 +440,7 @@ struct qcom_nand_controller {
 			struct dma_chan *tx_chan;
 			struct dma_chan *rx_chan;
 			struct dma_chan *cmd_chan;
+			struct dma_chan *sts_chan;
 		};
 
 		/* will be used only by EBI2 for ADM DMA */
@@ -2882,6 +2883,14 @@ static int qcom_nandc_alloc(struct qcom_nand_controller *nandc)
 			return -ENODEV;
 		}
 
+		if (nandc->props->qpic_v2) {
+			nandc->sts_chan = dma_request_slave_channel(nandc->dev, "sts");
+			if (!nandc->sts_chan) {
+				dev_err(nandc->dev, "failed to request sts channel\n");
+				return -ENODEV;
+			}
+		}
+
 		/*
 		 * Initially allocate BAM transaction to read ONFI param page.
 		 * After detecting all the devices, this BAM transaction will
@@ -2930,6 +2939,12 @@ static void qcom_nandc_unalloc(struct qcom_nand_controller *nandc)
 
 		if (nandc->cmd_chan)
 			dma_release_channel(nandc->cmd_chan);
+
+		if (nandc->props->qpic_v2) {
+			if (nandc->sts_chan)
+				dma_release_channel(nandc->sts_chan);
+		}
+
 	} else {
 		if (nandc->chan)
 			dma_release_channel(nandc->chan);
