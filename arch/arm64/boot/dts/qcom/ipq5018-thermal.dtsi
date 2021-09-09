@@ -157,12 +157,14 @@
 		};
 	};
 
-	tsens: thermal-sensor@4a8000 {
+	tsens: thermal-sensor@4a9000 {
 		compatible = "qcom,ipq5018-tsens";
-		reg = <0x4a8000 0x2000>;
+		reg = <0x4a9000 0x1000>, /* TM */
+		      <0x4a8000 0x1000>; /* SORT */
 		nvmem-cells = <&tsens_calib>;
 		nvmem-cell-names = "calib";
-		interrupts = <0 184 0>;
+		interrupts = <GIC_SPI 184 IRQ_TYPE_EDGE_RISING>;
+		#qcom,sensors = <5>;
 		#thermal-sensor-cells = <1>;
 	};
 };
