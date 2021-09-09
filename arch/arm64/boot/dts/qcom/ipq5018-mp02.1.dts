@@ -303,10 +303,10 @@
 			local-mac-address = [000000000000];
 			phy-mode = "sgmii";
 		};
+	};
 
-		qcom,test@0 {
-			status = "ok";
-		};
+	qcom,test@0 {
+		status = "ok";
 	};
 
 	thermal-zones {
