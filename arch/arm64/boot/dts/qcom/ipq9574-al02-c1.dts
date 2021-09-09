@@ -179,7 +179,6 @@
 			reg = <0x3a001000 0x200>;
 			qcom,mactype = <0>;
 			local-mac-address = [000000000000];
-			qcom,link-poll = <1>;
 			qcom,phy-mdio-addr = <16>;
 			phy-mode = "sgmii";
 		};
@@ -191,7 +190,6 @@
 			reg = <0x3a001200 0x200>;
 			qcom,mactype = <0>;
 			local-mac-address = [000000000000];
-			qcom,link-poll = <1>;
 			qcom,phy-mdio-addr = <17>;
 			phy-mode = "sgmii";
 		};
@@ -203,7 +201,6 @@
 			reg = <0x3a001400 0x200>;
 			qcom,mactype = <0>;
 			local-mac-address = [000000000000];
-			qcom,link-poll = <1>;
 			qcom,phy-mdio-addr = <18>;
 			phy-mode = "sgmii";
 		};
@@ -215,7 +212,6 @@
 			reg = <0x3a001600 0x200>;
 			qcom,mactype = <0>;
 			local-mac-address = [000000000000];
-			qcom,link-poll = <1>;
 			qcom,phy-mdio-addr = <19>;
 			phy-mode = "sgmii";
 		};
@@ -227,7 +223,6 @@
 			reg = <0x3a510000 0x4000>;
 			qcom,mactype = <1>;
 			local-mac-address = [000000000000];
-			qcom,link-poll = <1>;
 			qcom,phy-mdio-addr = <8>;
 			phy-mode = "sgmii";
 		};
@@ -239,7 +234,6 @@
 			reg = <0x3a514000 0x4000>;
 			qcom,mactype = <1>;
 			local-mac-address = [000000000000];
-			qcom,link-poll = <1>;
 			qcom,phy-mdio-addr = <0>;
 			phy-mode = "sgmii";
 		};
