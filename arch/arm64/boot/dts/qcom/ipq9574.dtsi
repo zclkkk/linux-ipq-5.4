@@ -1793,7 +1793,15 @@
 				 <&gcc GCC_WCSS_DBG_IFC_APB_BDG_CLK>,
 				 <&gcc GCC_WCSS_DBG_IFC_ATB_BDG_CLK>,
 				 <&gcc GCC_WCSS_DBG_IFC_DAPBUS_BDG_CLK>,
-				 <&gcc GCC_WCSS_DBG_IFC_NTS_BDG_CLK>;
+				 <&gcc GCC_WCSS_DBG_IFC_NTS_BDG_CLK>,
+				 <&gcc GCC_WCSS_DBG_IFC_APB_CLK>,
+				 <&gcc GCC_WCSS_DBG_IFC_ATB_CLK>,
+				 <&gcc GCC_WCSS_DBG_IFC_DAPBUS_CLK>,
+				 <&gcc GCC_WCSS_DBG_IFC_NTS_CLK>,
+				 <&gcc GCC_Q6_TSCTR_1TO2_CLK>,
+				 <&gcc GCC_Q6SS_ATBM_CLK>,
+				 <&gcc GCC_Q6SS_PCLKDBG_CLK>,
+				 <&gcc GCC_Q6SS_TRIG_CLK>;
 
 			clock-names = "anoc_wcss_axi_m",
 				      "wcss_ahb_s",
@@ -1808,7 +1816,15 @@
 				      "dbg-apb-bdg",
 				      "dbg-atb-bdg",
 				      "dbg-dapbus-bdg",
-				      "dbg-nts-bdg";
+				      "dbg-nts-bdg",
+				      "dbg-apb",
+				      "dbg-atb",
+				      "dbg-dapbus",
+				      "dbg-nts",
+				      "q6_tsctr_1to2_clk",
+				      "q6ss_atbm_clk",
+				      "q6ss_pclkdbg_clk",
+				      "q6ss_trig_clk";
 
 			qcom,halt-regs = <&tcsr_q6_block 0xa000 0xd000 0x0>;
 
