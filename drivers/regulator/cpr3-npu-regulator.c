@@ -71,7 +71,7 @@ static const char * const cpr3_ipq807x_npu_fuse_corner_name[] = {
  *		order to form the full fuse parameter value.  The segments for
  *		a given parameter may correspond to different fuse rows.
  */
-static const struct cpr3_fuse_param
+static struct cpr3_fuse_param
 ipq807x_npu_init_voltage_param[IPQ807x_NPU_FUSE_CORNERS][2] = {
 	{{73, 22, 27}, {} },
 	{{73, 16, 21}, {} },
@@ -80,10 +80,35 @@ ipq807x_npu_init_voltage_param[IPQ807x_NPU_FUSE_CORNERS][2] = {
 /*
  * Open loop voltage fuse reference voltages in microvolts for IPQ807x
  */
-static const int
+static int
 ipq807x_npu_fuse_ref_volt [IPQ807x_NPU_FUSE_CORNERS] = {
 	912000,
 	992000,
+};
+
+/*
+ * IPQ9574 (Few parameters are changed, remaining are same as IPQ807x)
+ */
+#define IPQ9574_NPU_FUSE_CORNERS		2
+#define IPQ9574_NPU_FUSE_STEP_VOLT		10000
+#define IPQ9574_NPU_CPR_CLOCK_RATE		24000000
+
+/*
+ * fues parameters for IPQ9574
+ */
+static struct cpr3_fuse_param
+ipq9574_npu_init_voltage_param[IPQ9574_NPU_FUSE_CORNERS][2] = {
+	{{105, 12, 17}, {} },
+	{{105,  6, 11}, {} },
+};
+
+/*
+ * Open loop voltage fuse reference voltages in microvolts for IPQ9574
+ */
+static int
+ipq9574_npu_fuse_ref_volt [IPQ9574_NPU_FUSE_CORNERS] = {
+	862500,
+	987500,
 };
 
 struct cpr3_controller *g_ctrl;
@@ -129,7 +154,7 @@ static int cpr3_ipq807x_npu_read_fuse_data(struct cpr3_regulator *vreg)
 
 	for (i = 0; i < g_valid_npu_fuse_count; i++) {
 		rc = cpr3_read_fuse_param(base,
-					  ipq807x_npu_init_voltage_param[i],
+					  vreg->cpr3_regulator_data->init_voltage_param[i],
 					  &fuse->init_voltage[i]);
 		if (rc) {
 			cpr3_err(vreg, "Unable to read fuse-corner %d initial voltage fuse, rc=%d\n",
@@ -203,11 +228,11 @@ static int cpr3_ipq807x_npu_calculate_open_loop_voltages(
 
 	for (i = 0; i < vreg->fuse_corner_count; i++) {
 		if (ctrl->cpr_global_setting == CPR_DISABLED)
-			fuse_volt[i] = ipq807x_npu_fuse_ref_volt[i];
+			fuse_volt[i] = vreg->cpr3_regulator_data->fuse_ref_volt[i];
 		else
 			fuse_volt[i] = cpr3_convert_open_loop_voltage_fuse(
-				ipq807x_npu_fuse_ref_volt[i],
-				IPQ807x_NPU_FUSE_STEP_VOLT,
+				vreg->cpr3_regulator_data->fuse_ref_volt[i],
+				vreg->cpr3_regulator_data->fuse_step_volt,
 				fuse->init_voltage[i],
 				IPQ807x_NPU_VOLTAGE_FUSE_SIZE);
 
@@ -496,23 +521,34 @@ static int cpr3_npu_init_controller(struct cpr3_controller *ctrl)
 		return rc;
 	}
 
-	ctrl->cpr_clock_rate = IPQ807x_NPU_CPR_CLOCK_RATE;
 	ctrl->ctrl_type = CPR_CTRL_TYPE_CPR3;
 	ctrl->supports_hw_closed_loop = false;
 
 	return 0;
 }
 
-struct cpr3_npu_regulator_data {
-	u32 cpr_valid_fuse_count;
+static const struct cpr3_reg_data ipq807x_cpr_npu = {
+	.cpr_valid_fuse_count = IPQ807x_NPU_FUSE_CORNERS,
+	.init_voltage_param = ipq807x_npu_init_voltage_param,
+	.fuse_ref_volt = ipq807x_npu_fuse_ref_volt,
+	.fuse_step_volt = IPQ807x_NPU_FUSE_STEP_VOLT,
+	.cpr_clk_rate = IPQ807x_NPU_CPR_CLOCK_RATE,
 };
 
-static const struct cpr3_npu_regulator_data ipq807x_cpr_npu = {
-	.cpr_valid_fuse_count = IPQ807x_NPU_FUSE_CORNERS
+static const struct cpr3_reg_data ipq817x_cpr_npu = {
+	.cpr_valid_fuse_count = IPQ817x_NPU_FUSE_CORNERS,
+	.init_voltage_param = ipq807x_npu_init_voltage_param,
+	.fuse_ref_volt = ipq807x_npu_fuse_ref_volt,
+	.fuse_step_volt = IPQ807x_NPU_FUSE_STEP_VOLT,
+	.cpr_clk_rate = IPQ807x_NPU_CPR_CLOCK_RATE,
 };
 
-static const struct cpr3_npu_regulator_data ipq817x_cpr_npu = {
-	.cpr_valid_fuse_count = IPQ817x_NPU_FUSE_CORNERS
+static const struct cpr3_reg_data ipq9574_cpr_npu = {
+	.cpr_valid_fuse_count = IPQ9574_NPU_FUSE_CORNERS,
+	.init_voltage_param = ipq9574_npu_init_voltage_param,
+	.fuse_ref_volt = ipq9574_npu_fuse_ref_volt,
+	.fuse_step_volt = IPQ9574_NPU_FUSE_STEP_VOLT,
+	.cpr_clk_rate = IPQ9574_NPU_CPR_CLOCK_RATE,
 };
 
 static struct of_device_id cpr3_regulator_match_table[] = {
@@ -521,8 +557,12 @@ static struct of_device_id cpr3_regulator_match_table[] = {
 		.data = &ipq807x_cpr_npu
 	},
 	{
-		.compatible = "cpr3-ipq817x-npu-regulator",
+		.compatible = "qcom,cpr3-ipq817x-npu-regulator",
 		.data = &ipq817x_cpr_npu
+	},
+	{
+		.compatible = "qcom,cpr3-ipq9574-npu-regulator",
+		.data = &ipq9574_cpr_npu
 	},
 	{}
 };
@@ -533,7 +573,7 @@ static int cpr3_npu_regulator_probe(struct platform_device *pdev)
 	struct cpr3_controller *ctrl;
 	int i, rc;
 	const struct of_device_id *match;
-	const struct cpr3_npu_regulator_data *cpr_data;
+	struct cpr3_reg_data *cpr_data;
 
 	if (!dev->of_node) {
 		dev_err(dev, "Device tree node is missing\n");
@@ -549,9 +589,10 @@ static int cpr3_npu_regulator_probe(struct platform_device *pdev)
 	if (!match)
 		return -ENODEV;
 
-	cpr_data = match->data;
+	cpr_data = (struct cpr3_reg_data *)match->data;
 	g_valid_npu_fuse_count = cpr_data->cpr_valid_fuse_count;
 	dev_info(dev, "NPU CPR valid fuse count: %d\n", g_valid_npu_fuse_count);
+	ctrl->cpr_clock_rate = cpr_data->cpr_clk_rate;
 
 	ctrl->dev = dev;
 	/* Set to false later if anything precludes CPR operation. */
@@ -606,6 +647,7 @@ static int cpr3_npu_regulator_probe(struct platform_device *pdev)
 	}
 
 	for (i = 0; i < ctrl->thread[0].vreg_count; i++) {
+		ctrl->thread[0].vreg[i].cpr3_regulator_data = cpr_data;
 		rc = cpr3_npu_init_regulator(&ctrl->thread[0].vreg[i]);
 		if (rc) {
 			cpr3_err(&ctrl->thread[0].vreg[i], "regulator initialization failed, rc=%d\n",

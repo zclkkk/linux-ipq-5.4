@@ -1336,7 +1336,7 @@
 			qcom,vxlan-enabled;
 			qcom,match-enabled;
 			qcom,mirror-enabled;
-			npu-supply = <&ipq9574_s2>;
+			npu-supply = <&npu_vreg>;
 		};
 
 		nss1: nss@40800000 {

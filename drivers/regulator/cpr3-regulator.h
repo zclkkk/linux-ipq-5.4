@@ -249,6 +249,24 @@ struct cpr4_reg_data {
 	struct cpr4_mem_acc_func *mem_acc_funcs;
 };
 /**
+ * struct cpr3_reg_data - CPR3 regulator specific data structure which is
+ * target specific
+ * @cpr_valid_fuse_count: Number of valid fuse corners
+ * @(*init_voltage_param)[2]: Pointer to Target voltage fuse details
+ * @fuse_ref_volt: 	  Pointer to fuse reference voltage
+ * @fuse_step_volt: 	  CPR step voltage available in fuse
+ * @cpr_clk_rate: 	  CPR clock rate
+ * @cpr3_fuse_params:     Pointer to CPR fuse parameters
+ **/
+struct cpr3_reg_data {
+	u32 cpr_valid_fuse_count;
+	struct cpr3_fuse_param (*init_voltage_param)[2];
+	int *fuse_ref_volt;
+	u32 fuse_step_volt;
+	u32 cpr_clk_rate;
+};
+
+/**
  * struct cpr3_regulator - CPR3 logical regulator instance associated with a
  *			given CPR3 hardware thread
  * @of_node:		Device node associated with the device tree child node
@@ -268,6 +286,7 @@ struct cpr4_reg_data {
  * @corner_band:	Array of all corner bands supported by CPRh compatible
  *			controllers
  * @cpr4_regulator_data Target specific cpr4 regulator data
+ * @cpr3_regulator_data Target specific cpr3 regulator data
  * @corner_band_count:	The number of elements in the corner band array
  * @platform_fuses:	Pointer to platform specific CPR fuse data (only used by
  *			platform specific CPR3 driver)
@@ -367,6 +386,7 @@ struct cpr3_regulator {
 	int			corner_count;
 	struct cprh_corner_band *corner_band;
 	struct cpr4_reg_data    *cpr4_regulator_data;
+	struct cpr3_reg_data    *cpr3_regulator_data;
 	u32			corner_band_count;
 
 	void			*platform_fuses;
