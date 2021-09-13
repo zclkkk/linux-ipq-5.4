@@ -125,6 +125,14 @@ config IPQ_APSS_8074
           Support for APSS clock controller on ipq8074 devices.
           Say Y if you want to use APSS clocks such as CPU.
 
+config IPQ_ADSS_8074
+	tristate "IPQ8074 ADSS Clock Controller"
+	select IPQ_GCC_8074
+	depends on COMMON_CLK_QCOM
+	help
+	  Support for ADSS clock controller on ipq807x devices.
+	  Say Y if you want to use ADSS clocks for Audio.
+
 config IPQ_GCC_6018
 	tristate "IPQ6018 Global Clock Controller"
 	help
