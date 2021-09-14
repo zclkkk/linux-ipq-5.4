@@ -122,6 +122,7 @@
 	firmware {
 		scm {
 			compatible = "qcom,scm";
+			hvc-log-cmd-id = <0xA>;
 			smmu-state-cmd-id = <0x20>;
 		};
 
