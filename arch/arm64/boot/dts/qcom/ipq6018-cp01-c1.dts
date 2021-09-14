@@ -2,71 +2,28 @@
 /*
  * IPQ6018 CP01 board device tree source
  *
- * Copyright (c) 2019-2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2019-2021 The Linux Foundation. All rights reserved.
  */
 
 /dts-v1/;
 
-#include "ipq6018.dtsi"
+#include "ipq6018-cp01.dtsi"
+#include "ipq6018-cpr-regulator.dtsi"
 
 / {
 	model = "Qualcomm Technologies, Inc. IPQ6018/AP-CP01-C1";
-	compatible = "qcom,ipq6018-ap-cp01-c1", "qcom,ipq6018";
+	compatible = "qcom,ipq6018-ap-cp01-c1", "qcom,ipq6018-ap-cp01", "qcom,ipq6018";
+};
 
-	aliases {
-		serial0 = &blsp1_uart3;
-	};
-
-	chosen {
-		stdout-path = "serial0:115200n8";
-		bootargs-append = " swiotlb=1";
-	};
-
-	/*
-	* +=========+==============+========================+
-	* |        |              |                         |
-	* | Region | Start Offset |          Size           |
-	* |        |              |                         |
-	* +--------+--------------+-------------------------+
-	* |        |              |                         |
-	* |        |              |                         |
-	* |        |              |                         |
-	* |        |              |                         |
-	* | Linux  |  0x41000000  |         139MB           |
-	* |        |              |                         |
-	* |        |              |                         |
-	* |        |              |                         |
-	* +--------+--------------+-------------------------+
-	* | TZ App |  0x49B00000  |           6MB           |
-	* +--------+--------------+-------------------------+
-	*
-	* From the available 145 MB for Linux in the first 256 MB,
-	* we are reserving 6 MB for TZAPP.
-	*
-	* Refer arch/arm64/boot/dts/qcom/ipq6018-memory.dtsi
-	* for memory layout.
-	*/
-
-	/* TZApp is enabled in default memory profile only. */
-	/* This below reservation must be updated when LM support is added. */
-	reserved-memory {
-		tzapp:tzapp@49B00000 {  /* TZAPPS */
-			no-map;
-			reg = <0x0 0x49B00000 0x0 0x00600000>;
+&tlmm {
+	i2c_1_pins: i2c_1_pins {
+		mux {
+			pins = "gpio42", "gpio43";
+			function = "blsp2_i2c";
+			drive-strength = <8>;
+			bias-pull-down;
 		};
 	};
-};
-
-&qseecom {
-		mem-start = <0x49B00000>;
-		mem-size = <0x600000>;
-		status = "ok";
-};
-
-&blsp1_uart3 {
-	pinctrl-0 = <&serial_3_pins>;
-	pinctrl-names = "default";
-	status = "ok";
 };
 
 &i2c_1 {
@@ -75,90 +32,11 @@
 	status = "ok";
 };
 
-&spi_0 {
-	cs-select = <0>;
-	status = "ok";
-
-	m25p80@0 {
-		#address-cells = <1>;
-		#size-cells = <1>;
-		reg = <0>;
-		compatible = "n25q128a11";
-		spi-max-frequency = <50000000>;
-	};
-};
-
-&tlmm {
-	i2c_1_pins: i2c-1-pins {
-		pins = "gpio42", "gpio43";
-		function = "blsp2_i2c";
-		drive-strength = <8>;
-	};
-
-	spi_0_pins: spi-0-pins {
-		pins = "gpio38", "gpio39", "gpio40", "gpio41";
-		function = "blsp0_spi";
-		drive-strength = <8>;
-		bias-pull-down;
-	};
-
-	sd_pins: sd-pinmux {
-		pins = "gpio62";
-		function = "sd_card";
-		drive-strength = <8>;
-		bias-pull-up;
-	};
-};
-
-&qpic_bam {
-	status = "ok";
-};
-
-&qpic_nand {
-	status = "ok";
-
-	nand@0 {
-		reg = <0>;
-		#address-cells = <1>;
-		#size-cells = <1>;
-
-		nand-ecc-strength = <4>;
-		nand-ecc-step-size = <512>;
-		nand-bus-width = <8>;
-	};
-};
-
-&pcie_phy {
-	status = "ok";
-};
-
-&pcie0 {
-	status = "ok";
-};
-
-&qusb_phy_1 {
-	status = "ok";
-};
-
-&usb2 {
-	status = "ok";
-};
-
 &sdhc_2 {
 	pinctrl-0 = <&sd_pins>;
 	pinctrl-names = "default";
-	cd-gpios = <&tlmm 62 GPIO_ACTIVE_LOW>;
-	status = "ok";
-};
-
-&qusb_phy_0 {
-	status = "ok";
-};
-
-&ssphy_0 {
-	status = "ok";
-};
-
-&usb3 {
+	cd-gpios = <&tlmm 62 1>;
+	sd-ldo-gpios = <&tlmm 66 0>;
+	vqmmc-supply = <&ipq6018_l2>;
 	status = "ok";
 };

@@ -91,5 +91,6 @@
 				};
 			};
 		};
+		/delete-node/ nss-macsec0;
 	};
 };

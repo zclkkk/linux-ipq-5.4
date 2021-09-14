@@ -405,8 +405,6 @@ static int q6v7_wcss_reset(struct q6v5_wcss *wcss, struct rproc *rproc)
 		return ret;
 	}
 
-	mdelay(60);
-
 	/* Enable Q6 clocks */
 	ret = clk_bulk_prepare_enable(wcss->num_clks, wcss->clks);
 	if (ret) {
@@ -428,21 +426,11 @@ static int q6v7_wcss_reset(struct q6v5_wcss *wcss, struct rproc *rproc)
 		return ret;
 	}
 
-	mdelay(60);
-
 	/*8. Set mpm configs*/
 	/*set CFG[18:15]=1*/
 	val = readl(wcss->rmb_base + SSCAON_CONFIG);
 	val &= ~SSCAON_MASK;
 	val |= SSCAON_BUS_EN;
-	writel(val, wcss->rmb_base + SSCAON_CONFIG);
-
-	val = readl(wcss->rmb_base + SSCAON_CONFIG);
-	val |= 0x1;
-	writel(val, wcss->rmb_base + SSCAON_CONFIG);
-
-	val = readl(wcss->rmb_base + SSCAON_CONFIG);
-	val &= ~(1<<1);
 	writel(val, wcss->rmb_base + SSCAON_CONFIG);
 
 	/*9. Wait for SSCAON_STATUS */
@@ -1141,7 +1129,7 @@ static int q6v5_wcss_powerdown(struct q6v5_wcss *wcss)
 	else
 		q6v5_wcss_halt_axi_port(wcss, wcss->halt_map, wcss->halt_wcss);
 
-	if (wcss->q6_version == Q6V6) {
+	if (wcss->q6_version == Q6V6 || wcss->q6_version == Q6V7) {
 		val = readl(wcss->rmb_base + SSCAON_CONFIG);
 		val &= ~SSCAON_MASK;
 		val |= SSCAON_BUS_EN;
@@ -1177,7 +1165,7 @@ static int q6v5_wcss_powerdown(struct q6v5_wcss *wcss)
 	/* 6 - De-assert WCSS_AON reset */
 	reset_control_assert(wcss->wcss_aon_reset);
 
-	if (wcss->q6_version == Q6V6) {
+	if (wcss->q6_version == Q6V6 || wcss->q6_version == Q6V7) {
 		val = readl(wcss->rmb_base + SSCAON_CONFIG);
 		val &= ~(1<<1);
 		writel(val, wcss->rmb_base + SSCAON_CONFIG);
@@ -1227,15 +1215,22 @@ static int q6v5_q6_powerdown(struct q6v5_wcss *wcss)
 	else
 		q6v5_wcss_halt_axi_port(wcss, wcss->halt_map, wcss->halt_q6);
 
-	/* 2 - Disable Q6 Core clock */
-	val = readl(wcss->reg_base + Q6SS_GFMUX_CTL_REG);
-	val &= ~Q6SS_CLK_ENABLE;
-	writel(val, wcss->reg_base + Q6SS_GFMUX_CTL_REG);
+	if (wcss->q6_version != Q6V7) {
+		/* 2 - Disable Q6 Core clock */
+		val = readl(wcss->reg_base + Q6SS_GFMUX_CTL_REG);
+		val &= ~Q6SS_CLK_ENABLE;
+		writel(val, wcss->reg_base + Q6SS_GFMUX_CTL_REG);
+	}
 
 	if (wcss->q6_version == Q6V6) {
 		q6v6_q6_powerdown(wcss);
 		goto reset;
 	} else if (wcss->q6_version == Q6V7) {
+		/* 2 - Disable Q6 Core clock */
+		val = readl(wcss->reg_base + Q6SS_GFMUX_CTL_REG);
+		val &= ~BIT(0);
+		writel(val, wcss->reg_base + Q6SS_GFMUX_CTL_REG);
+
 		ipq9574_wcss_clks_prepare_disable(wcss);
 		clk_bulk_disable_unprepare(wcss->num_clks, wcss->clks);
 		goto reset;
