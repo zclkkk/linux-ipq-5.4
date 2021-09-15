@@ -93,6 +93,10 @@
 			reg = <0x0 0x40000000 0x0 0x00800000>;
 		};
 
+		tzapp: tzapp@49B00000 {  /* TZAPPS */
+			no-map;
+		};
+
 		uboot@4A100000 {
 			no-map;
 			reg = <0x0 0x4A100000 0x0 0x00400000>;
@@ -211,6 +215,10 @@
 		nss@40000000 {
 			no-map;
 			reg = <0x0 0x40000000 0x0 0x01000000>;
+		};
+
+		tzapp: tzapp@49B00000 {  /* TZAPPS */
+			no-map;
 		};
 
 		uboot@4A100000 {

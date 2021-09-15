@@ -155,12 +155,3 @@
 	vqmmc-supply = <&ipq6018_l2>;
 	status = "ok";
 };
-
-/* TZAPP is enabled in default memory profile only */
-#if !defined(__IPQ_MEM_PROFILE_256_MB__) && !defined(__IPQ_MEM_PROFILE_512_MB__)
-&qseecom {
-	mem-start = <0x49B00000>;
-	mem-size = <0x600000>;
-	status = "ok";
-};
-#endif
