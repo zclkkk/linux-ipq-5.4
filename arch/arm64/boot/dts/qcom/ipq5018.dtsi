@@ -1055,4 +1055,5 @@
 	};
 };
 
+#include "ipq5018-coresight.dtsi"
 #include "ipq5018-thermal.dtsi"
