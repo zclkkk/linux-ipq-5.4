@@ -43,6 +43,78 @@
 		drive-strength = <8>;
 		bias-pull-down;
 	};
+
+	mdio_pins: mdio_pinmux {
+		mux_0 {
+			pins = "gpio64";
+			function = "mdc";
+			drive-strength = <8>;
+			bias-pull-up;
+		};
+		mux_1 {
+			pins = "gpio65";
+			function = "mdio";
+			drive-strength = <8>;
+			bias-pull-up;
+		};
+		mux_2 {
+			pins = "gpio77";
+			function = "gpio";
+			bias-pull-up;
+		};
+	};
+
+};
+
+&soc {
+	mdio: mdio@90000 {
+		pinctrl-0 = <&mdio_pins>;
+		pinctrl-names = "default";
+		phy-reset-gpio = <&tlmm 77 0>;
+		status = "ok";
+		phy0: ethernet-phy@0 {
+			reg = <0x10>;
+		};
+		phy1: ethernet-phy@1 {
+			reg = <0x14>;
+		};
+	};
+
+	ess-switch@3a000000 {
+		switch_cpu_bmp = <0x1>;  /* cpu port bitmap */
+		switch_lan_bmp = <0x10>; /* lan port bitmap */
+		switch_wan_bmp = <0x20>; /* wan port bitmap */
+		switch_inner_bmp = <0xc0>; /*inner port bitmap*/
+		switch_mac_mode = <0xf>; /* mac mode for uniphy instance0*/
+		switch_mac_mode1 = <0xf>; /* mac mode for uniphy instance1*/
+		switch_mac_mode2 = <0xff>; /* mac mode for uniphy instance2*/
+		qcom,port_phyinfo {
+			port@4 {
+				port_id = <4>;
+				phy_address = <0x10>;
+				port_mac_sel = "QGMAC_PORT";
+			};
+			port@5 {
+				port_id = <5>;
+				phy_address = <0x14>;
+				port_mac_sel = "QGMAC_PORT";
+			};
+		};
+	};
+
+	nss-macsec0 {
+		compatible = "qcom,nss-macsec";
+		phy_addr = <0x10>;
+		phy_access_mode = <0>;
+		mdiobus = <&mdio>;
+	};
+	nss-macsec1 {
+		compatible = "qcom,nss-macsec";
+		phy_addr = <0x14>;
+		phy_access_mode = <0>;
+		mdiobus = <&mdio>;
+	};
+
 };
 
 &blsp1_uart3 {
