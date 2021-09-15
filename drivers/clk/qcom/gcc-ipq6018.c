@@ -558,17 +558,6 @@ static const struct freq_tbl ftbl_nss_port5_rx_clk_src[] = {
 	{ }
 };
 
-static const struct clk_parent_data
-gcc_xo_uniphy0_rx_tx_uniphy1_rx_tx_ubi32_bias[] = {
-	{ .fw_name = "xo" },
-	{ .fw_name = "uniphy0_gcc_rx_clk" },
-	{ .fw_name = "uniphy0_gcc_tx_clk" },
-	{ .fw_name = "uniphy1_gcc_rx_clk" },
-	{ .fw_name = "uniphy1_gcc_tx_clk" },
-	{ .hw = &ubi32_pll.clkr.hw },
-	{ .fw_name = "bias_pll_cc_clk" },
-};
-
 static const struct parent_map
 gcc_xo_uniphy0_rx_tx_uniphy1_rx_tx_ubi32_bias_map[] = {
 	{ P_XO, 0 },
@@ -580,6 +569,16 @@ gcc_xo_uniphy0_rx_tx_uniphy1_rx_tx_ubi32_bias_map[] = {
 	{ P_BIAS_PLL, 6 },
 };
 
+static const char * const gcc_xo_uniphy0_rx_tx_uniphy1_rx_tx_ubi32_bias[] = {
+	"xo",
+	"uniphy0_gcc_rx_clk",
+	"uniphy0_gcc_tx_clk",
+	"uniphy1_gcc_rx_clk",
+	"uniphy1_gcc_tx_clk",
+	"ubi32_pll",
+	"bias_pll_cc_clk",
+};
+
 static struct clk_rcg2 nss_port5_rx_clk_src = {
 	.cmd_rcgr = 0x68060,
 	.freq_tbl = ftbl_nss_port5_rx_clk_src,
@@ -587,7 +586,7 @@ static struct clk_rcg2 nss_port5_rx_clk_src = {
 	.parent_map = gcc_xo_uniphy0_rx_tx_uniphy1_rx_tx_ubi32_bias_map,
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "nss_port5_rx_clk_src",
-		.parent_data = gcc_xo_uniphy0_rx_tx_uniphy1_rx_tx_ubi32_bias,
+		.parent_names = gcc_xo_uniphy0_rx_tx_uniphy1_rx_tx_ubi32_bias,
 		.num_parents = 7,
 		.ops = &clk_rcg2_ops,
 	},
@@ -605,15 +604,14 @@ static const struct freq_tbl ftbl_nss_port5_tx_clk_src[] = {
 	{ }
 };
 
-static const struct clk_parent_data
-gcc_xo_uniphy0_tx_rx_uniphy1_tx_rx_ubi32_bias[] = {
-	{ .fw_name = "xo" },
-	{ .fw_name = "uniphy0_gcc_tx_clk" },
-	{ .fw_name = "uniphy0_gcc_rx_clk" },
-	{ .fw_name = "uniphy1_gcc_tx_clk" },
-	{ .fw_name = "uniphy1_gcc_rx_clk" },
-	{ .hw = &ubi32_pll.clkr.hw },
-	{ .fw_name = "bias_pll_cc_clk" },
+static const char * const gcc_xo_uniphy0_tx_rx_uniphy1_tx_rx_ubi32_bias[] = {
+	"xo",
+	"uniphy0_gcc_tx_clk",
+	"uniphy0_gcc_rx_clk",
+	"uniphy1_gcc_tx_clk",
+	"uniphy1_gcc_rx_clk",
+	"ubi32_pll",
+	"bias_pll_cc_clk",
 };
 
 static const struct parent_map
@@ -634,7 +632,7 @@ static struct clk_rcg2 nss_port5_tx_clk_src = {
 	.parent_map = gcc_xo_uniphy0_tx_rx_uniphy1_tx_rx_ubi32_bias_map,
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "nss_port5_tx_clk_src",
-		.parent_data = gcc_xo_uniphy0_tx_rx_uniphy1_tx_rx_ubi32_bias,
+		.parent_names = gcc_xo_uniphy0_tx_rx_uniphy1_tx_rx_ubi32_bias,
 		.num_parents = 7,
 		.ops = &clk_rcg2_ops,
 	},
@@ -747,13 +745,14 @@ static const struct freq_tbl ftbl_nss_port1_rx_clk_src[] = {
 	{ }
 };
 
-static const struct clk_parent_data gcc_xo_uniphy0_rx_tx_ubi32_bias[] = {
-	{ .fw_name = "xo" },
-	{ .fw_name = "uniphy0_gcc_rx_clk" },
-	{ .fw_name = "uniphy0_gcc_tx_clk" },
-	{ .hw = &ubi32_pll.clkr.hw },
-	{ .fw_name = "bias_pll_cc_clk" },
+static const char * const gcc_xo_uniphy0_rx_tx_ubi32_bias[] = {
+	"xo",
+	"uniphy0_gcc_rx_clk",
+	"uniphy0_gcc_tx_clk",
+	"ubi32_pll",
+	"bias_pll_cc_clk",
 };
+
 
 static const struct parent_map gcc_xo_uniphy0_rx_tx_ubi32_bias_map[] = {
 	{ P_XO, 0 },
@@ -770,7 +769,7 @@ static struct clk_rcg2 nss_port1_rx_clk_src = {
 	.parent_map = gcc_xo_uniphy0_rx_tx_ubi32_bias_map,
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "nss_port1_rx_clk_src",
-		.parent_data = gcc_xo_uniphy0_rx_tx_ubi32_bias,
+		.parent_names = gcc_xo_uniphy0_rx_tx_ubi32_bias,
 		.num_parents = 5,
 		.ops = &clk_rcg2_ops,
 	},
@@ -783,12 +782,12 @@ static const struct freq_tbl ftbl_nss_port1_tx_clk_src[] = {
 	{ }
 };
 
-static const struct clk_parent_data gcc_xo_uniphy0_tx_rx_ubi32_bias[] = {
-	{ .fw_name = "xo" },
-	{ .fw_name = "uniphy0_gcc_tx_clk" },
-	{ .fw_name = "uniphy0_gcc_rx_clk" },
-	{ .hw = &ubi32_pll.clkr.hw },
-	{ .fw_name = "bias_pll_cc_clk" },
+static const char * const gcc_xo_uniphy0_tx_rx_ubi32_bias[] = {
+	"xo",
+	"uniphy0_gcc_tx_clk",
+	"uniphy0_gcc_rx_clk",
+	"ubi32_pll",
+	"bias_pll_cc_clk",
 };
 
 static const struct parent_map gcc_xo_uniphy0_tx_rx_ubi32_bias_map[] = {
@@ -806,7 +805,7 @@ static struct clk_rcg2 nss_port1_tx_clk_src = {
 	.parent_map = gcc_xo_uniphy0_tx_rx_ubi32_bias_map,
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "nss_port1_tx_clk_src",
-		.parent_data = gcc_xo_uniphy0_tx_rx_ubi32_bias,
+		.parent_names = gcc_xo_uniphy0_tx_rx_ubi32_bias,
 		.num_parents = 5,
 		.ops = &clk_rcg2_ops,
 	},
@@ -819,7 +818,7 @@ static struct clk_rcg2 nss_port2_rx_clk_src = {
 	.parent_map = gcc_xo_uniphy0_rx_tx_ubi32_bias_map,
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "nss_port2_rx_clk_src",
-		.parent_data = gcc_xo_uniphy0_rx_tx_ubi32_bias,
+		.parent_names = gcc_xo_uniphy0_rx_tx_ubi32_bias,
 		.num_parents = 5,
 		.ops = &clk_rcg2_ops,
 	},
@@ -832,7 +831,7 @@ static struct clk_rcg2 nss_port2_tx_clk_src = {
 	.parent_map = gcc_xo_uniphy0_tx_rx_ubi32_bias_map,
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "nss_port2_tx_clk_src",
-		.parent_data = gcc_xo_uniphy0_tx_rx_ubi32_bias,
+		.parent_names = gcc_xo_uniphy0_tx_rx_ubi32_bias,
 		.num_parents = 5,
 		.ops = &clk_rcg2_ops,
 	},
@@ -845,7 +844,7 @@ static struct clk_rcg2 nss_port3_rx_clk_src = {
 	.parent_map = gcc_xo_uniphy0_rx_tx_ubi32_bias_map,
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "nss_port3_rx_clk_src",
-		.parent_data = gcc_xo_uniphy0_rx_tx_ubi32_bias,
+		.parent_names = gcc_xo_uniphy0_rx_tx_ubi32_bias,
 		.num_parents = 5,
 		.ops = &clk_rcg2_ops,
 	},
@@ -858,7 +857,7 @@ static struct clk_rcg2 nss_port3_tx_clk_src = {
 	.parent_map = gcc_xo_uniphy0_tx_rx_ubi32_bias_map,
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "nss_port3_tx_clk_src",
-		.parent_data = gcc_xo_uniphy0_tx_rx_ubi32_bias,
+		.parent_names = gcc_xo_uniphy0_tx_rx_ubi32_bias,
 		.num_parents = 5,
 		.ops = &clk_rcg2_ops,
 	},
@@ -871,7 +870,7 @@ static struct clk_rcg2 nss_port4_rx_clk_src = {
 	.parent_map = gcc_xo_uniphy0_rx_tx_ubi32_bias_map,
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "nss_port4_rx_clk_src",
-		.parent_data = gcc_xo_uniphy0_rx_tx_ubi32_bias,
+		.parent_names = gcc_xo_uniphy0_rx_tx_ubi32_bias,
 		.num_parents = 5,
 		.ops = &clk_rcg2_ops,
 	},
@@ -884,7 +883,7 @@ static struct clk_rcg2 nss_port4_tx_clk_src = {
 	.parent_map = gcc_xo_uniphy0_tx_rx_ubi32_bias_map,
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "nss_port4_tx_clk_src",
-		.parent_data = gcc_xo_uniphy0_tx_rx_ubi32_bias,
+		.parent_names = gcc_xo_uniphy0_tx_rx_ubi32_bias,
 		.num_parents = 5,
 		.ops = &clk_rcg2_ops,
 	},
