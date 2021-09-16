@@ -3615,7 +3615,7 @@ static const struct qcom_nandc_props ipq9574_nandc_props = {
 	.is_bam = true,
 	.is_serial_nand = true,
 	.qpic_v2 = true,
-	.is_serial_training = false,
+	.is_serial_training = true,
 	.page_scope = true,
 	.dev_cmd_reg_start = 0x7000,
 };
