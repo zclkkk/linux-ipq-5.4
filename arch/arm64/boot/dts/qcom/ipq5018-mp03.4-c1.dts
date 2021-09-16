@@ -412,9 +412,73 @@
 	pageable-size = <0x800000>;
 	hremote_node = <&qcn9000_pcie0>;
 };
+
+&wifi4 {
+	/* QCN9000 5G */
+	compatible = "qcom,cnss-qcn9000";
+	board_id = <0xa3>;
+	qrtr_node_id = <0x21>;
+	status = "ok";
+#ifdef __IPQ_MEM_PROFILE_512_MB__
+	/* QCN9000 tgt-mem-mode=1 layout - 30MB
+	 * +=========+==============+=========+
+	 * |  Region | Start Offset |   Size  |
+	 * +---------+--------------+---------+
+	 * | HREMOTE |  0x4F200000  |   20MB  |
+	 * +---------+--------------+---------+
+	 * | M3 Dump |  0x50600000  |   1MB   |
+	 * +---------+--------------+---------+
+	 * |   ETR   |  0x50700000  |   1MB   |
+	 * +---------+--------------+---------+
+	 * |  Caldb  |  0x50800000  |   8MB   |
+	 * +---------+--------------+---------+
+	 * | Pageable|  0x51000000  |   8MB   |
+	 * +==================================+
+	 */
+	base-addr = <0x4F200000>;
+	m3-dump-addr = <0x50600000>;
+	etr-addr = <0x50700000>;
+	caldb-addr = <0x50800000>;
+	pageable-addr = <0x51000000>;
+	caldb-size = <0x800000>;
+	hremote-size = <0x1400000>;
+	tgt-mem-mode = <0x1>;
+#else
+	/* QCN9000 tgt-mem-mode=0 layout - 45MB
+	 * +=========+==============+=========+
+	 * |  Region | Start Offset |   Size  |
+	 * +---------+--------------+---------+
+	 * | HREMOTE |  0x50100000  |   35MB  |
+	 * +---------+--------------+---------+
+	 * | M3 Dump |  0x52400000  |   1MB   |
+	 * +---------+--------------+---------+
+	 * |   ETR   |  0x52500000  |   1MB   |
+	 * +---------+--------------+---------+
+	 * |  Caldb  |  0x52600000  |   8MB   |
+	 * +---------+--------------+---------+
+	 * | Pageable|  0x52E00000  |   8MB   |
+	 * +==================================+
+	 */
+	base-addr = <0x50100000>;
+	m3-dump-addr = <0x52400000>;
+	etr-addr = <0x52500000>;
+	caldb-addr = <0x52600000>;
+	pageable-addr = <0x52E00000>;
+	hremote-size = <0x2300000>;
+	caldb-size = <0x800000>;
+	tgt-mem-mode = <0x0>;
+#endif
+	pageable-size = <0x800000>;
+	hremote_node = <&qcn9000_pcie1>;
+};
 #else
 /* 256MB Profile not supported for mp03.4-c1 */
 &wifi3 {
+	/delete-property/ hremote_node;
+	status = "disabled";
+};
+
+&wifi4 {
 	/delete-property/ hremote_node;
 	status = "disabled";
 };
