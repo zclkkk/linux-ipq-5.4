@@ -288,6 +288,27 @@
 	};
 };
 
+&pcie_x1 {
+	status = "ok";
+};
+
+&pcie_x1phy {
+	status = "ok";
+};
+
+&pcie_x1_rp {
+	status = "ok";
+
+	/delete-node/ qcom,mhi@0;
+	mhi_1: qcom,mhi@1 {
+		reg = <0 0 0 0 0 >;
+		qrtr_instance_id = <0x21>;
+		#address-cells = <0x2>;
+		#size-cells = <0x2>;
+		memory-region = <&mhi_region1>;
+	};
+};
+
 &pcie_x2_rp {
 	status = "ok";
 
