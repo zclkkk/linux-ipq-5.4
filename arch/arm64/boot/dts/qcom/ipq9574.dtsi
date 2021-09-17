@@ -1832,8 +1832,8 @@
 
 			qcom,smem-states = <&wcss_smp2p_out 0>,
 					   <&wcss_smp2p_out 1>;
-			qcom,smem-state-names = "stop",
-						"shutdown";
+			qcom,smem-state-names = "shutdown",
+						"stop";
 
 			memory-region = <&q6_region>,
 					<&m3_dump>,

@@ -16,6 +16,8 @@ struct qcom_q6v5 {
 
 	struct qcom_smem_state *state;
 	unsigned stop_bit;
+	struct qcom_smem_state *shutdown_state;
+	unsigned shutdown_bit;
 	struct qcom_smem_state *spawn_state;
 	unsigned spawn_bit;
 
@@ -49,6 +51,7 @@ int qcom_q6v5_unprepare(struct qcom_q6v5 *q6v5);
 int qcom_q6v5_request_stop(struct qcom_q6v5 *q6v5);
 int qcom_q6v5_request_spawn(struct qcom_q6v5 *q6v5);
 int qcom_q6v5_wait_for_start(struct qcom_q6v5 *q6v5, int timeout);
+void qcom_q6v5_panic_handler(struct qcom_q6v5 *q6v5);
 
 irqreturn_t q6v5_fatal_interrupt(int irq, void *data);
 irqreturn_t q6v5_ready_interrupt(int irq, void *data);

@@ -1405,6 +1405,13 @@ int q6v5_wcss_register_dump_segments(struct rproc *rproc,
 									NULL);
 }
 
+static void q6v5_wcss_panic(struct rproc *rproc)
+{
+	struct q6v5_wcss *wcss = rproc->priv;
+
+	qcom_q6v5_panic_handler(&wcss->q6v5);
+}
+
 static const struct rproc_ops q6v5_wcss_ipq8074_ops = {
 	.start = q6v5_wcss_start,
 	.stop = q6v5_wcss_stop,
@@ -1412,6 +1419,7 @@ static const struct rproc_ops q6v5_wcss_ipq8074_ops = {
 	.load = q6v5_wcss_load,
 	.get_boot_addr = rproc_elf_get_boot_addr,
 	.parse_fw = q6v5_wcss_register_dump_segments,
+	.report_panic = q6v5_wcss_panic,
 };
 
 static const struct rproc_ops q6v5_wcss_qcs404_ops = {
