@@ -438,6 +438,7 @@ static const struct clk_parent_data gcc_xo_gpll0_gpll2_gpll4_pi_sleep[] = {
 	{ .hw = &gpll0.clkr.hw },
 	{ .hw = &gpll2.clkr.hw },
 	{ .hw = &gpll4.clkr.hw },
+	{ .fw_name = "sleep_clk" },
 };
 
 static const struct parent_map gcc_xo_gpll0_gpll2_gpll4_pi_sleep_map[] = {
@@ -2989,7 +2990,7 @@ static struct clk_rcg2 qdss_at_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "qdss_at_clk_src",
 		.parent_data = gcc_xo_gpll4_gpll0_gpll0_div2,
-		.num_parents = 5,
+		.num_parents = 4,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -3250,7 +3251,7 @@ static struct clk_rcg2 qdss_tsctr_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "qdss_tsctr_clk_src",
 		.parent_data = gcc_xo_gpll4_gpll0_gpll0_div2,
-		.num_parents = 5,
+		.num_parents = 4,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -4114,7 +4115,7 @@ static struct clk_rcg2 gp1_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "gp1_clk_src",
 		.parent_data = gcc_xo_gpll0_gpll0_sleep_clk,
-		.num_parents = 5,
+		.num_parents = 4,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -4143,7 +4144,7 @@ static struct clk_rcg2 gp2_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "gp2_clk_src",
 		.parent_data = gcc_xo_gpll0_gpll0_sleep_clk,
-		.num_parents = 5,
+		.num_parents = 4,
 		.ops = &clk_rcg2_ops,
 	},
 };
@@ -4172,7 +4173,7 @@ static struct clk_rcg2 gp3_clk_src = {
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "gp3_clk_src",
 		.parent_data = gcc_xo_gpll0_gpll0_sleep_clk,
-		.num_parents = 5,
+		.num_parents = 4,
 		.ops = &clk_rcg2_ops,
 	},
 };
