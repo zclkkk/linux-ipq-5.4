@@ -3148,6 +3148,11 @@ int cnss_ahb_alloc_fw_mem(struct cnss_plat_data *plat_priv)
 				if (!fw_mem[idx].va)
 					cnss_pr_err("WARNING: M3 Dump addr remap failed\n");
 			} else {
+				/* For QCN6122, AFC_REGION_TYPE needs to be
+				 * allocated from within the M3_DUMP_REGION.
+				 * This is because QCN6122 cannot access memory
+				 * regions allocated outside FW reserved memory
+				 */
 				if (plat_priv->device_id != QCN6122_DEVICE_ID) {
 					cnss_pr_err("Invalid AFC mem request from target");
 					CNSS_ASSERT(0);
@@ -3160,14 +3165,15 @@ int cnss_ahb_alloc_fw_mem(struct cnss_plat_data *plat_priv)
 					CNSS_ASSERT(0);
 				}
 				if (fw_mem[i].va) {
-					memset(fw_mem[i].va, 0, fw_mem[i].size);
+					memset_io(fw_mem[i].va, 0,
+						  fw_mem[i].size);
 					idx++;
 					break;
 				}
 				fw_mem[idx].pa = m3_dump.start +
 						 AFC_QCN6122_MEM_OFFSET;
 				fw_mem[idx].va = ioremap(fw_mem[idx].pa,
-						fw_mem[idx].size);
+							 fw_mem[idx].size);
 				if (!fw_mem[i].va) {
 					cnss_pr_err("AFC mem allocation failed\n");
 					fw_mem[i].pa = 0;
@@ -3538,7 +3544,14 @@ void cnss_pci_free_fw_mem(struct cnss_plat_data *plat_priv)
 			cnss_pr_dbg("Freeing FW mem of type %d\n",
 				    fw_mem[i].type);
 			if (fw_mem[i].type == AFC_REGION_TYPE) {
-				memset(fw_mem[i].va, 0, AFC_MEM_SIZE);
+				/* For QCN6122, AFC memory is ioremapped from
+				 * M3_DUMP_REGION. Use memset_io for this
+				 */
+				if (plat_priv->device_id == QCN6122_DEVICE_ID)
+					memset_io(fw_mem[i].va, 0,
+						  AFC_MEM_SIZE);
+				else
+					memset(fw_mem[i].va, 0, AFC_MEM_SIZE);
 			} else if (fw_mem[i].type ==
 				   QMI_WLFW_MLO_GLOBAL_MEM_V01) {
 				/* Do not iounmap or reset */
