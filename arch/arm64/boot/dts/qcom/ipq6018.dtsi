@@ -1323,9 +1323,10 @@
 		};
 	};
 
-	qti,tzlog {
-		compatible = "qti,tzlog";
+	tzlog: qti,tzlog {
+		compatible = "qti,tzlog-ipq6018";
 		interrupts = <GIC_SPI 244 IRQ_TYPE_EDGE_RISING>;
+		qti,tzbsp-diag-buf-start = <0x4a7df000>;
 		qti,tz-diag-buf-size = <0x3000>;
 		qti,tz-ring-off = <7>;
 		qti,tz-log-pos-info-off = <810>;

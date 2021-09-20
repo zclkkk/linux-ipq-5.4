@@ -393,7 +393,7 @@ static int qti_tzlog_probe(struct platform_device *pdev)
 				   of_device_is_compatible(np, "qti,tzlog-ipq9574") ||
 				   qti_scm_is_tz_log_encryption_supported());
 	if (!tz_hvc_log->is_diag_id) {
-		ret = of_property_read_u32(np, "qca,tzbsp-diag-buf-start",
+		ret = of_property_read_u32(np, "qti,tzbsp-diag-buf-start",
 				     &tz_hvc_log->log_buf_start);
 		if (ret) {
 			dev_err(&pdev->dev, "Error Start address required\n");

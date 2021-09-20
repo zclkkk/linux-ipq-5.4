@@ -15,6 +15,9 @@ Optional properties:
  - qti,tz_kpss: should be set in case of IPQ806x platform
  - qti,hvc-enabled: defines whether TZ supports Hypervisor mode or not
  - qti,get-smmu-state: when set, will be able to get the SMMU state
+ - qti,tzbsp-diag-buf-start: contains the TZ diag buffer start (as defined in
+		QSEE). When specified, NS world will directly read from the
+		region and dump it unlike reading the buffer via SCM interface
 
 Example:
 
@@ -48,8 +51,21 @@ IPQ807x:
 
 IPQ60xx:
 	qti,tzlog {
-		compatible = "qti,tzlog";
+		compatible = "qti,tzlog-ipq6018";
 		interrupts = <GIC_SPI 244 IRQ_TYPE_EDGE_RISING>;
+		qti,tzbsp-diag-buf-start = <0x4a7df000>;
+		qti,tz-diag-buf-size = <0x3000>;
+		qti,tz-ring-off = <7>;
+		qti,tz-log-pos-info-off = <810>;
+		qti,hvc-enabled;
+		qti,get-smmu-state;
+	};
+
+IPQ9574:
+	qti,tzlog {
+		compatible = "qti,tzlog-ipq9574";
+		interrupts = <GIC_SPI 244 IRQ_TYPE_EDGE_RISING>;
+		qti,tzbsp-diag-buf-start = <0x4a7df000>;
 		qti,tz-diag-buf-size = <0x3000>;
 		qti,tz-ring-off = <7>;
 		qti,tz-log-pos-info-off = <810>;
