@@ -149,6 +149,7 @@
 			#phy-cells = <0>;
 			status = "ok";
 		};
+
 		mdio0: mdio@88000 {
 			#address-cells = <1>;
 			#size-cells = <1>;
@@ -165,6 +166,14 @@
 			compatible = "qcom,qca-mdio";
 			reg = <0x90000 0x64>;
 			status = "disabled";
+		};
+
+		prng: qrng@e3000 {
+			compatible = "qcom,msm-rng";
+			reg = <0xe3000 0x1000>;
+			clocks = <&gcc GCC_PRNG_AHB_CLK>;
+			clock-names = "km_clk_src";
+			qcom,no-qrng-config;
 		};
 
 		ess-instance {
