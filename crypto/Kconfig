@@ -260,6 +260,13 @@ config CRYPTO_NO_ZERO_LEN_HASH
 	help
 	  Disable support for zero data length cases
 
+config CRYPTO_NO_AES_XTS_ZERO_KEY_SUPPORT
+	bool "Disable support for zero key test cases"
+	default y
+	depends on CRYPTO_TEST
+	help
+	  Disable support for zero key test cases
+
 config CRYPTO_SIMD
 	tristate
 	select CRYPTO_CRYPTD

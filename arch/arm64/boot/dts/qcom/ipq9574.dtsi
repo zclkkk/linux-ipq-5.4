@@ -1008,8 +1008,9 @@
 
 			dmas = <&qpic_bam 0>,
 				<&qpic_bam 1>,
-				<&qpic_bam 2>;
-			dma-names = "tx", "rx", "cmd";
+				<&qpic_bam 2>,
+				<&qpic_bam 3>;
+			dma-names = "tx", "rx", "cmd", "sts";
 			status = "disabled";
 		};
 

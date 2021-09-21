@@ -413,7 +413,7 @@
 				<&qpic_bam 1>,
 				<&qpic_bam 2>,
 				<&qpic_bam 3>;
-			dma-names = "tx", "rx", "cmd", "status";
+			dma-names = "tx", "rx", "cmd", "sts";
 
 			qpic,io_macro_clk_rates = <24000000 100000000 200000000 320000000>;
 			status = "disabled";
