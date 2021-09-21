@@ -62,6 +62,7 @@
 #define	NAND_READ_LOCATION_LAST_CW_2	0xf48
 #define	NAND_READ_LOCATION_LAST_CW_3	0xf4c
 #define	NAND_QSPI_MSTR_CONFIG		0xf60
+#define	NAND_FLASH_FEATURES		0xf64
 
 /* dummy register offsets, used by write_reg_dma */
 #define	NAND_DEV_CMD1_RESTORE		0xdead
@@ -81,6 +82,8 @@
 #define	FS_MPU_ERR			BIT(8)
 #define	FS_DEVICE_STS_ERR		BIT(16)
 #define	FS_DEVICE_WP			BIT(23)
+#define	FS_TIMEOUT_ERR			BIT(6)
+#define	FLASH_ERROR			(FS_OP_ERR | FS_MPU_ERR | FS_TIMEOUT_ERR)
 
 /* NAND_BUFFER_STATUS bits */
 #define	BS_UNCORRECTABLE_BIT		BIT(8)
@@ -165,6 +168,7 @@
 #define	OP_BLOCK_ERASE			0xa
 #define	OP_FETCH_ID			0xb
 #define	OP_RESET_DEVICE			0xd
+#define	ACC_FEATURE			0xe
 
 /* Default Value for NAND_DEV_CMD_VLD */
 #define NAND_DEV_CMD_VLD_VAL		(READ_START_VLD | WRITE_START_VLD | \
@@ -210,11 +214,17 @@
 #define	SPI_NUM_ADDR	0xDA4DB
 #define	WAIT_CNT	0x10
 
+#define	NAND_CMD_SET_FEATURE_SERIAL	0x1F
+#define	NAND_CMD_GET_FEATURE_SERIAL	0x0F
+#define	SPI_FLASH_FEATURE_REG		0xB0
+#define	SPI_FLASH_QUAD_MODE		0x1
+
 /* QSPI NAND CMD reg bits value */
 #define	SPI_WP		(1 << 28)
 #define	SPI_HOLD	(1 << 27)
 #define	SPI_TRANSFER_MODE_x1	(1 << 29)
 #define	SPI_TRANSFER_MODE_x4	(3 << 29)
+#define	QPIC_SET_FEATURE	(1 << 31)
 #define QPIC_v2_0	0x2
 #define FEEDBACK_CLK_EN	(1 << 4)
 #define MAX_TRAINING_BLK	8
@@ -381,6 +391,7 @@ struct nandc_regs {
 	__le32 read_location_last1;
 	__le32 read_location_last2;
 	__le32 read_location_last3;
+	__le32 flash_feature;
 	__le32 spi_cfg;
 	__le32 num_addr_cycle;
 	__le32 busy_wait_cnt;
@@ -507,6 +518,8 @@ struct qcom_nand_controller {
  * @cfg0, cfg1, cfg0_raw..:	NANDc register configurations needed for
  *				ecc/non-ecc mode for the current nand flash
  *				device
+ *
+ * @quad_mode:			x4 mode for serial nand device.
  */
 struct qcom_nand_host {
 	struct nand_chip chip;
@@ -529,6 +542,7 @@ struct qcom_nand_host {
 	u32 ecc_bch_cfg;
 	u32 clrflashstatus;
 	u32 clrreadstatus;
+	bool quad_mode;
 };
 
 /*
@@ -540,6 +554,10 @@ struct qcom_nand_host {
  * @dev_cmd_reg_start - NAND_DEV_CMD_* registers starting offset
  * @is_serial_nand - QSPI nand flag, whether QPIC support serial nand or not
  * @qpic_v2 - flag to indicate QPIC IP version 2
+ * @is_serial_training - flag to enable or disable serial training
+ * @quad_mode - flag to enable or disable quad mode
+ * @page_scope - flag to enable or disable page scope
+ * @dev_cmd_reg_start - device command register start
  */
 struct qcom_nandc_props {
 	u32 ecc_modes;
@@ -548,6 +566,7 @@ struct qcom_nandc_props {
 	bool is_serial_nand;
 	bool qpic_v2;
 	bool is_serial_training;
+	bool quad_mode;
 	bool page_scope;
 	u32 dev_cmd_reg_start;
 };
@@ -756,6 +775,8 @@ static __le32 *offset_to_nandc_reg(struct nandc_regs *regs, int offset)
 		return &regs->busy_wait_cnt;
 	case NAND_QSPI_MSTR_CONFIG:
 		return &regs->mstr_cfg;
+	case NAND_FLASH_FEATURES:
+		return &regs->flash_feature;
 	default:
 		return NULL;
 	}
@@ -828,8 +849,13 @@ static void update_rw_regs(struct qcom_nand_host *host, int num_cw, bool read, i
 
 	cmd = (PAGE_ACC | LAST_PAGE);
 
-	if (nandc->props->is_serial_nand)
-		cmd |= (SPI_TRANSFER_MODE_x1 | SPI_WP | SPI_HOLD);
+	if (nandc->props->is_serial_nand) {
+		if (nandc->props->quad_mode && host->quad_mode)
+			cmd |= SPI_TRANSFER_MODE_x4;
+		else
+			cmd |= SPI_TRANSFER_MODE_x1;
+		cmd |= (SPI_WP | SPI_HOLD);
+	}
 
 	if (read) {
 		if (host->use_ecc) {
@@ -3157,6 +3183,170 @@ static int qspi_get_appropriate_phase(struct qcom_nand_controller *nandc, u8 *ph
 	return phase;
 }
 
+static int qpic_serial_check_status(__le32 *status)
+{
+	if (*(__le32 *)status & FLASH_ERROR) {
+		if (*(__le32 *)status & FS_MPU_ERR)
+			return -EPERM;
+		if (*(__le32 *)status & FS_TIMEOUT_ERR)
+			return -ETIMEDOUT;
+		if (*(__le32 *)status & FS_OP_ERR)
+			return -EIO;
+	}
+	return 0;
+}
+
+static int qcom_serial_get_feature(struct qcom_nand_controller *nandc,
+		struct qcom_nand_host *host, u32 faddr)
+{
+	u32 cmd_val = 0x0;
+	u32 command = NAND_CMD_GET_FEATURE_SERIAL;
+	int ret;
+
+	/* Clear the BAM transaction index */
+	clear_bam_transaction(nandc);
+
+	cmd_val = (SPI_TRANSFER_MODE_x1 | SPI_WP | SPI_HOLD |
+			ACC_FEATURE);
+
+	pre_command(host, command);
+
+	nandc_set_reg(nandc, NAND_FLASH_CMD, cmd_val);
+	nandc_set_reg(nandc, NAND_ADDR0, faddr);
+	nandc_set_reg(nandc, NAND_ADDR1, 0);
+
+	/* Clear the feature register value to get correct feature value */
+	nandc_set_reg(nandc, NAND_FLASH_FEATURES, 0);
+
+	nandc_set_reg(nandc, NAND_EXEC_CMD, 1);
+
+	write_reg_dma(nandc, NAND_FLASH_CMD, 3, NAND_BAM_NEXT_SGL);
+
+	write_reg_dma(nandc, NAND_FLASH_FEATURES, 1, NAND_BAM_NEXT_SGL);
+
+	write_reg_dma(nandc, NAND_EXEC_CMD, 1, NAND_BAM_NEXT_SGL);
+
+	read_reg_dma(nandc, NAND_FLASH_FEATURES, 1, NAND_BAM_NEXT_SGL);
+	/* submit the descriptor to bam for execution*/
+	ret = submit_descs(nandc);
+	free_descs(nandc);
+	if (ret) {
+		dev_err(nandc->dev, "Error in submitting descriptor for command:%d\n",
+				command);
+		return ret;
+	}
+	/* read_reg_dma will read data in to nandc->reg_read_buf
+	 * so after issueing command in read_reg_dma function read reg_read_buf
+	 * buffer
+	 */
+	ret = *(__le32 *)nandc->reg_read_buf;
+	return ret;
+}
+
+static int qcom_serial_set_feature(struct qcom_nand_controller *nandc,
+		struct qcom_nand_host *host, u32 faddr, u32 fval)
+{
+	int ret;
+	u32 command = NAND_CMD_SET_FEATURE_SERIAL;
+	u32 cmd_val = (SPI_TRANSFER_MODE_x1 | SPI_WP | SPI_HOLD |
+			ACC_FEATURE | QPIC_SET_FEATURE);
+
+	/* Clear the BAM transaction index */
+	clear_bam_transaction(nandc);
+
+	pre_command(host, command);
+
+	nandc_set_reg(nandc, NAND_FLASH_CMD, cmd_val);
+	nandc_set_reg(nandc, NAND_ADDR0, faddr);
+	nandc_set_reg(nandc, NAND_ADDR1, 0);
+	nandc_set_reg(nandc, NAND_FLASH_FEATURES, fval);
+
+	nandc_set_reg(nandc, NAND_EXEC_CMD, 1);
+
+	write_reg_dma(nandc, NAND_FLASH_CMD, 3, NAND_BAM_NEXT_SGL);
+
+	write_reg_dma(nandc, NAND_FLASH_FEATURES, 1, NAND_BAM_NEXT_SGL);
+
+	write_reg_dma(nandc, NAND_EXEC_CMD, 1, NAND_BAM_NEXT_SGL);
+
+	read_reg_dma(nandc, NAND_FLASH_STATUS, 1, NAND_BAM_NEXT_SGL);
+
+	/* submit the descriptor to bam for execution*/
+	ret = submit_descs(nandc);
+	free_descs(nandc);
+	if (ret) {
+		dev_err(nandc->dev, "Error in submitting descriptor for command:%d\n",
+				command);
+		return ret;
+	}
+
+	/* read_reg_dma will read data in to nandc->reg_read_buf
+	 * so after issueing command in read_reg_dma function read reg_read_buf
+	 * buffer
+	 */
+	ret = qpic_serial_check_status(nandc->reg_read_buf);
+	if (ret) {
+		dev_err(nandc->dev, "Error in executing command:%d\n",command);
+		return ret;
+	}
+	return ret;
+}
+
+
+static int qspi_nand_device_config(struct qcom_nand_controller *nandc,
+				   struct qcom_nand_host *host, struct mtd_info *mtd)
+{
+	int status = 0;
+
+	nandc->buf_count = 4;
+	memset(nandc->reg_read_buf, 0x0, nandc->buf_count);
+
+	if (nandc->props->quad_mode) {
+		/* Check if device supports x4 Mode and enable it if not enabled*/
+		status = qcom_serial_get_feature(nandc, host,
+							SPI_FLASH_FEATURE_REG);
+		if (status < 0) {
+			dev_err(nandc->dev, "Error in getting feature x4 mode\n");
+			return status;
+		}
+
+		if (!((status >> 8) & SPI_FLASH_QUAD_MODE)) {
+			/* If x4 mode bit not enabled issue set feature command
+			 * to enable quad mode bit of flash device.
+			 */
+			status = qcom_serial_set_feature(nandc, host,
+							SPI_FLASH_FEATURE_REG,
+							SPI_FLASH_QUAD_MODE);
+			if (status < 0) {
+				dev_err(nandc->dev, "Error in setting feature x4 mode\n");
+				return status;
+			}
+			/* again issue the get feature command to check if quad
+			 * mode is enabled or not
+			 */
+			status = qcom_serial_get_feature(nandc, host,
+							SPI_FLASH_FEATURE_REG);
+			if (status < 0) {
+				dev_err(nandc->dev, "Error in getting feature x4 mode\n");
+				return status;
+			}
+
+			if ((status >> 8) & SPI_FLASH_QUAD_MODE) {
+				host->quad_mode = true;
+				dev_info(nandc->dev, "x4 mode enabled successfully\n");
+			} else {
+				host->quad_mode = false;
+				dev_err(nandc->dev, "x4 mode not enabled, using x1 mode\n");
+				return 0;
+			}
+		} else {
+			dev_info(nandc->dev, "x4 mode enabled already remotely\n");
+			host->quad_mode = true;
+		}
+	}
+	return 0;
+}
+
 static int qspi_execute_training(struct qcom_nand_controller *nandc,
 		struct qcom_nand_host *host, struct mtd_info *mtd)
 {
@@ -3390,8 +3580,16 @@ static int qcom_nand_host_init_and_register(struct qcom_nand_controller *nandc,
 	 * Rx clock should be adjusted according to delays so that Rx Data
 	 * can be captured correctly.
 	 */
-	if (nandc->props->is_serial_nand && nandc->props->is_serial_training)
-		qspi_execute_training(nandc, host, mtd);
+	if (nandc->props->is_serial_nand) {
+		ret = qspi_nand_device_config(nandc, host, mtd);
+		if (ret)
+			dev_err(nandc->dev, "qspi_nand device config failed\n");
+		if (nandc->props->is_serial_training) {
+			ret = qspi_execute_training(nandc, host, mtd);
+			if (ret)
+				dev_err(nandc->dev, "failed to enable serial training\n");
+		}
+	}
 
 	ret = mtd_device_register(mtd, NULL, 0);
 	if (ret)
@@ -3606,6 +3804,7 @@ static const struct qcom_nandc_props ipq5018_nandc_props = {
 	.is_serial_nand = true,
 	.qpic_v2 = true,
 	.is_serial_training = true,
+	.quad_mode = true,
 	.page_scope = true,
 	.dev_cmd_reg_start = 0x7000,
 };
@@ -3616,6 +3815,7 @@ static const struct qcom_nandc_props ipq9574_nandc_props = {
 	.is_serial_nand = true,
 	.qpic_v2 = true,
 	.is_serial_training = true,
+	.quad_mode = true,
 	.page_scope = true,
 	.dev_cmd_reg_start = 0x7000,
 };
