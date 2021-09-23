@@ -250,6 +250,13 @@
 						<&funnel_in0_in_funnel_mm>;
 				};
 			};
+
+			port@1 {
+				reg = <6>;
+				funnel_mm_in_atb:endpoint {
+					slave-mode;
+				};
+			};
 		};
 	};
 
