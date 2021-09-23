@@ -84,8 +84,8 @@
 		reg = <0xa4000 0x1000>, <0x0193d008 0x4>;
 		reg-names = "fuse_base", "cpr_tcsr_reg";
 		qcom,cpr-ctrl-name = "npu";
-		//vdd-supply = <&s4>;
-		qcom,voltage-step = <8000>;
+		vdd-supply = <&ipq9574_s2>;
+		qcom,voltage-step = <12500>;
 		thread@0 {
 			qcom,cpr-thread-id = <0>;
 			qcom,cpr-consecutive-up = <0>;
@@ -97,47 +97,19 @@
 				regulator-name = "npu_corner";
 				regulator-min-microvolt = <1>;
 				regulator-max-microvolt = <3>;
-				qcom,cpr-part-types = <2>;
-				qcom,cpr-parts-voltage = <968000>;
-				qcom,cpr-parts-voltage-v2 = <832001>;
-				qcom,cpr-cold-temp-threshold-v2 = <30>;
 				qcom,cpr-fuse-corners = <2>;
 				qcom,cpr-fuse-combos = <1>;
 				qcom,cpr-corners = <2>;
 				qcom,cpr-speed-bins = <1>;
 				qcom,cpr-speed-bin-corners = <2>;
-				qcom,allow-voltage-interpolation;
+				//qcom,allow-voltage-interpolation;
 				qcom,cpr-corner-fmax-map = <1 2>;
 				qcom,cpr-voltage-ceiling =
-					<912000 992000>;
+					<862500 987500>;
 				qcom,cpr-voltage-floor =
-					<752000 792000>;
+					<712500 787500>;
 				qcom,corner-frequencies =
 					<1497600000 1689600000>;
-
-				/* TT/FF parts i.e. turbo OL voltage < 968 mV */
-				qcom,cpr-open-loop-voltage-fuse-adjustment-0 =
-					< 40000   40000>;
-
-				/* SS parts i.e turbo OL voltage >= 968 mV */
-				qcom,cpr-open-loop-voltage-fuse-adjustment-1 =
-					< 24000   24000>;
-
-				/* FF parts i.e. turbo OL voltage <= 832 mV */
-				qcom,cpr-open-loop-voltage-fuse-adjustment-v2-0=
-					<40000   40000>;
-
-				 /* TT/SS parts i.e turbo OL voltage > 832 mV */
-				qcom,cpr-open-loop-voltage-fuse-adjustment-v2-1=
-					<40000   40000>;
-
-				/* FF parts i.e. turbo OL voltage <= 832 mV */
-				qcom,cpr-cold-temp-voltage-adjustment-v2-0 =
-					<0   0>;
-
-				/* TT/SS parts i.e turbo OL voltage > 832 mV */
-				qcom,cpr-cold-temp-voltage-adjustment-v2-1 =
-					<35000   27000>;
 			};
 		};
 	};
