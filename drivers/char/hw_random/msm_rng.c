@@ -41,8 +41,8 @@
 #define MAX_HW_FIFO_DEPTH 16                     /* FIFO is 16 words deep */
 #define MAX_HW_FIFO_SIZE (MAX_HW_FIFO_DEPTH * 4) /* FIFO is 32 bits wide  */
 
-#define RETRY_MAX_CNT		5	/* max retry times to read register */
-#define RETRY_DELAY_INTERVAL	440	/* retry delay interval in us */
+#define RETRY_MAX_CNT		500	/* max retry times to read register */
+#define RETRY_DELAY_INTERVAL	6	/* retry delay interval in us */
 
 struct msm_rng_device {
 	struct platform_device *pdev;
@@ -130,6 +130,8 @@ static int msm_rng_direct_read(struct msm_rng_device *msm_rng_dev,
 
 			/* read FIFO */
 			val = readl_relaxed(base + PRNG_DATA_OUT_OFFSET);
+			if (!val)
+				break;	/* no data to read so just bail */
 
 			/* write data back to callers pointer */
 			*(retdata++) = val;

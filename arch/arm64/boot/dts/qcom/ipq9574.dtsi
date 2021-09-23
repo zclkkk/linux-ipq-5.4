@@ -122,6 +122,7 @@
 	firmware {
 		scm {
 			compatible = "qcom,scm";
+			hvc-log-cmd-id = <0xA>;
 			smmu-state-cmd-id = <0x20>;
 		};
 
@@ -152,8 +153,8 @@
 	tzlog: qti,tzlog {
 		compatible = "qti,tzlog-ipq9574";
 		interrupts = <GIC_SPI 244 IRQ_TYPE_EDGE_RISING>;
-		qca,tzbsp-diag-buf-start = <0x4a7df000>;
-		qti,tz-diag-buf-size = <0x2000>;
+		qti,tzbsp-diag-buf-start = <0x4a7df000>;
+		qti,tz-diag-buf-size = <0x3000>;
 		qti,tz-ring-off = <7>;
 		qti,tz-log-pos-info-off = <810>;
 		qti,hvc-enabled;
@@ -209,8 +210,6 @@
 			compatible = "qcom,bam-v1.7.0";
 			reg = <0x00704000 0x20000>;
 			interrupts = <GIC_SPI 207 IRQ_TYPE_LEVEL_HIGH>;
-			clocks = <&gcc GCC_CRYPTO_AHB_CLK>;
-			clock-names = "bam_clk";
 			#dma-cells = <1>;
 			qcom,ee = <1>;
 			qcom,controlled-remotely = <1>;
@@ -219,12 +218,9 @@
 		crypto: crypto@73a000 {
 			compatible = "qcom,crypto-v5.1";
 			reg = <0x0073a000 0x6000>;
-			clocks = <&gcc GCC_CRYPTO_AHB_CLK>,
-				<&gcc GCC_CRYPTO_AXI_CLK>,
-				<&gcc GCC_CRYPTO_CLK>;
-			clock-names = "iface", "bus", "core";
 			dmas = <&cryptobam 2>, <&cryptobam 3>;
 			dma-names = "rx", "tx";
+			qce,no-clock-init;
 		};
 
 		intc: interrupt-controller@b000000 {
@@ -271,7 +267,7 @@
 		mdio@90000 {
 			#address-cells = <1>;
 			#size-cells = <1>;
-			compatible = "qcom,qca-mdio", "qcom,ipq40xx-mdio";
+			compatible = "qcom,qca-mdio";
 			reg = <0x90000 0x64>;
 			clocks = <&gcc GCC_MDIO_AHB_CLK>;
 			clock-names = "gcc_mdio_ahb_clk";
@@ -1012,8 +1008,9 @@
 
 			dmas = <&qpic_bam 0>,
 				<&qpic_bam 1>,
-				<&qpic_bam 2>;
-			dma-names = "tx", "rx", "cmd";
+				<&qpic_bam 2>,
+				<&qpic_bam 3>;
+			dma-names = "tx", "rx", "cmd", "sts";
 			status = "disabled";
 		};
 
@@ -1798,7 +1795,15 @@
 				 <&gcc GCC_WCSS_DBG_IFC_APB_BDG_CLK>,
 				 <&gcc GCC_WCSS_DBG_IFC_ATB_BDG_CLK>,
 				 <&gcc GCC_WCSS_DBG_IFC_DAPBUS_BDG_CLK>,
-				 <&gcc GCC_WCSS_DBG_IFC_NTS_BDG_CLK>;
+				 <&gcc GCC_WCSS_DBG_IFC_NTS_BDG_CLK>,
+				 <&gcc GCC_WCSS_DBG_IFC_APB_CLK>,
+				 <&gcc GCC_WCSS_DBG_IFC_ATB_CLK>,
+				 <&gcc GCC_WCSS_DBG_IFC_DAPBUS_CLK>,
+				 <&gcc GCC_WCSS_DBG_IFC_NTS_CLK>,
+				 <&gcc GCC_Q6_TSCTR_1TO2_CLK>,
+				 <&gcc GCC_Q6SS_ATBM_CLK>,
+				 <&gcc GCC_Q6SS_PCLKDBG_CLK>,
+				 <&gcc GCC_Q6SS_TRIG_CLK>;
 
 			clock-names = "anoc_wcss_axi_m",
 				      "wcss_ahb_s",
@@ -1813,7 +1818,15 @@
 				      "dbg-apb-bdg",
 				      "dbg-atb-bdg",
 				      "dbg-dapbus-bdg",
-				      "dbg-nts-bdg";
+				      "dbg-nts-bdg",
+				      "dbg-apb",
+				      "dbg-atb",
+				      "dbg-dapbus",
+				      "dbg-nts",
+				      "q6_tsctr_1to2_clk",
+				      "q6ss_atbm_clk",
+				      "q6ss_pclkdbg_clk",
+				      "q6ss_trig_clk";
 
 			qcom,halt-regs = <&tcsr_q6_block 0xa000 0xd000 0x0>;
 
@@ -1850,6 +1863,9 @@
 				 <&gcc GCC_SNOC_PCIE0_1LANE_S_CLK>;
 			clock-names = "aux", "cfg_ahb", "anoc_lane", "snoc_lane";
 
+			assigned-clocks = <&gcc GCC_PCIE0_AUX_CLK>;
+			assigned-clock-rates = <20000000>;
+
 			resets = <&gcc GCC_PCIE0_PHY_BCR>,
 				<&gcc GCC_PCIE0PHY_PHY_BCR>;
 			reset-names = "phy", "common";
@@ -1883,6 +1899,9 @@
 				 <&gcc GCC_SNOC_PCIE1_1LANE_S_CLK>;
 			clock-names = "aux", "cfg_ahb", "anoc_lane", "snoc_lane";
 
+			assigned-clocks = <&gcc GCC_PCIE1_AUX_CLK>;
+			assigned-clock-rates = <20000000>;
+
 			resets = <&gcc GCC_PCIE1_PHY_BCR>,
 				<&gcc GCC_PCIE1PHY_PHY_BCR>;
 			reset-names = "phy", "common";
@@ -1915,6 +1934,9 @@
 				 <&gcc GCC_ANOC_PCIE2_2LANE_M_CLK>,
 				 <&gcc GCC_SNOC_PCIE2_2LANE_S_CLK>;
 			clock-names = "aux", "cfg_ahb", "anoc_lane", "snoc_lane";
+
+			assigned-clocks = <&gcc GCC_PCIE2_AUX_CLK>;
+			assigned-clock-rates = <20000000>;
 
 			resets = <&gcc GCC_PCIE2_PHY_BCR>,
 				<&gcc GCC_PCIE2PHY_PHY_BCR>;
@@ -1951,6 +1973,9 @@
 				 <&gcc GCC_ANOC_PCIE3_2LANE_M_CLK>,
 				 <&gcc GCC_SNOC_PCIE3_2LANE_S_CLK>;
 			clock-names = "aux", "cfg_ahb", "anoc_lane", "snoc_lane";
+
+			assigned-clocks = <&gcc GCC_PCIE3_AUX_CLK>;
+			assigned-clock-rates = <20000000>;
 
 			resets = <&gcc GCC_PCIE3_PHY_BCR>,
 				<&gcc GCC_PCIE3PHY_PHY_BCR>;
@@ -2544,3 +2569,4 @@
 
 #include "ipq9574-coresight.dtsi"
 #include "ipq9574-thermal.dtsi"
+#include "ipq9574-cpr-regulator.dtsi"

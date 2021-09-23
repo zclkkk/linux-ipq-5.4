@@ -47,6 +47,11 @@ module_param(pci2_num_msi_bmap, int, 0644);
 MODULE_PARM_DESC(pci2_num_msi_bmap,
 		 "Bitmap to indicate number of available MSIs for PCI 2");
 
+static int pci3_num_msi_bmap;
+module_param(pci3_num_msi_bmap, int, 0644);
+MODULE_PARM_DESC(pci3_num_msi_bmap,
+		 "Bitmap to indicate number of available MSIs for PCI 3");
+
 #define MSI_MHI_VECTOR_MASK 0xFF
 #define MSI_MHI_VECTOR_SHIFT 0
 
@@ -3143,6 +3148,11 @@ int cnss_ahb_alloc_fw_mem(struct cnss_plat_data *plat_priv)
 				if (!fw_mem[idx].va)
 					cnss_pr_err("WARNING: M3 Dump addr remap failed\n");
 			} else {
+				/* For QCN6122, AFC_REGION_TYPE needs to be
+				 * allocated from within the M3_DUMP_REGION.
+				 * This is because QCN6122 cannot access memory
+				 * regions allocated outside FW reserved memory
+				 */
 				if (plat_priv->device_id != QCN6122_DEVICE_ID) {
 					cnss_pr_err("Invalid AFC mem request from target");
 					CNSS_ASSERT(0);
@@ -3155,14 +3165,15 @@ int cnss_ahb_alloc_fw_mem(struct cnss_plat_data *plat_priv)
 					CNSS_ASSERT(0);
 				}
 				if (fw_mem[i].va) {
-					memset(fw_mem[i].va, 0, fw_mem[i].size);
+					memset_io(fw_mem[i].va, 0,
+						  fw_mem[i].size);
 					idx++;
 					break;
 				}
 				fw_mem[idx].pa = m3_dump.start +
 						 AFC_QCN6122_MEM_OFFSET;
 				fw_mem[idx].va = ioremap(fw_mem[idx].pa,
-						fw_mem[idx].size);
+							 fw_mem[idx].size);
 				if (!fw_mem[i].va) {
 					cnss_pr_err("AFC mem allocation failed\n");
 					fw_mem[i].pa = 0;
@@ -3533,7 +3544,14 @@ void cnss_pci_free_fw_mem(struct cnss_plat_data *plat_priv)
 			cnss_pr_dbg("Freeing FW mem of type %d\n",
 				    fw_mem[i].type);
 			if (fw_mem[i].type == AFC_REGION_TYPE) {
-				memset(fw_mem[i].va, 0, AFC_MEM_SIZE);
+				/* For QCN6122, AFC memory is ioremapped from
+				 * M3_DUMP_REGION. Use memset_io for this
+				 */
+				if (plat_priv->device_id == QCN6122_DEVICE_ID)
+					memset_io(fw_mem[i].va, 0,
+						  AFC_MEM_SIZE);
+				else
+					memset(fw_mem[i].va, 0, AFC_MEM_SIZE);
 			} else if (fw_mem[i].type ==
 				   QMI_WLFW_MLO_GLOBAL_MEM_V01) {
 				/* Do not iounmap or reset */
@@ -3936,6 +3954,26 @@ static struct cnss_msi_config msi_config_qcn9000_pci1 = {
 	},
 };
 
+static struct cnss_msi_config msi_config_qcn9000_pci2 = {
+	.total_vectors = 16,
+	.total_users = 3,
+	.users = (struct cnss_msi_user[]) {
+		{ .name = "MHI", .num_vectors = 3, .base_vector = 0 },
+		{ .name = "CE", .num_vectors = 5, .base_vector = 3 },
+		{ .name = "DP", .num_vectors = 8, .base_vector = 8 },
+	},
+};
+
+static struct cnss_msi_config msi_config_qcn9000_pci3 = {
+	.total_vectors = 16,
+	.total_users = 3,
+	.users = (struct cnss_msi_user[]) {
+		{ .name = "MHI", .num_vectors = 3, .base_vector = 0 },
+		{ .name = "CE", .num_vectors = 5, .base_vector = 3 },
+		{ .name = "DP", .num_vectors = 8, .base_vector = 8 },
+	},
+};
+
 static struct cnss_msi_config msi_config_qcn9224_pci0 = {
 	.total_vectors = 16,
 	.total_users = 3,
@@ -3957,6 +3995,16 @@ static struct cnss_msi_config msi_config_qcn9224_pci1 = {
 };
 
 static struct cnss_msi_config msi_config_qcn9224_pci2 = {
+	.total_vectors = 16,
+	.total_users = 3,
+	.users = (struct cnss_msi_user[]) {
+		{ .name = "MHI", .num_vectors = 3, .base_vector = 0 },
+		{ .name = "CE", .num_vectors = 5, .base_vector = 3 },
+		{ .name = "DP", .num_vectors = 8, .base_vector = 8 },
+	},
+};
+
+static struct cnss_msi_config msi_config_qcn9224_pci3 = {
 	.total_vectors = 16,
 	.total_users = 3,
 	.users = (struct cnss_msi_user[]) {
@@ -4001,8 +4049,13 @@ static void pci_override_msi_assignment(struct cnss_plat_data *plat_priv,
 	    plat_priv->qrtr_node_id == QCN9224_1)
 		interrupt_bmap = pci1_num_msi_bmap;
 
-	if (plat_priv->qrtr_node_id == QCN9224_2)
+	if (plat_priv->qrtr_node_id == QCN9224_2 ||
+	    plat_priv->qrtr_node_id == QCN9000_2)
 		interrupt_bmap = pci2_num_msi_bmap;
+
+	if (plat_priv->qrtr_node_id == QCN9000_3 ||
+	    plat_priv->qrtr_node_id == QCN9224_3)
+		interrupt_bmap = pci3_num_msi_bmap;
 
 	if (!interrupt_bmap)
 		return;
@@ -4048,6 +4101,16 @@ static int cnss_pci_get_msi_assignment(struct cnss_pci_data *pci_priv)
 					    &msi_config_qcn9000_pci1);
 		pci_priv->msi_config = &msi_config_qcn9000_pci1;
 		break;
+	case QCN9000_2:
+		pci_override_msi_assignment(pci_priv->plat_priv,
+					    &msi_config_qcn9000_pci2);
+		pci_priv->msi_config = &msi_config_qcn9000_pci2;
+		break;
+	case QCN9000_3:
+		pci_override_msi_assignment(pci_priv->plat_priv,
+					    &msi_config_qcn9000_pci3);
+		pci_priv->msi_config = &msi_config_qcn9000_pci3;
+		break;
 	case QCN9224_0:
 		pci_override_msi_assignment(pci_priv->plat_priv,
 					    &msi_config_qcn9224_pci0);
@@ -4062,6 +4125,11 @@ static int cnss_pci_get_msi_assignment(struct cnss_pci_data *pci_priv)
 		pci_override_msi_assignment(pci_priv->plat_priv,
 					    &msi_config_qcn9224_pci2);
 		pci_priv->msi_config = &msi_config_qcn9224_pci2;
+		break;
+	case QCN9224_3:
+		pci_override_msi_assignment(pci_priv->plat_priv,
+					    &msi_config_qcn9224_pci3);
+		pci_priv->msi_config = &msi_config_qcn9224_pci3;
 		break;
 	default:
 		pr_err("Unknown qrtr_node_id 0x%X", qrtr_node_id);
@@ -4196,6 +4264,8 @@ int cnss_get_pci_slot(struct device *dev)
 		return plat_priv->qrtr_node_id - QCN9000_0;
 	case QCN9224_DEVICE_ID:
 		return plat_priv->qrtr_node_id - QCN9224_0;
+	case QCN6122_DEVICE_ID:
+		return plat_priv->userpd_id - QCN6122_0;
 	default:
 		cnss_pr_info("PCI slot is 0 for target 0x%lx",
 			     plat_priv->device_id);

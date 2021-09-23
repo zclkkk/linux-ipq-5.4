@@ -554,15 +554,15 @@
 			phy-mode = "sgmii";
 		};
 
-		qcom,test@0 {
-			status = "ok";
-		};
-
 		nss-macsec1 {
 			compatible = "qcom,nss-macsec";
 			phy_addr = <0x1c>;
 			mdiobus = <&mdio1>;
 		};
+	};
+
+	qcom,test@0 {
+		status = "ok";
 	};
 
 	thermal-zones {
@@ -669,6 +669,11 @@
 	device-power-gpio = <&tlmm 24 1>;
 };
 
+&pcie_x1 {
+	status = "disabled";
+	perst-gpio = <&tlmm 18 1>;
+};
+
 &pcie_x2 {
 	status = "ok";
 	perst-gpio = <&tlmm 15 1>;
@@ -684,8 +689,20 @@
 	status = "ok";
 };
 
+&pcie_x1phy {
+	status = "disabled";
+};
+
 &pcie_x2phy {
 	status = "ok";
+};
+
+&pcie_x1_rp {
+        status = "disabled";
+
+	mhi_0: qcom,mhi@0 {
+		reg = <0 0 0 0 0 >;
+	};
 };
 
 &pcie_x2_rp {

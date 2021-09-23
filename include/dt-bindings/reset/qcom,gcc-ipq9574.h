@@ -59,7 +59,6 @@
 #define GCC_CMN_BLK_AHB_ARES					50
 #define GCC_CMN_BLK_SYS_ARES					51
 #define GCC_CMN_BLK_APU_ARES					52
-#define GCC_CRYPTO_BCR						53
 #define GCC_DCC_BCR						54
 #define GCC_DDRSS_BCR						55
 #define GCC_IMEM_BCR						56

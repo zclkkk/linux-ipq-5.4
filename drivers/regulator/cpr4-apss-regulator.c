@@ -38,6 +38,7 @@
 #define IPQ807x_APSS_FUSE_CORNERS	4
 #define IPQ817x_APPS_FUSE_CORNERS	2
 #define IPQ6018_APSS_FUSE_CORNERS 	4
+#define IPQ9574_APSS_FUSE_CORNERS       4
 
 u32 g_valid_fuse_count = IPQ807x_APSS_FUSE_CORNERS;
 
@@ -342,6 +343,91 @@ struct mem_acc_tcsr {
 static struct mem_acc_tcsr ipq6018_mem_acc_tcsr[IPQ6018_APSS_MEM_ACC_TCSR_COUNT] = {
 	{TCSR_MEM_ACC_SW_OVERRIDE_LEGACY_APC0, NULL, 0x10},
 	{TCSR_CUSTOM_VDDAPC0_ACC_1, NULL, 0x1},
+};
+
+/*
+ * IPQ9574 (Few parameters are changed, remaining are same as IPQ6018)
+ */
+#define IPQ9574_APSS_FUSE_STEP_VOLT             10000
+
+static struct cpr3_fuse_param
+ipq9574_apss_ro_sel_param[IPQ9574_APSS_FUSE_CORNERS][2] = {
+	{{107, 4, 7}, {} },
+	{{107, 0, 3}, {} },
+	{{106, 4, 7}, {} },
+	{{106, 0, 3}, {} },
+};
+
+static struct cpr3_fuse_param
+ipq9574_apss_init_voltage_param[IPQ9574_APSS_FUSE_CORNERS][2] = {
+	{{104, 24, 29}, {} },
+	{{104, 18, 23}, {} },
+	{{104, 12, 17}, {} },
+	{{104,  6, 11}, {} },
+};
+
+static struct cpr3_fuse_param
+ipq9574_apss_target_quot_param[IPQ9574_APSS_FUSE_CORNERS][2] = {
+	{{106, 32, 43}, {} },
+	{{106, 20, 31}, {} },
+	{{106,  8, 19}, {} },
+	{{106, 44, 55}, {} },
+};
+
+static struct cpr3_fuse_param
+ipq9574_apss_quot_offset_param[IPQ9574_APSS_FUSE_CORNERS][2] = {
+	{{} },
+	{{105, 48, 55}, {} },
+	{{105, 40, 47}, {} },
+	{{105, 32, 39}, {} },
+};
+
+static struct cpr3_fuse_param ipq9574_cpr_fusing_rev_param[] = {
+	{107, 8, 10},
+	{},
+};
+
+static struct cpr3_fuse_param ipq9574_apss_speed_bin_param[] = {
+	{0, 40, 42},
+	{},
+};
+
+static struct cpr3_fuse_param ipq9574_cpr_boost_fuse_cfg_param[] = {
+	{0, 43, 45},
+	{},
+};
+
+static struct cpr3_fuse_param ipq9574_apss_boost_fuse_volt_param[] = {
+	{104, 0, 5},
+	{},
+};
+
+static struct cpr3_fuse_param ipq9574_misc_fuse_volt_adj_param[] = {
+	{0, 54, 54},
+	{},
+};
+
+static struct cpr3_fuse_parameters ipq9574_fuse_params = {
+	.apss_ro_sel_param = ipq9574_apss_ro_sel_param,
+	.apss_init_voltage_param = ipq9574_apss_init_voltage_param,
+	.apss_target_quot_param = ipq9574_apss_target_quot_param,
+	.apss_quot_offset_param = ipq9574_apss_quot_offset_param,
+	.cpr_fusing_rev_param = ipq9574_cpr_fusing_rev_param,
+	.apss_speed_bin_param = ipq9574_apss_speed_bin_param,
+	.cpr_boost_fuse_cfg_param = ipq9574_cpr_boost_fuse_cfg_param,
+	.apss_boost_fuse_volt_param = ipq9574_apss_boost_fuse_volt_param,
+	.misc_fuse_volt_adj_param = ipq9574_misc_fuse_volt_adj_param
+};
+
+/*
+ * Open loop voltage fuse reference voltages in microvolts for IPQ9574
+ */
+static int ipq9574_apss_fuse_ref_volt
+	[IPQ9574_APSS_FUSE_CORNERS] = {
+	725000,
+	862500,
+	987500,
+	1062500,
 };
 
 /**
@@ -1572,6 +1658,18 @@ static const struct cpr4_reg_data ipq6018_cpr_apss = {
 	.mem_acc_funcs = &ipq6018_mem_acc_funcs,
 };
 
+static const struct cpr4_reg_data ipq9574_cpr_apss = {
+	.cpr_valid_fuse_count = IPQ9574_APSS_FUSE_CORNERS,
+	.fuse_ref_volt = ipq9574_apss_fuse_ref_volt,
+	.fuse_step_volt = IPQ6018_APSS_FUSE_STEP_VOLT,
+	.cpr_clk_rate = IPQ6018_APSS_CPR_CLOCK_RATE,
+	.boost_fuse_ref_volt = IPQ6018_APSS_BOOST_FUSE_REF_VOLT,
+	.boost_ceiling_volt = IPQ6018_APSS_BOOST_CEILING_VOLT,
+	.boost_floor_volt = IPQ6018_APSS_BOOST_FLOOR_VOLT,
+	.cpr3_fuse_params = &ipq9574_fuse_params,
+	.mem_acc_funcs = NULL,
+};
+
 static struct of_device_id cpr4_regulator_match_table[] = {
 	{
 		.compatible = "qcom,cpr4-ipq807x-apss-regulator",
@@ -1584,6 +1682,10 @@ static struct of_device_id cpr4_regulator_match_table[] = {
 	{
 		.compatible = "qcom,cpr4-ipq6018-apss-regulator",
 		.data = &ipq6018_cpr_apss
+	},
+	{
+		.compatible = "qcom,cpr4-ipq9574-apss-regulator",
+		.data = &ipq9574_cpr_apss
 	},
 	{}
 };

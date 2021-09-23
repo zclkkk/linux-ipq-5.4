@@ -149,6 +149,7 @@
 			#phy-cells = <0>;
 			status = "ok";
 		};
+
 		mdio0: mdio@88000 {
 			#address-cells = <1>;
 			#size-cells = <1>;
@@ -165,6 +166,14 @@
 			compatible = "qcom,qca-mdio";
 			reg = <0x90000 0x64>;
 			status = "disabled";
+		};
+
+		prng: qrng@e3000 {
+			compatible = "qcom,msm-rng";
+			reg = <0xe3000 0x1000>;
+			clocks = <&gcc GCC_PRNG_AHB_CLK>;
+			clock-names = "km_clk_src";
+			qcom,no-qrng-config;
 		};
 
 		ess-instance {
@@ -227,6 +236,22 @@
 			compatible = "qcom,ess-uniphy";
 			reg = <0x98000 0x800>;
 			uniphy_access_mode = "local bus";
+		};
+
+		pcie_x1phy: phy@7e000{
+			compatible = "qca,uni-pcie-phy-gen2";
+			reg = <0x7e000 0x800>;
+			phy-type = "gen2";
+			#phy-cells = <0>;
+			clocks = <&gcc GCC_PCIE1_PIPE_CLK>;
+			clock-names = "pipe_clk";
+
+			resets = <&gcc GCC_PCIE1_PHY_BCR>,
+				<&gcc GCC_PCIE1PHY_PHY_BCR>;
+			reset-names = "phy",
+					"phy_phy";
+			mode_fixed = <2>;
+			status = "disabled";
 		};
 
 		pcie_x2phy: phy@86000{
@@ -388,7 +413,7 @@
 				<&qpic_bam 1>,
 				<&qpic_bam 2>,
 				<&qpic_bam 3>;
-			dma-names = "tx", "rx", "cmd", "status";
+			dma-names = "tx", "rx", "cmd", "sts";
 
 			qpic,io_macro_clk_rates = <24000000 100000000 200000000 320000000>;
 			status = "disabled";
@@ -624,6 +649,81 @@
 				interrupts = <GIC_SPI 14 IRQ_TYPE_LEVEL_HIGH>;
 				reg = <0x0b128000 0x1000>;
 				status = "disabled";
+			};
+		};
+
+		pcie_x1: pci@80000000 {
+			compatible = "qcom,pcie-ipq5018";
+			reg =  <0x80000000 0xf1d
+				0x80000F20 0xa8
+				0x80001000 0x1000
+				0x78000 0x3000
+				0x80100000 0x1000>;
+			reg-names = "dbi", "elbi", "atu", "parf", "config";
+			device_type = "pci";
+			linux,pci-domain = <0>;
+			bus-range = <0x00 0xff>;
+			num-lanes = <1>;
+			#address-cells = <3>;
+			#size-cells = <2>;
+
+			phys = <&pcie_x1phy>;
+			phy-names ="pciephy";
+			force_gen2 = <1>;
+
+			ranges = <0x81000000 0 0x80200000 0x80200000
+				  0 0x00100000   /* downstream I/O */
+				  0x82000000 0 0x80300000 0x80300000
+				  0 0x10000000>; /* non-prefetchable memory */
+
+			#interrupt-cells = <1>;
+			interrupt-map-mask = <0 0 0 0x7>;
+			interrupt-map = <0 0 0 1 &intc 0 142
+					 IRQ_TYPE_LEVEL_HIGH>, /* int_a */
+					<0 0 0 2 &intc 0 143
+					 IRQ_TYPE_LEVEL_HIGH>, /* int_b */
+					<0 0 0 3 &intc 0 144
+					 IRQ_TYPE_LEVEL_HIGH>, /* int_c */
+					<0 0 0 4 &intc 0 145
+					 IRQ_TYPE_LEVEL_HIGH>; /* int_d */
+
+			clocks = <&gcc GCC_SYS_NOC_PCIE1_AXI_CLK>,
+				 <&gcc GCC_PCIE1_AXI_M_CLK>,
+				 <&gcc GCC_PCIE1_AXI_S_CLK>,
+				 <&gcc GCC_PCIE1_AHB_CLK>,
+				 <&gcc GCC_PCIE1_AUX_CLK>,
+				 <&gcc GCC_PCIE1_AXI_S_BRIDGE_CLK>;
+
+			clock-names = "iface",
+				      "axi_m",
+				      "axi_s",
+				      "ahb",
+				      "aux",
+				      "axi_bridge";
+
+			resets = <&gcc GCC_PCIE1_PIPE_ARES>,
+				 <&gcc GCC_PCIE1_SLEEP_ARES>,
+				 <&gcc GCC_PCIE1_CORE_STICKY_ARES>,
+				 <&gcc GCC_PCIE1_AXI_MASTER_ARES>,
+				 <&gcc GCC_PCIE1_AXI_SLAVE_ARES>,
+				 <&gcc GCC_PCIE1_AHB_ARES>,
+				 <&gcc GCC_PCIE1_AXI_MASTER_STICKY_ARES>,
+				 <&gcc GCC_PCIE1_AXI_SLAVE_STICKY_ARES>;
+
+			reset-names = "pipe",
+				      "sleep",
+				      "sticky",
+				      "axi_m",
+				      "axi_s",
+				      "ahb",
+				      "axi_m_sticky",
+				      "axi_s_sticky";
+
+			msi-parent = <&v2m0>;
+			status = "disabled";
+
+			pcie_x1_rp: pcie_x1_rp {
+				reg = <0 0 0 0 0>;
 			};
 		};
 
@@ -1053,4 +1153,12 @@
 	ctx_save: ctx-save {
 		compatible = "qti,ctxt-save-ipq5018";
 	};
+
+	qti,sps {
+		compatible = "qti,msm-sps-4k";
+		qti,pipe-attr-ee;
+	};
 };
+
+#include "ipq5018-coresight.dtsi"
+#include "ipq5018-thermal.dtsi"

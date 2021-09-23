@@ -489,6 +489,7 @@ static int qce_crypto_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct qce_device *qce;
 	int ret;
+	bool skip_clk_init = false;
 
 	qce = devm_kzalloc(dev, sizeof(*qce), GFP_KERNEL);
 	if (!qce)
@@ -508,17 +509,29 @@ static int qce_crypto_probe(struct platform_device *pdev)
 	if (device_property_read_bool(dev, "qce,use_fixed_hw_key"))
 		qce->use_fixed_key = true;
 
-	qce->core = devm_clk_get(qce->dev, "core");
-	if (IS_ERR(qce->core))
-		return PTR_ERR(qce->core);
+	if (device_property_read_bool(dev, "qce,no-clock-init"))
+		skip_clk_init = true;
 
-	qce->iface = devm_clk_get(qce->dev, "iface");
-	if (IS_ERR(qce->iface))
-		return PTR_ERR(qce->iface);
+	qce->core = devm_clk_get_optional(qce->dev, "core");
+	if (IS_ERR(qce->core)) {
+		if (!skip_clk_init)
+			return PTR_ERR(qce->core);
+		qce->core = NULL;
+	}
 
-	qce->bus = devm_clk_get(qce->dev, "bus");
-	if (IS_ERR(qce->bus))
-		return PTR_ERR(qce->bus);
+	qce->iface = devm_clk_get_optional(qce->dev, "iface");
+	if (IS_ERR(qce->iface)) {
+		if (!skip_clk_init)
+			return PTR_ERR(qce->iface);
+		qce->iface = NULL;
+	}
+
+	qce->bus = devm_clk_get_optional(qce->dev, "bus");
+	if (IS_ERR(qce->bus)) {
+		if (!skip_clk_init)
+			return PTR_ERR(qce->bus);
+		qce->bus = NULL;
+	}
 
 	ret = clk_prepare_enable(qce->core);
 	if (ret)

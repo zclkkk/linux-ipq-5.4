@@ -335,10 +335,6 @@
 			phy-mode = "sgmii";
 		};
 
-		qcom,test@0 {
-			status = "ok";
-		};
-
 		nss-macsec1 {
 			compatible = "qcom,nss-macsec";
 			phy_addr = <0x1c>;
@@ -357,6 +353,10 @@
 			status = "disabled";
 		};
 
+	};
+
+	qcom,test@0 {
+		status = "ok";
 	};
 
 	thermal-zones {
