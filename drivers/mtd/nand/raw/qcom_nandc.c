@@ -1328,7 +1328,7 @@ config_nand_cw_read(struct nand_chip *chip, bool use_ecc, int cw)
 	write_reg_dma(nandc, NAND_FLASH_CMD, 1, NAND_BAM_NEXT_SGL);
 
 	if (use_ecc) {
-		if (nandc->props->qpic_v2) {
+		if (nandc->props->qpic_v2 && nandc->props->page_scope) {
 			if (qcom_nandc_is_last_cw(ecc, cw))
 				write_reg_dma(nandc, NAND_EXEC_CMD, 1, NAND_BAM_NEXT_SGL);
 		} else {
