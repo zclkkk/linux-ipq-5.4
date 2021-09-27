@@ -1130,7 +1130,7 @@ static int q6v5_wcss_powerdown(struct q6v5_wcss *wcss)
 	int ret;
 	u32 val;
 
-	/* 
+	/*
 	1 - Assert WCSS/Q6 HALTREQ */
 	if (wcss->q6_version == Q6V6)
 		q6v6_wcss_halt_axi_port(wcss, wcss->halt_map, wcss->halt_wcss);
@@ -1935,7 +1935,7 @@ static const struct wcss_data wcss_ipq6018_res_init = {
 	.bcr_reset_required = false,
 	.ce_reset_required = false,
 	.ssr_name = "q6wcss",
-	.reset_cmd_id = 0x14,
+	.reset_cmd_id = 0x18,
 	.ops = &q6v5_wcss_ipq8074_ops,
 	.requires_force_stop = true,
 	.need_mem_protection = true,
