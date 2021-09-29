@@ -250,8 +250,15 @@ static void crashdump_init(struct rproc *rproc,
 	struct device *dev = wcss->dev;
 	struct device_node *node = NULL, *np = dev->of_node, *upd_np;
 	const struct firmware *fw;
+	char dev_name[BUF_SIZE];
 
-	handle = create_ramdump_device(rproc->name, &rproc->dev);
+	if (wcss->pd_asid)
+		snprintf(dev_name, BUF_SIZE, "q6v5_wcss_userpd%d_mem",
+							wcss->pd_asid);
+	else
+		snprintf(dev_name, BUF_SIZE, "q6mem");
+
+	handle = create_ramdump_device(dev_name, &rproc->dev);
 	if (!handle) {
 		dev_err(&rproc->dev, "unable to create ramdump device"
 						"for %s\n", rproc->name);
