@@ -4450,6 +4450,9 @@ static void cnss_pci_disable_bus(struct cnss_pci_data *pci_priv)
 	/* Call global reset here */
 	cnss_pci_global_reset(pci_priv);
 
+	/* Introduce a wait for QCN9224 emulation delays */
+	if (pci_priv->device_id == QCN9224_DEVICE_ID)
+		msleep(2000);
 
 	mhi_set_mhi_state(pci_priv->mhi_ctrl, MHI_STATE_RESET);
 
