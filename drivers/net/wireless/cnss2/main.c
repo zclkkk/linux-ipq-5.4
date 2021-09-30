@@ -82,6 +82,10 @@ static int bdf_pci1;
 module_param(bdf_pci1, int, 0644);
 MODULE_PARM_DESC(bdf_pci1, "bdf_pci1");
 
+int timeout_factor = 1;
+module_param(timeout_factor, int, 0644);
+MODULE_PARM_DESC(timeout_factor, "timeout_factor");
+
 static unsigned int driver_mode;
 module_param(driver_mode, uint, 0644);
 MODULE_PARM_DESC(driver_mode, "Global driver mode");
@@ -3645,10 +3649,13 @@ static void cnss_misc_deinit(struct cnss_plat_data *plat_priv)
 static void cnss_init_control_params(struct cnss_plat_data *plat_priv)
 {
 	plat_priv->ctrl_params.quirks = CNSS_QUIRKS_DEFAULT;
-	plat_priv->ctrl_params.mhi_timeout = CNSS_MHI_TIMEOUT_DEFAULT;
-	plat_priv->ctrl_params.qmi_timeout = CNSS_QMI_TIMEOUT_DEFAULT;
+	plat_priv->ctrl_params.mhi_timeout =
+		CNSS_MHI_TIMEOUT_DEFAULT * timeout_factor;
+	plat_priv->ctrl_params.qmi_timeout =
+		CNSS_QMI_TIMEOUT_DEFAULT * timeout_factor;
 	plat_priv->ctrl_params.bdf_type = 0;
-	plat_priv->ctrl_params.time_sync_period = CNSS_TIME_SYNC_PERIOD_DEFAULT;
+	plat_priv->ctrl_params.time_sync_period =
+		CNSS_TIME_SYNC_PERIOD_DEFAULT;
 }
 
 static const struct platform_device_id cnss_platform_id_table[] = {

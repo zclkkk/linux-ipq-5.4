@@ -122,7 +122,7 @@ static DEFINE_SPINLOCK(pci_link_down_lock);
 extern int qcom_pcie_rescan(void);
 extern void qcom_pcie_remove_bus(void);
 #endif
-
+extern int timeout_factor;
 static DEFINE_SPINLOCK(pci_reg_window_lock);
 
 #define MHI_TIMEOUT_OVERWRITE_MS	(plat_priv->ctrl_params.mhi_timeout)
@@ -4880,8 +4880,8 @@ static void cnss_mhi_notify_status(struct mhi_controller *mhi_ctrl,
 	case MHI_CB_SYS_ERROR:
 		set_bit(CNSS_DEV_ERR_NOTIFY, &plat_priv->driver_state);
 		del_timer(&plat_priv->fw_boot_timer);
-		mod_timer(&pci_priv->dev_rddm_timer,
-			  jiffies + msecs_to_jiffies(DEV_RDDM_TIMEOUT));
+		mod_timer(&pci_priv->dev_rddm_timer, jiffies +
+			  msecs_to_jiffies(DEV_RDDM_TIMEOUT * timeout_factor));
 		return;
 	case MHI_CB_EE_RDDM:
 		set_bit(CNSS_DEV_ERR_NOTIFY, &plat_priv->driver_state);
@@ -5025,6 +5025,8 @@ static int cnss_pci_register_mhi(struct cnss_pci_data *pci_priv)
 	mhi_ctrl->sbl_size = SZ_512K;
 	mhi_ctrl->seg_len = SZ_512K;
 	mhi_ctrl->fbc_download = true;
+
+	cnss_pci_mhi_config.timeout_ms *= timeout_factor;
 
 	ret = mhi_register_controller(mhi_ctrl, &cnss_pci_mhi_config);
 	if (ret) {
