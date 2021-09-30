@@ -159,6 +159,11 @@
 
 		nss0: nss@40000000 {
 			npu-supply = <&dummy_reg>;
+			mx-supply = <&dummy_reg>;
+		};
+
+		rpm-glink {
+			status = "disabled";
 		};
 
 		dp1 {
@@ -423,6 +428,7 @@
 
 &cpus {
 	cpu_opp_table: cpu_opp_table {
+		/delete-node/ opp-0;
 		opp-936000000 {
 		      opp-microvolt = <1075000>;
 		};
@@ -448,6 +454,18 @@
 		       opp-microvolt = <1075000>;
 	       };
 	};
+};
+
+&apc_apm {
+	status = "disabled";
+};
+
+&apc_cpr {
+	status = "disabled";
+};
+
+&npu_cpr {
+	status = "disabled";
 };
 
 &wifi0 {
