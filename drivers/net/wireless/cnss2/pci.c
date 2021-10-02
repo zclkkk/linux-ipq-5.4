@@ -2968,8 +2968,7 @@ int cnss_send_buffer_to_afcmem(struct device *dev, char *afcdb, uint32_t len,
 
 	return 0;
 err:
-	CNSS_ASSERT(0);
-	return -ret;
+	return ret;
 }
 EXPORT_SYMBOL(cnss_send_buffer_to_afcmem);
 
@@ -3007,10 +3006,10 @@ int cnss_reset_afcmem(struct device *dev, uint8_t slotid)
 	return 0;
 
 err:
-	CNSS_ASSERT(0);
 	return ret;
 }
 EXPORT_SYMBOL(cnss_reset_afcmem);
+
 int cnss_ahb_alloc_fw_mem(struct cnss_plat_data *plat_priv)
 {
 	struct cnss_fw_mem *fw_mem = plat_priv->fw_mem;
