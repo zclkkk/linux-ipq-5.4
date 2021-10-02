@@ -365,6 +365,14 @@
 					};
 				};
 
+				led_source@0 {
+					source = <15>;
+					mode = "normal";
+					speed = "all";
+					blink_en = "enable";
+					active = "low";
+				};
+
 			};
 		};
 		nss-macsec1 {
