@@ -14,6 +14,9 @@
 #include <linux/soc/qcom/smem_state.h>
 #include <linux/remoteproc.h>
 #include "qcom_q6v5.h"
+#include <linux/delay.h>
+
+#define STOP_ACK_TIMEOUT_MS 5000
 
 /**
  * qcom_q6v5_prepare() - reinitialize the qcom_q6v5 context before start
@@ -198,6 +201,21 @@ int qcom_q6v5_request_spawn(struct qcom_q6v5 *q6v5)
 EXPORT_SYMBOL_GPL(qcom_q6v5_request_spawn);
 
 /**
+ * qcom_q6v5_panic_handler() - stop remote processor on panic
+ * @q6v5:	reference to qcom_q6v5 context
+ *
+ */
+void qcom_q6v5_panic_handler(struct qcom_q6v5 *q6v5)
+{
+	q6v5->running = false;
+
+	qcom_smem_state_update_bits(q6v5->shutdown_state,
+			BIT(q6v5->shutdown_bit), BIT(q6v5->shutdown_bit));
+	mdelay(STOP_ACK_TIMEOUT_MS);
+}
+EXPORT_SYMBOL_GPL(qcom_q6v5_panic_handler);
+
+/**
  * qcom_q6v5_init() - initializer of the q6v5 common struct
  * @q6v5:	handle to be initialized
  * @pdev:	platform_device reference for acquiring resources
@@ -292,6 +310,12 @@ int qcom_q6v5_init(struct qcom_q6v5 *q6v5, struct platform_device *pdev,
 	if (IS_ERR(q6v5->state)) {
 		dev_err(&pdev->dev, "failed to acquire stop state\n");
 		return PTR_ERR(q6v5->state);
+	}
+
+	q6v5->shutdown_state = qcom_smem_state_get(&pdev->dev, "shutdown", &q6v5->shutdown_bit);
+	if (IS_ERR(q6v5->shutdown_state)) {
+		dev_err(&pdev->dev, "failed to acquire shutdown state\n");
+		return PTR_ERR(q6v5->shutdown_state);
 	}
 
 	return 0;
