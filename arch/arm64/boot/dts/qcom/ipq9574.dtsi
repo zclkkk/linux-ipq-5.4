@@ -1108,18 +1108,6 @@
 			compatible = "qcom,edma";
 			reg = <0x3ab00000 0xef800>;
 			reg-names = "edma-reg-base";
-			qcom,txdesc-ring-start = <31>;
-			qcom,txdesc-rings = <0>;
-			qcom,txcmpl-ring-start = <31>;
-			qcom,txcmpl-rings = <0>;
-			qcom,rxfill-ring-start = <7>;
-			qcom,rxfill-rings = <0>;
-			qcom,rxdesc-ring-start = <23>;
-			qcom,rxdesc-rings = <0>;
-			interrupts = <0 262 4>,
-				   <0 362 4>,
-				   <0 354 4>,
-				   <0 261 4>;
 			resets = <&nsscc PPE_EDMA_ARES>,
 				 <&nsscc PPE_EDMA_CFG_ARES>;
 			reset-names = "edma_rst", "edma_cfg_reset";
