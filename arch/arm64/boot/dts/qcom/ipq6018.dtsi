@@ -197,6 +197,20 @@
 		dma-ranges;
 		compatible = "simple-bus";
 
+		dcc@b3000 {
+			compatible = "qca,dcc";
+			reg = <0xb3000 0x1000>,
+				<0xb4000 0x800>,
+				<0x004A2000 0x8>;
+			reg-names = "dcc-base", "dcc-ram-base", "gcnt_lo_hi";
+
+			clocks = <&gcc GCC_DCC_CLK>;
+			clock-names = "dcc_clk";
+
+			no_xpu_support;
+			qca,save-reg;
+		};
+
 		prng: qrng@e3000 {
 			compatible = "qcom,msm-rng";
 			reg = <0xe3000 0x1000>;
@@ -1465,6 +1479,18 @@
 			};
 		};
 
+		msm_imem: qcom,msm-imem@8600000 {
+			compatible = "qcom,msm-imem";
+			reg = <0x08600000 0x1000>;
+			ranges = <0x0 0x08600000 0x1000>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			mem_dump_table@10 {
+				compatible = "qcom,msm-imem-mem_dump_table";
+				reg = <0x10 8>;
+			};
+		};
 	};
 
 	wcss: wcss-smp2p {
