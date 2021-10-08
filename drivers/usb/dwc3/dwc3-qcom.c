@@ -721,15 +721,6 @@ static int dwc3_qcom_probe(struct platform_device *pdev)
 
 	usleep_range(10, 1000);
 
-	if (qcom->phy_mux) {
-		/*usb phy mux deselection*/
-		int ret = regmap_write(qcom->phy_mux_map, qcom->phy_mux_reg,
-					0x0);
-		if (ret)
-			dev_err(qcom->dev,
-				"Not able to configure phy mux selection:%d\n", ret);
-	}
-
 	ret = reset_control_deassert(qcom->resets);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to deassert resets, err=%d\n", ret);
@@ -840,7 +831,7 @@ static int dwc3_qcom_remove(struct platform_device *pdev)
 {
 	struct dwc3_qcom *qcom = platform_get_drvdata(pdev);
 	struct device *dev = &pdev->dev;
-	int i;
+	int i, ret;
 
 #if defined(CONFIG_IPQ_DWC3_QTI_EXTCON)
 	extcon_unregister_notifier(qcom->edev, EXTCON_USB, &qcom->vbus_nb);
@@ -851,6 +842,15 @@ static int dwc3_qcom_remove(struct platform_device *pdev)
 	of_platform_depopulate(dev);
 
 	reset_control_assert(qcom->resets);
+
+	if (qcom->phy_mux) {
+		/*usb phy mux deselection*/
+		ret = regmap_write(qcom->phy_mux_map, qcom->phy_mux_reg,
+					0x0);
+		if (ret)
+			dev_err(qcom->dev,
+			  "Not able to configure phy mux selection:%d\n", ret);
+	}
 
 	pm_runtime_allow(dev);
 	pm_runtime_disable(dev);
