@@ -275,6 +275,7 @@ struct tmc_drvdata {
 	atomic_t		seq_no;
 	atomic_t		completed_seq_no;
 	struct clk		*etr_usb_clk;
+	void __iomem		*in_funnel_base;
 };
 
 struct etr_buf_operations {

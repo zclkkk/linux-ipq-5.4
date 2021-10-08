@@ -28,10 +28,11 @@
 		interrupt-names = "byte-cntr-irq";
 
 		arm,buffer-size = <0x100000>;
-		arm,sg-enable;
+		arm,scatter-gather;
 
 		coresight-ctis = <&cti0 &cti8>;
 		coresight-name = "coresight-tmc-etr";
+		coresight-csr = <&csr>;
 
 		funnel-address = <0x6041000 0x1000>;
 
@@ -672,6 +673,7 @@
 
 		coresight-name = "coresight-csr";
 		qcom,blk-size = <1>;
+		qcom,set-byte-cntr-support;
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>;
