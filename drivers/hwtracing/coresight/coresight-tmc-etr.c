@@ -2078,6 +2078,12 @@ static void __tmc_etr_disable_q6mem(struct tmc_drvdata *drvdata)
 	uint32_t phy_offset;
 	void __iomem *q6_etr_waddr;
 
+	if (drvdata->in_funnel_base) {
+		CS_UNLOCK(drvdata->in_funnel_base);
+		writel_relaxed(0, drvdata->in_funnel_base + 0x0);
+		CS_LOCK(drvdata->in_funnel_base);
+	}
+
 	tmc_etr_disable_hw(drvdata);
 
 	val[0] = 0xdeadbeef;
@@ -2089,6 +2095,9 @@ static void __tmc_etr_disable_q6mem(struct tmc_drvdata *drvdata)
 	q6_etr_waddr = drvdata->q6_etr_vaddr + phy_offset;
 
 	memcpy_toio(q6_etr_waddr, &val[0], sizeof(val));
+
+	dev_info(&drvdata->csdev->dev, "RRP: 0x%x RWP: 0x%x STS: 0x%x\n",
+					val[2], val[3], val[1]);
 }
 
 static void tmc_abort_etr_sink(struct coresight_device *csdev)

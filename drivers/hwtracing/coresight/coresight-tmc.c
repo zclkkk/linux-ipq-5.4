@@ -612,6 +612,7 @@ static int tmc_probe(struct amba_device *adev, const struct amba_id *id)
 	struct coresight_dev_list *dev_list = NULL;
 	struct coresight_cti_data *ctidata;
 	int irq;
+	u32 in_funnel_addr[2];
 
 	ret = -ENOMEM;
 	drvdata = devm_kzalloc(dev, sizeof(*drvdata), GFP_KERNEL);
@@ -680,6 +681,14 @@ static int tmc_probe(struct amba_device *adev, const struct amba_id *id)
 			dev_err(dev, "failed to get reset cti, defer probe\n");
 			return -EPROBE_DEFER;
 		}
+	}
+
+	if (!of_property_read_u32_array(adev->dev.of_node, "funnel-address",
+					in_funnel_addr, ARRAY_SIZE(in_funnel_addr))) {
+		drvdata->in_funnel_base = ioremap(in_funnel_addr[0],
+							in_funnel_addr[1]);
+		if(IS_ERR(drvdata->in_funnel_base))
+			dev_err(dev, "unable to ioremap the funnel address\n");
 	}
 
 	desc.dev = dev;
