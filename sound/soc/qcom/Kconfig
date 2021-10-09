@@ -117,12 +117,35 @@ config SND_SOC_IPQ
 	Say Y or M to if you want to add support for SoC audio on
 	Qualcomm Technologies IPQ based board.
 
+config SND_SOC_IPQ_CODEC
+	tristate "SoC Audio CODEC support for IPQ platforms"
+	depends on ARCH_QCOM && SND_SOC_QCOM
+	help
+	Say Y or M if you want to add CODEC support for IPQ
+	based platforms.
+
 config SND_SOC_IPQ_ADSS
 	tristate "ipq adss"
 	depends on SND_SOC_IPQ
 
+config SND_SOC_IPQ_CPU_DAI
+	tristate "cpu dai"
+	depends on SND_SOC_IPQ
+
+config SND_SOC_IPQ_STEREO
+	tristate "ipq stereo"
+	depends on SND_SOC_IPQ
+
 config SND_SOC_IPQ_MBOX
 	tristate "ipq mbox"
+	depends on SND_SOC_IPQ
+
+config SND_SOC_IPQ_PCM_I2S
+	tristate "ipq pcm i2s"
+	depends on SND_SOC_IPQ
+
+config SND_SOC_IPQ_PCM_TDM
+	tristate "ipq pcm tdm"
 	depends on SND_SOC_IPQ
 
 config SND_SOC_IPQ_PCM_RAW
