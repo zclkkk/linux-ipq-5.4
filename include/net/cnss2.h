@@ -248,6 +248,16 @@ static inline int cnss_wlan_pm_control(struct device *dev, bool vote)
 	return -EINVAL;
 }
 
+static inline
+struct qgic2_msi* cnss_qgic2_enable_msi(struct cnss_plat_data *plat_priv)
+{
+	return ERR_PTR(-EINVAL);
+}
+
+static inline void cnss_qgic2_disable_msi(struct cnss_plat_data *plat_priv)
+{
+}
+
 static inline int cnss_get_user_msi_assignment(struct device *dev,
 					       char *user_name,
 					       int *num_vectors,
@@ -467,6 +477,9 @@ extern int cnss_get_user_msi_assignment(struct device *dev, char *user_name,
 					uint32_t *base_vector);
 extern int cnss_get_msi_irq(struct device *dev, unsigned int vector);
 extern int cnss_get_pci_slot(struct device *dev);
+extern struct qgic2_msi*
+cnss_qgic2_enable_msi(struct cnss_plat_data *plat_priv);
+extern void cnss_qgic2_disable_msi(struct cnss_plat_data *plat_priv);
 extern void cnss_get_msi_address(struct device *dev, uint32_t *msi_addr_low,
 				 uint32_t *msi_addr_high);
 extern int cnss_wlan_enable(struct device *dev,
