@@ -13,8 +13,14 @@ menuconfig ARCH_QCOM
 
 if ARCH_QCOM
 
+config ARCH_IPQ6018
+	bool "Enable support for IPQ6018"
+	help
+	  This enables support for the IPQ6018 chipset. If you dont
+	  know what do here, say N
+
 config ARCH_IPQ9574
-	bool "Enable Support for IPQ9574"
+	bool "Enable support for IPQ9574"
 	help
 	  This enables support for the IPQ9574 chipset. If you dont
 	  know what do here, say N
