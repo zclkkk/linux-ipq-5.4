@@ -5670,6 +5670,9 @@ enum nl80211_feature_flags {
  *	forwarding of preauth frames over the control port. They are then
  *	handled as ordinary data frames.
  *
+ * @NL80211_EXT_FEATURE_MLO: Driver/Device support Multi-link Operation(MLO)
+ *  feature.
+ *
  * @NUM_NL80211_EXT_FEATURES: number of extended features.
  * @MAX_NL80211_EXT_FEATURES: highest extended feature index.
  */
@@ -5720,6 +5723,7 @@ enum nl80211_ext_feature_index {
 	NL80211_EXT_FEATURE_BEACON_PROTECTION,
 	NL80211_EXT_FEATURE_CONTROL_PORT_NO_PREAUTH,
 	NL80211_EXT_FEATURE_CONTROL_PORT_OVER_NL80211_TX_STATUS = 48,
+	NL80211_EXT_FEATURE_MLO,
 
 	/* add new features before the definition below */
 	NUM_NL80211_EXT_FEATURES,
