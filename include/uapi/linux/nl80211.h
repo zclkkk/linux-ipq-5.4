@@ -2502,6 +2502,9 @@ enum nl80211_commands {
  * @NL80211_ATTR_SAE_PWE: Indicates the SAE mechanism used for PWE derivation
  *	in  WPA3-Personal networks which are using SAE authentication.
  *
+ * @NL80211_ATTR_MLD_MAC: MLD MAC address.
+ * @NL80211_ATTR_MLD_REFERENCE: MLD Reference.
+ *
  * @NUM_NL80211_ATTR: total number of nl80211_attrs available
  * @NL80211_ATTR_MAX: highest attribute number currently defined
  * @__NL80211_ATTR_AFTER_LAST: internal use
@@ -2983,6 +2986,8 @@ enum nl80211_attrs {
 
 	NL80211_ATTR_EHT_CAPABILITY = 350,
 	NL80211_ATTR_EHT_PUNCTURE_BITMAP,
+	NL80211_ATTR_MLD_MAC,
+	NL80211_ATTR_MLD_REFERENCE,
 	/* add attributes here, update the policy in nl80211.c */
 
 	__NL80211_ATTR_AFTER_LAST,
