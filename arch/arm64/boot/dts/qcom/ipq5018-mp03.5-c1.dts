@@ -642,8 +642,8 @@
 &wifi0 {
 	/* IPQ5018 */
 	qcom,multipd_arch;
-	qcom,userpd-subsys-name = "q6v5_wcss_userpd1";
 	qcom,rproc = <&q6_wcss_pd1>;
+	qcom,userpd-subsys-name = "4ab000.remoteproc_pd1";
 #ifdef __IPQ_MEM_PROFILE_256_MB__
 	qcom,tgt-mem-mode = <2>;
 #else
@@ -658,13 +658,14 @@
 	m3-dump-addr = <0x4D200000>;
 #endif
 	qcom,caldb-size = <0x200000>;
+	mem-region = <&q6_ipq5018_data>;
 	status = "ok";
 };
 
 &wifi1 {
 	/* QCN6122 5G */
 	qcom,multipd_arch;
-	qcom,userpd-subsys-name = "q6v5_wcss_userpd2";
+	qcom,userpd-subsys-name = "cd00000.remoteproc:remoteproc_pd2";
 	qcom,rproc = <&q6_wcss_pd2>;
 #ifdef __IPQ_MEM_PROFILE_256_MB__
 	qcom,tgt-mem-mode = <2>;
@@ -680,13 +681,14 @@
 	m3-dump-addr = <0x4E600000>;
 #endif
 	qcom,caldb-size = <0x500000>;
+	mem-region = <&q6_qcn6122_data1>;
 	status = "ok";
 };
 
 &wifi2 {
 	/* QCN6122 6G */
 	qcom,multipd_arch;
-	qcom,userpd-subsys-name = "q6v5_wcss_userpd3";
+	qcom,userpd-subsys-name = "cd00000.remoteproc:remoteproc_pd3";
 	qcom,rproc = <&q6_wcss_pd3>;
 #ifdef __IPQ_MEM_PROFILE_256_MB__
 	qcom,tgt-mem-mode = <2>;
@@ -702,6 +704,7 @@
 	m3-dump-addr = <0x4FD00000>;
 #endif
 	qcom,caldb-size = <0x500000>;
+	mem-region = <&q6_qcn6122_data2>;
 	status = "ok";
 };
 
