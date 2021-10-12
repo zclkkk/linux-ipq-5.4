@@ -1981,10 +1981,10 @@ static const struct wcss_data wcss_ipq9574_res_init = {
 	.bcr_reset_required = false,
 	.ce_reset_required = false,
 	.ssr_name = "q6wcss",
-	.reset_cmd_id = 0x14,
+	.reset_cmd_id = 0x18,
 	.ops = &q6v5_wcss_ipq8074_ops,
 	.requires_force_stop = true,
-	.need_mem_protection = false,
+	.need_mem_protection = true,
 	.need_auto_boot = false,
 	.q6_version = Q6V7,
 };
