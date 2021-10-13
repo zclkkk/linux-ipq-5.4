@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2010-2014, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2010-2014, 2021 The Linux Foundation. All rights reserved.
  */
 
 #include <linux/clk.h>
@@ -489,6 +489,7 @@ static int qce_crypto_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct qce_device *qce;
 	int ret;
+	struct resource *res;
 	bool skip_clk_init = false;
 
 	qce = devm_kzalloc(dev, sizeof(*qce), GFP_KERNEL);
@@ -505,6 +506,18 @@ static int qce_crypto_probe(struct platform_device *pdev)
 	ret = dma_set_mask_and_coherent(dev, DMA_BIT_MASK(32));
 	if (ret < 0)
 		return ret;
+
+	if (device_property_read_bool(dev, "qce,cmd_desc_support")){
+		qce->qce_cmd_desc_enable = true;
+		res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+		if (!res) {
+			printk("%s, unable to get resource \n", __func__);
+			return -ENOMEM;
+		}
+		qce->base_dma = dma_map_resource(dev, res->start,
+					resource_size(res),
+					DMA_BIDIRECTIONAL, 0);
+	}
 
 	if (device_property_read_bool(dev, "qce,use_fixed_hw_key"))
 		qce->use_fixed_key = true;

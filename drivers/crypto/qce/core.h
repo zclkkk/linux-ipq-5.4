@@ -1,11 +1,12 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2010-2014, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2010-2014, 2021 The Linux Foundation. All rights reserved.
  */
 
 #ifndef _CORE_H_
 #define _CORE_H_
 
+#include <linux/interrupt.h>
 #include "dma.h"
 
 #define DEBUG_MAX_RW_BUF 2048
@@ -84,6 +85,7 @@ struct qce_device {
 	struct device *dev;
 	struct clk *core, *iface, *bus;
 	struct qce_dma_data dma;
+	dma_addr_t base_dma;
 	int burst_size;
 	unsigned int pipe_pair_id;
 	struct qce_stat qce_stat;
@@ -95,6 +97,9 @@ struct qce_device {
 	bool use_fixed_key;
 	struct kobject kobj;
 	struct kobject *kobj_parent;
+
+	/* cmd desc support*/
+	bool qce_cmd_desc_enable;
 };
 
 /**
