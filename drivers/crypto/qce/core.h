@@ -100,6 +100,8 @@ struct qce_device {
 
 	/* cmd desc support*/
 	bool qce_cmd_desc_enable;
+	__le32 *reg_read_buf;
+	dma_addr_t reg_read_buf_phys;
 };
 
 /**
@@ -115,5 +117,22 @@ struct qce_algo_ops {
 	void (*unregister_algs)(struct qce_device *qce);
 	int (*async_req_handle)(struct crypto_async_request *async_req);
 };
+
+int qce_write_reg_dma(struct qce_device *qce, unsigned int offset, u32 val,
+			int cnt);
+
+int qce_read_reg_dma(struct qce_device *qce, unsigned int offset, void *buff,
+			int cnt);
+
+void qce_clear_bam_transaction(struct qce_device *qce);
+
+int qce_submit_cmd_desc(struct qce_device *qce, unsigned long flags);
+
+int qce_read_dma_get_lock(struct qce_device *qce);
+
+int qce_unlock_reg_dma(struct qce_device *qce);
+
+int qce_start_dma(struct crypto_async_request *async_req, u32 type,
+			u32 totallen, u32 offset);
 
 #endif /* _CORE_H_ */

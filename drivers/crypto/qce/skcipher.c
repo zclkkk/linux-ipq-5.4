@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2010-2014, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2010-2014, 2021 The Linux Foundation. All rights reserved.
  */
 
 #include <linux/device.h>
@@ -12,7 +12,9 @@
 #include <crypto/internal/skcipher.h>
 #include <linux/qcom_scm.h>
 
+#include "regs-v5.h"
 #include "cipher.h"
+#include "core.h"
 
 static unsigned int aes_sw_max_len = CONFIG_CRYPTO_DEV_QCE_SW_MAX_LEN;
 module_param(aes_sw_max_len, uint, 0644);
@@ -38,6 +40,7 @@ static void qce_skcipher_done(void *data)
 	struct qce_cipher_reqctx *rctx = skcipher_request_ctx(req);
 	struct qce_alg_template *tmpl = to_cipher_tmpl(crypto_skcipher_reqtfm(req));
 	struct qce_device *qce = tmpl->qce;
+	struct qce_bam_transaction *qce_bam_txn = qce->dma.qce_bam_txn;
 	struct qce_result_dump *result_buf = qce->dma.result_buf;
 	enum dma_data_direction dir_src, dir_dst;
 	u32 status;
@@ -58,6 +61,20 @@ static void qce_skcipher_done(void *data)
 	dma_unmap_sg(qce->dev, rctx->dst_sg, rctx->dst_nents, dir_dst);
 
 	sg_free_table(&rctx->dst_tbl);
+
+	if (qce->qce_cmd_desc_enable) {
+		if (qce_bam_txn->qce_read_sgl_cnt)
+			dma_unmap_sg(qce->dev,
+				qce_bam_txn->qce_reg_read_sgl,
+				qce_bam_txn->qce_read_sgl_cnt,
+				DMA_DEV_TO_MEM);
+
+		if (qce_bam_txn->qce_write_sgl_cnt)
+			dma_unmap_sg(qce->dev,
+				qce_bam_txn->qce_reg_write_sgl,
+				qce_bam_txn->qce_write_sgl_cnt,
+				DMA_MEM_TO_DEV);
+	}
 
 	error = qce_check_status(qce, &status);
 	if (error < 0)
@@ -88,6 +105,10 @@ qce_skcipher_async_req_handle(struct crypto_async_request *async_req)
 	diff_dst = (req->src != req->dst) ? true : false;
 	dir_src = diff_dst ? DMA_TO_DEVICE : DMA_BIDIRECTIONAL;
 	dir_dst = diff_dst ? DMA_FROM_DEVICE : DMA_BIDIRECTIONAL;
+
+	/* Get the LOCK for this request */
+	if (qce->qce_cmd_desc_enable)
+		qce_read_dma_get_lock(qce);
 
 	rctx->src_nents = sg_nents_for_len(req->src, req->cryptlen);
 	if (diff_dst)
@@ -151,9 +172,17 @@ qce_skcipher_async_req_handle(struct crypto_async_request *async_req)
 
 	qce_dma_issue_pending(&qce->dma);
 
-	ret = qce_start(async_req, tmpl->crypto_alg_type, req->cryptlen, 0);
-	if (ret)
-		goto error_terminate;
+	if (qce->qce_cmd_desc_enable) {
+		ret = qce_start_dma(async_req, tmpl->crypto_alg_type,
+					req->cryptlen, 0);
+		if (ret)
+			goto error_terminate;
+	} else {
+		ret = qce_start(async_req, tmpl->crypto_alg_type,
+					req->cryptlen, 0);
+		if (ret)
+			goto error_terminate;
+	}
 
 	return 0;
 
