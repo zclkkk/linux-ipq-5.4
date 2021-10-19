@@ -47,6 +47,15 @@
 				bias-disable;
 			};
 
+			leds_pins: leds_pinmux {
+				led0_2g {
+					pins = "gpio64";
+					function = "gpio";
+					drive-strength = <8>;
+					bias-pull-down;
+				};
+			};
+
 			qspi_nand_pins: qspi_nand_pins {
 				qspi_clock {
 					pins = "gpio5";
@@ -293,6 +302,18 @@
 
 		ssphy_0: ssphy@7D000 {
 			status = "ok";
+		};
+
+		leds {
+			compatible = "gpio-leds";
+			pinctrl-0 = <&leds_pins>;
+			pinctrl-names = "default";
+			led@64 {
+				label = "led0_2g";
+				gpios = <&tlmm 64 GPIO_ACTIVE_HIGH>;
+				linux,default-trigger = "led_2g";
+				default-state = "off";
+			};
 		};
 
 		pcie0_x1: pci@28000000 {
