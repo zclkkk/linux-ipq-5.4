@@ -1567,7 +1567,7 @@ static int ipq9574_init_clock(struct q6v5_wcss *wcss)
 	int i;
 	int ret;
 	const char* clks[] = { "anoc_wcss_axi_m", "q6_axim", "q6_ahb", "q6_ahb_s",
-				"q6ss_boot", "wcss_ecahb", "wcss_acmt" };
+				"q6ss_boot", "wcss_ecahb", "wcss_acmt", "mem_noc_q6_axi", "wcss_q6_tbu", "sys_noc_wcss_ahb" };
 	int num_clks = ARRAY_SIZE(clks);
 
 	wcss->clks = devm_kcalloc(wcss->dev, num_clks, sizeof(*wcss->clks),
