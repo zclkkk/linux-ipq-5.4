@@ -257,10 +257,6 @@
 			};
 		};
 
-		q6v5_wcss@CD00000 {
-			memory-region = <&q6_mem_regions>;
-		};
-
 		wifi0: wifi@c000000 {
 			qcom,tgt-mem-mode = <2>;
 			status = "ok";
@@ -518,6 +514,7 @@
 	qcom,bootargs_smem = <507>;
 	boot-args = <0x1 0x4 0x3 0x0F 0x0 0x0>,
 			<0x2 0x4 0x2 0x1B 0x0 0x0>;
+	memory-region = <&q6_mem_regions>;
 
 	/* IPQ5018 */
 	q6v5_wcss_userpd1 {
