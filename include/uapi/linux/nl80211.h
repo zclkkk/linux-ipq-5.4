@@ -2502,6 +2502,9 @@ enum nl80211_commands {
  * @NL80211_ATTR_SAE_PWE: Indicates the SAE mechanism used for PWE derivation
  *	in  WPA3-Personal networks which are using SAE authentication.
  *
+ * @NL80211_ATTR_MLD_MAC: MLD MAC address.
+ * @NL80211_ATTR_MLD_REFERENCE: MLD Reference.
+ *
  * @NUM_NL80211_ATTR: total number of nl80211_attrs available
  * @NL80211_ATTR_MAX: highest attribute number currently defined
  * @__NL80211_ATTR_AFTER_LAST: internal use
@@ -2983,6 +2986,8 @@ enum nl80211_attrs {
 
 	NL80211_ATTR_EHT_CAPABILITY = 350,
 	NL80211_ATTR_EHT_PUNCTURE_BITMAP,
+	NL80211_ATTR_MLD_MAC,
+	NL80211_ATTR_MLD_REFERENCE,
 	/* add attributes here, update the policy in nl80211.c */
 
 	__NL80211_ATTR_AFTER_LAST,
@@ -5670,6 +5675,9 @@ enum nl80211_feature_flags {
  *	forwarding of preauth frames over the control port. They are then
  *	handled as ordinary data frames.
  *
+ * @NL80211_EXT_FEATURE_MLO: Driver/Device support Multi-link Operation(MLO)
+ *  feature.
+ *
  * @NUM_NL80211_EXT_FEATURES: number of extended features.
  * @MAX_NL80211_EXT_FEATURES: highest extended feature index.
  */
@@ -5720,6 +5728,7 @@ enum nl80211_ext_feature_index {
 	NL80211_EXT_FEATURE_BEACON_PROTECTION,
 	NL80211_EXT_FEATURE_CONTROL_PORT_NO_PREAUTH,
 	NL80211_EXT_FEATURE_CONTROL_PORT_OVER_NL80211_TX_STATUS = 48,
+	NL80211_EXT_FEATURE_MLO,
 
 	/* add new features before the definition below */
 	NUM_NL80211_EXT_FEATURES,
