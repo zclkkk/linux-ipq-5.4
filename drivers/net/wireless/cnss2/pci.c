@@ -4056,6 +4056,24 @@ static struct cnss_msi_config msi_config_qcn9224_pci3 = {
 	},
 };
 
+static struct cnss_msi_config msi_config_qcn6122_pci0 = {
+        .total_vectors = 13,
+        .total_users = 2,
+        .users = (struct cnss_msi_user[]) {
+                { .name = "CE", .num_vectors = 5, .base_vector = 0 },
+                { .name = "DP", .num_vectors = 8, .base_vector = 5 },
+        },
+};
+
+static struct cnss_msi_config msi_config_qcn6122_pci1 = {
+        .total_vectors = 13,
+        .total_users = 2,
+        .users = (struct cnss_msi_user[]) {
+                { .name = "CE", .num_vectors = 5, .base_vector = 0 },
+                { .name = "DP", .num_vectors = 8, .base_vector = 5 },
+        },
+};
+
 static void pci_update_msi_vectors(struct cnss_msi_config *msi_config,
 				   char *user_name, int num_vectors,
 				   int *vector_idx)
@@ -4126,6 +4144,19 @@ static void pci_override_msi_assignment(struct cnss_plat_data *plat_priv,
 	pci_update_msi_vectors(msi_config, "DP", num_dp_vectors, &vector_idx);
 	msi_config->total_vectors = num_mhi_vectors + num_ce_vectors +
 				    num_dp_vectors;
+}
+
+static struct cnss_msi_config*
+cnss_get_msi_config_qcn6122(struct cnss_plat_data *plat_priv)
+{
+	if (plat_priv->userpd_id == QCN6122_0) {
+		return &msi_config_qcn6122_pci0;
+	} else if (plat_priv->userpd_id == QCN6122_1) {
+		return &msi_config_qcn6122_pci1;
+	} else {
+		cnss_pr_err("Unknown userpd_id 0x%X", plat_priv->userpd_id);
+		return NULL;
+	}
 }
 
 static int cnss_pci_get_msi_assignment(struct cnss_pci_data *pci_priv)
@@ -4240,43 +4271,145 @@ static void cnss_pci_disable_msi(struct cnss_pci_data *pci_priv)
 	pci_free_irq_vectors(pci_priv->pci_dev);
 }
 
+static void cnss_qgic2m_msg_handler(struct msi_desc *desc, struct msi_msg *msg)
+{
+	struct device *dev = msi_desc_to_dev(desc);
+	struct cnss_plat_data *plat_priv = dev_get_drvdata(dev);
+
+	if (!plat_priv) {
+		pr_err("plat_priv NULL");
+		return;
+	}
+
+	desc->msg.address_lo = msg->address_lo;
+	desc->msg.address_hi = msg->address_hi;
+	desc->msg.data = msg->data;
+}
+
+struct qgic2_msi *cnss_qgic2_enable_msi(struct cnss_plat_data *plat_priv)
+{
+	int ret;
+	struct qgic2_msi *qgic;
+	struct msi_desc *msi_desc;
+	struct cnss_msi_config *msi_config;
+	struct device *dev = &plat_priv->plat_dev->dev;
+	struct msi_msg msg;
+	struct irq_data *irq_data;
+
+	msi_config = cnss_get_msi_config_qcn6122(plat_priv);
+	if (!msi_config) {
+		cnss_pr_err("qcn6122 msi_config NULL");
+		return NULL;
+	}
+
+	pci_override_msi_assignment(plat_priv, msi_config);
+	ret = platform_msi_domain_alloc_irqs(&plat_priv->plat_dev->dev,
+					     msi_config->total_vectors,
+					     cnss_qgic2m_msg_handler);
+	if (ret) {
+		cnss_pr_err("platform_msi_domain_alloc_irqs failed %d\n", ret);
+		return NULL;
+	}
+
+	qgic = devm_kzalloc(&plat_priv->plat_dev->dev,
+			    sizeof(*qgic), GFP_KERNEL);
+	if (!qgic) {
+		cnss_pr_err("qgic alloc failed\n");
+		platform_msi_domain_free_irqs(&plat_priv->plat_dev->dev);
+		return NULL;
+	}
+
+	plat_priv->qcn6122.qgic2_msi = qgic;
+
+	msi_desc = first_msi_entry(dev);
+	irq_data = irq_desc_get_irq_data(irq_to_desc(msi_desc->irq));
+
+	ret = irq_chip_compose_msi_msg(irq_data, &msg);
+	if (ret) {
+		cnss_pr_err("irq_chip_compose_msi_msg failed %d\n", ret);
+		platform_msi_domain_free_irqs(&plat_priv->plat_dev->dev);
+		return NULL;
+	}
+
+	qgic->irq_num = msi_desc->irq;
+	qgic->msi_gicm_base_data = msg.data;
+	qgic->msi_gicm_addr_lo = msg.address_lo;
+	qgic->msi_gicm_addr_hi = msg.address_hi;
+
+	cnss_pr_dbg("irq %d msi addr lo 0x%x addr hi 0x%x msi data %d",
+		    msi_desc->irq, msg.address_lo, msg.address_hi, msg.data);
+
+	return qgic;
+}
+EXPORT_SYMBOL(cnss_qgic2_enable_msi);
+
+void cnss_qgic2_disable_msi(struct cnss_plat_data *plat_priv)
+{
+	if (plat_priv->device_id == QCN6122_DEVICE_ID &&
+				plat_priv->qcn6122.qgic2_msi) {
+		platform_msi_domain_free_irqs(&plat_priv->plat_dev->dev);
+		plat_priv->qcn6122.qgic2_msi = NULL;
+	}
+}
+EXPORT_SYMBOL(cnss_qgic2_disable_msi);
+
 int cnss_get_user_msi_assignment(struct device *dev, char *user_name,
 				 int *num_vectors, u32 *user_base_data,
 				 u32 *base_vector)
 {
-	struct pci_dev *pci_dev;
-	struct cnss_pci_data *pci_priv = NULL;
-	struct cnss_plat_data *plat_priv = cnss_bus_dev_to_plat_priv(dev);
-	struct cnss_msi_config *msi_config;
 	int idx;
+	u32 msi_ep_base_data = 0;
+	struct pci_dev *pci_dev = NULL;
+	struct cnss_pci_data *pci_priv = NULL;
+	struct qgic2_msi *qgic2_msi = NULL;
+	struct cnss_msi_config *msi_config;
+	struct cnss_plat_data *plat_priv =
+		cnss_bus_dev_to_plat_priv(dev);
 
 	if (!plat_priv)
 		return -ENODEV;
 
 	if (plat_priv->device_id != QCN9000_DEVICE_ID &&
-	    plat_priv->device_id != QCN9224_DEVICE_ID) {
+	    plat_priv->device_id != QCN9224_DEVICE_ID &&
+	    plat_priv->device_id != QCN6122_DEVICE_ID) {
 		cnss_pr_dbg("MSI not supported on device 0x%lx",
 			    plat_priv->device_id);
 		return -EINVAL;
 	}
 
-	pci_dev = to_pci_dev(dev);
-	pci_priv = cnss_get_pci_priv(pci_dev);
-	if (!pci_priv)
-		return -ENODEV;
+	if (plat_priv->device_id == QCN6122_DEVICE_ID) {
+		msi_config = cnss_get_msi_config_qcn6122(plat_priv);
+		if (!msi_config) {
+			cnss_pr_err("msi_config NULL");
+			return -EINVAL;
+		}
 
-	plat_priv = pci_priv->plat_priv;
-	msi_config = pci_priv->msi_config;
-	if (!msi_config) {
-		cnss_pr_err("MSI is not supported.\n");
-		return -EINVAL;
+		qgic2_msi = plat_priv->qcn6122.qgic2_msi;
+		if (!qgic2_msi) {
+			cnss_pr_err("qgic2_msi NULL");
+			return -EINVAL;
+		}
+		msi_ep_base_data = qgic2_msi->msi_gicm_base_data;
+	} else {
+		pci_dev = to_pci_dev(dev);
+		pci_priv = cnss_get_pci_priv(pci_dev);
+		if (!pci_priv) {
+			cnss_pr_err("pci_priv NULL");
+			return -ENODEV;
+		}
+
+		msi_config = pci_priv->msi_config;
+		if (!msi_config) {
+			cnss_pr_err("MSI is not supported.\n");
+			return -EINVAL;
+		}
+		msi_ep_base_data = pci_priv->msi_ep_base_data;
 	}
-
 	for (idx = 0; idx < msi_config->total_users; idx++) {
 		if (strcmp(user_name, msi_config->users[idx].name) == 0) {
 			*num_vectors = msi_config->users[idx].num_vectors;
 			*user_base_data = msi_config->users[idx].base_vector
-				+ pci_priv->msi_ep_base_data;
+				+ msi_ep_base_data;
 			*base_vector = msi_config->users[idx].base_vector;
 
 			cnss_pr_dbg("Assign MSI to user: %s, num_vectors: %d, user_base_data: %u, base_vector: %u\n",
@@ -4318,11 +4451,42 @@ EXPORT_SYMBOL(cnss_get_pci_slot);
 
 int cnss_get_msi_irq(struct device *dev, unsigned int vector)
 {
-	struct pci_dev *pci_dev = to_pci_dev(dev);
 	int irq_num;
+	struct pci_dev *pci_dev = NULL;
+	struct qgic2_msi *qgic2_msi = NULL;
+	struct cnss_msi_config *msi_config;
+	struct cnss_plat_data *plat_priv = cnss_bus_dev_to_plat_priv(dev);
 
-	irq_num = pci_irq_vector(pci_dev, vector);
+	if (!plat_priv) {
+		pr_err("plat_priv NULL");
+		return -ENODEV;
+	}
 
+	if (plat_priv->device_id != QCN6122_DEVICE_ID) {
+		pci_dev = to_pci_dev(dev);
+		irq_num = pci_irq_vector(pci_dev, vector);
+		return irq_num;
+	}
+
+	qgic2_msi = plat_priv->qcn6122.qgic2_msi;
+	if (!qgic2_msi) {
+		cnss_pr_err("%s: qcn6122 qgic2_msi NULL", __func__);
+		return -EINVAL;
+	}
+
+	msi_config = cnss_get_msi_config_qcn6122(plat_priv);
+	if (!msi_config) {
+		cnss_pr_err("qcn6122 msi_config NULL");
+		return -EINVAL;
+	}
+
+	if (vector > msi_config->total_vectors) {
+		cnss_pr_err("%s: vector greater than max total vectors %d",
+				__func__, msi_config->total_vectors);
+		return -EINVAL;
+	}
+
+	irq_num = qgic2_msi->irq_num + vector;
 	return irq_num;
 }
 EXPORT_SYMBOL(cnss_get_msi_irq);
@@ -4330,14 +4494,30 @@ EXPORT_SYMBOL(cnss_get_msi_irq);
 void cnss_get_msi_address(struct device *dev, u32 *msi_addr_low,
 			  u32 *msi_addr_high)
 {
-	struct pci_dev *pci_dev = to_pci_dev(dev);
+	struct pci_dev *pci_dev = NULL;
+	struct qgic2_msi *qgic2_msi = NULL;
+	struct cnss_plat_data *plat_priv = cnss_bus_dev_to_plat_priv(dev);
 
-	pci_dev = to_pci_dev(dev);
-	pci_read_config_dword(pci_dev, pci_dev->msi_cap +
-			      PCI_MSI_ADDRESS_LO, msi_addr_low);
-	pci_read_config_dword(pci_dev, pci_dev->msi_cap +
-			      PCI_MSI_ADDRESS_HI, msi_addr_high);
+	if (!plat_priv) {
+		pr_err("plat_priv NULL");
+		return;
+	}
 
+	if (plat_priv->device_id == QCN6122_DEVICE_ID) {
+		qgic2_msi = plat_priv->qcn6122.qgic2_msi;
+		if (!qgic2_msi) {
+			cnss_pr_err("%s: qgic2_msi NULL", __func__);
+			return;
+		}
+		*msi_addr_low = qgic2_msi->msi_gicm_addr_lo;
+		*msi_addr_high = qgic2_msi->msi_gicm_addr_hi;
+	} else {
+		pci_dev = to_pci_dev(dev);
+		pci_read_config_dword(pci_dev, pci_dev->msi_cap +
+				      PCI_MSI_ADDRESS_LO, msi_addr_low);
+		pci_read_config_dword(pci_dev, pci_dev->msi_cap +
+				      PCI_MSI_ADDRESS_HI, msi_addr_high);
+	}
 	/* Since q6 supports only 32 bit addresses, mask the msi_addr_high
 	 * value. If this is programmed into the register, q6 interprets it
 	 * as an internal address and causes unwanted writes/reads.

@@ -451,10 +451,18 @@ struct m3_dump {
 	void *dump_addr;
 };
 
+struct qgic2_msi {
+	int irq_num;
+	uint32_t msi_gicm_base_data;
+	uint32_t msi_gicm_addr_lo;
+	uint32_t msi_gicm_addr_hi;
+};
+
 struct target_qcn6122 {
 	void *bar_addr_va;
 	u64 bar_addr_pa;
 	u32 bar_size;
+	struct qgic2_msi *qgic2_msi;
 };
 
 struct cnss_plat_data {

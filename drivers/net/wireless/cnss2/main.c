@@ -3905,10 +3905,11 @@ static int platform_get_qcn6122_userpd_id(struct platform_device *plat_dev,
 		return -EINVAL;
 	}
 
-	if (strcmp(subsys_name, "q6v5_wcss_userpd2") == 0) {
+	if (strcmp(subsys_name, "cd00000.remoteproc:remoteproc_pd2") == 0) {
 		*userpd_id = QCN6122_0;
 		return 0;
-	} else if (strcmp(subsys_name, "q6v5_wcss_userpd3") == 0) {
+	} else if (strcmp(subsys_name,
+				"cd00000.remoteproc:remoteproc_pd3") == 0) {
 		*userpd_id = QCN6122_1;
 		return 0;
 	}
@@ -4205,6 +4206,15 @@ static int cnss_probe(struct platform_device *plat_dev)
 		else if (plat_priv->wlfw_service_instance_id ==
 			WLFW_SERVICE_INS_ID_V01_QCN6122 + QCN6122_1)
 			plat_priv->board_info.board_id_override = bdf_pci1;
+
+		plat_priv->qcn6122.qgic2_msi =
+					cnss_qgic2_enable_msi(plat_priv);
+		if (!plat_priv->qcn6122.qgic2_msi) {
+			cnss_pr_err("qgic2_msi fails: dev 0x%lx userpd id %d\n",
+				    plat_priv->device_id, userpd_id);
+			ret = -ENODEV;
+			goto out;
+		}
 		break;
 	default:
 		cnss_pr_err("No such device id %p\n", device_id);
@@ -4322,6 +4332,7 @@ static int cnss_remove(struct platform_device *plat_dev)
 	struct cnss_plat_data *plat_priv = platform_get_drvdata(plat_dev);
 
 	cnss_deinit_m3_dump_class();
+	cnss_qgic2_disable_msi(plat_priv);
 	cnss_genl_exit();
 #if defined(CNSS2_COEX) || defined(CNSS2_IMS)
 	cnss_unregister_ims_service(plat_priv);
