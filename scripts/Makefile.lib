@@ -187,6 +187,11 @@ dtc_cpp_flags += -D __IPQ_MEM_PROFILE_256_MB__
 else ifeq ($(CONFIG_IPQ_MEM_PROFILE),512)
 dtc_cpp_flags += -D __IPQ_MEM_PROFILE_512_MB__
 endif
+
+ifeq ($(CONFIG_CNSS2),y)
+dtc_cpp_flags += -D __CNSS2__
+endif
+
 # Useful for describing the dependency of composite objects
 # Usage:
 #   $(call multi_depend, multi_used_targets, suffix_to_remove, suffix_to_add)
