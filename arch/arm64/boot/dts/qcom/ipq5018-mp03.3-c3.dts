@@ -39,6 +39,10 @@
 	status = "disabled";
 };
 
+&crypto {
+	status = "disabled";
+};
+
 &nss_crypto {
 	status = "disabled";
 };
