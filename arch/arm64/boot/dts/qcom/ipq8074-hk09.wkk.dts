@@ -407,7 +407,6 @@
 
 				qcom,mhi@0 {
 					reg = <0 0 0 0 0>;
-					qrtr_instance_id = <0x30>;
 #if !defined(__IPQ_MEM_PROFILE_256_MB__)
 					memory-region = <&mhi_region0>;
 #endif
