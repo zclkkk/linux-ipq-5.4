@@ -263,7 +263,7 @@
 		};
 
 		wifi2: wifi2@c000000 {
-			compatible = "qcom,cnss-qcn6122", "qcom,cnss-qcn9100";
+			compatible = "qcom,cnss-qcn6122";
 			qcom,rproc = <&q6v5_wcss>;
 			status = "disabled";
 		};
@@ -647,11 +647,7 @@
 	qcom,multipd_arch;
 	qcom,board_id = <0x90>;
 	qcom,tgt-mem-mode = <2>;
-	/*
-	 * once wifi driver changes are in place to
-	 * qcn6122 compatible string, remove qcn9100 here
-	 */
-	compatible = "qcom,cnss-qcn6122", "qcom,cnss-qcn9100";
+	compatible = "qcom,cnss-qcn6122";
 	qcom,bdf-addr = <0 0 0x4D300000 0 0>;
 	qcom,caldb-addr = <0 0 0 0 0>;
 	qcom,caldb-size = <0x0>;
@@ -666,11 +662,7 @@
 	qcom,multipd_arch;
 	qcom,board_id = <0x50>;
 	qcom,tgt-mem-mode = <2>;
-	/*
-	 * once wifi driver changes are in place to
-	 * qcn6122 compatible string, remove qcn9100 here
-	 */
-	compatible = "qcom,cnss-qcn6122", "qcom,cnss-qcn9100";
+	compatible = "qcom,cnss-qcn6122";
 	qcom,bdf-addr = <0 0 0x4E400000 0 0>;
 	qcom,caldb-addr = <0 0 0 0 0>;
 	qcom,caldb-size = <0x0>;

@@ -727,9 +727,116 @@
 	};
 };
 
+&q6v5_wcss {
+	compatible = "qcom,ipq5018-q6-mpd";
+	#address-cells = <1>;
+	#size-cells = <1>;
+	ranges;
+	firmware = "IPQ5018/q6_fw.mdt";
+	reg = <0x0cd00000 0x4040>,
+	      <0x1938000 0x8>,
+	      <0x193d204 0x4>;
+	reg-names = "qdsp6",
+		    "tcsr-msip",
+		    "tcsr-q6";
+	resets = <&gcc GCC_WCSSAON_RESET>,
+		 <&gcc GCC_WCSS_Q6_BCR>;
+
+	reset-names = "wcss_aon_reset",
+		      "wcss_q6_reset";
+
+	clocks = <&gcc GCC_Q6_AXIS_CLK>,
+		 <&gcc GCC_WCSS_ECAHB_CLK>,
+		 <&gcc GCC_Q6_AXIM_CLK>,
+		 <&gcc GCC_Q6_AXIM2_CLK>,
+		 <&gcc GCC_Q6_AHB_CLK>,
+		 <&gcc GCC_Q6_AHB_S_CLK>,
+		 <&gcc GCC_WCSS_AXI_S_CLK>;
+	clock-names = "gcc_q6_axis_clk",
+		      "gcc_wcss_ecahb_clk",
+		      "gcc_q6_axim_clk",
+		      "gcc_q6_axim2_clk",
+		      "gcc_q6_ahb_clk",
+		      "gcc_q6_ahb_s_clk",
+		      "gcc_wcss_axi_s_clk";
+
+#ifdef __IPQ_MEM_PROFILE_256_MB__
+	memory-region = <&q6_mem_regions>, <&q6_etr_region>;
+#else
+	memory-region = <&q6_mem_regions>, <&q6_etr_region>,
+			<&q6_caldb_region>;
+#endif
+
+	qcom,rproc = <&q6v5_wcss>;
+	qcom,bootargs_smem = <507>;
+	boot-args = <0x1 0x4 0x3 0x0F 0x0 0x0>,
+		    <0x2 0x4 0x2 0x12 0x0 0x0>;
+	status = "ok";
+	q6_wcss_pd1: remoteproc_pd1@4ab000 {
+		compatible = "qcom,ipq5018-wcss-ahb-mpd";
+		reg = <0x4ab000 0x20>;
+		reg-names = "rmb";
+		firmware = "IPQ5018/q6_fw.mdt";
+		m3_firmware = "IPQ5018/m3_fw.mdt";
+		interrupts-extended = <&wcss_smp2p_in 8 0>,
+				      <&wcss_smp2p_in 9 0>,
+				      <&wcss_smp2p_in 12 0>,
+				      <&wcss_smp2p_in 11 0>;
+		interrupt-names = "fatal",
+				  "ready",
+				  "spawn-ack",
+				  "stop-ack";
+
+		resets = <&gcc GCC_WCSSAON_RESET>,
+			 <&gcc GCC_WCSS_BCR>,
+			 <&gcc GCC_CE_BCR>;
+		reset-names = "wcss_aon_reset",
+			      "wcss_reset",
+			      "ce_reset";
+
+		clocks = <&gcc GCC_WCSS_AHB_S_CLK>,
+			 <&gcc GCC_WCSS_ACMT_CLK>,
+			 <&gcc GCC_WCSS_AXI_M_CLK>;
+		clock-names = "gcc_wcss_ahb_s_clk",
+			      "gcc_wcss_acmt_clk",
+			      "gcc_wcss_axi_m_clk";
+
+		qcom,halt-regs = <&tcsr_q6_block 0xa000 0xd000 0x0>;
+
+		qcom,smem-states = <&wcss_smp2p_out 8>,
+				   <&wcss_smp2p_out 9>,
+				   <&wcss_smp2p_out 10>;
+		qcom,smem-state-names = "shutdown",
+					"stop",
+					"spawn";
+	};
+
+	q6_wcss_pd2: remoteproc_pd2 {
+		compatible = "qcom,ipq5018-wcss-pcie-mpd";
+		firmware = "IPQ5018/q6_fw.mdt";
+		m3_firmware = "qcn6122/m3_fw.mdt";
+		interrupts-extended = <&wcss_smp2p_in 16 0>,
+				      <&wcss_smp2p_in 17 0>,
+				      <&wcss_smp2p_in 20 0>,
+				      <&wcss_smp2p_in 19 0>;
+		interrupt-names = "fatal",
+				  "ready",
+				  "spawn-ack",
+				  "stop-ack";
+
+		qcom,smem-states = <&wcss_smp2p_out 16>,
+				   <&wcss_smp2p_out 17>,
+				   <&wcss_smp2p_out 18>;
+		qcom,smem-state-names = "shutdown",
+					"stop",
+					"spawn";
+	};
+};
 &wifi0 {
 	/* IPQ5018 */
 	qcom,multipd_arch;
+	qcom,userpd-subsys-name = "4ab000.remoteproc_pd1";
+	qcom,rproc = <&q6_wcss_pd1>;
 #ifdef __IPQ_MEM_PROFILE_256_MB__
 	qcom,tgt-mem-mode = <2>;
 #else
@@ -737,8 +844,117 @@
 #endif
 	qcom,board_id = <0x23>;
 	qcom,bdf-addr = <0x0 0x4C000000 0x4C000000 0x0 0x0>;
-	qcom,caldb-addr = <0x0 0x4D000000 0 0 0>;
+#ifdef __CNSS2__
+        qcom,caldb-addr = <0x0 0x4D000000 0 0 0>;
+#else
+        qcom,caldb-addr = <0x4D000000>;
+        m3-dump-addr = <0x4CE00000>;
+#endif
+	mem-region = <&q6_ipq5018_data>;
 	qcom,caldb-size = <0x200000>;
-	qcom,userpd-subsys-name = "q6v5_wcss_userpd1";
 	status = "ok";
+};
+
+&wifi1 {
+	/* QCN6122 5G */
+	qcom,multipd_arch;
+	qcom,userpd-subsys-name = "cd00000.remoteproc:remoteproc_pd2";
+	qcom,rproc = <&q6_wcss_pd2>;
+#ifdef __IPQ_MEM_PROFILE_256_MB__
+	qcom,tgt-mem-mode = <2>;
+#else
+	qcom,tgt-mem-mode = <1>;
+#endif
+	qcom,board_id = <0x60>;
+	qcom,bdf-addr = <0x0 0x4D200000 0x4CF00000 0x0 0x0>;
+#ifdef __CNSS2__
+        qcom,caldb-addr = <0x0 0x4E400000 0 0 0>;
+#else
+        qcom,caldb-addr = <0x4E400000>;
+        m3-dump-addr = <0x4E200000>;
+#endif
+	mem-region = <&q6_qcn6122_data1>;
+	qcom,caldb-size = <0x500000>;
+	status = "ok";
+};
+
+&wifi3 {
+        /* QCN9000 6G */
+        compatible = "qcom,cnss-qcn9000";
+        board_id = <0xa4>;
+        status = "ok";
+        qrtr_node_id = <0x21>;
+#if defined(__IPQ_MEM_PROFILE_256_MB__) || defined(__IPQ_FLASH_16M_PROFILE__)
+	/* QCN9000 tgt-mem-mode=2 layout - 17MB
+	 * +=========+==============+=========+
+	 * |  Region | Start Offset |   Size  |
+	 * +---------+--------------+---------+
+	 * | HREMOTE |  0x4E000000  |   15MB  |
+	 * +---------+--------------+---------+
+	 * | M3 Dump |  0x4EF00000  |   1MB   |
+	 * +---------+--------------+---------+
+	 * |   ETR   |  0x4F000000  |   1MB   |
+	 * +---------+--------------+---------+
+	 * | Pageable|  0x4F100000  |   8MB   |
+	 * +==================================+
+	 */
+	base-addr = <0x4E000000>;
+	m3-dump-addr = <0x4EF00000>;
+	etr-addr = <0x4F000000>;
+	caldb-addr = <0>;
+	pageable-addr = <0x4F100000>;
+	caldb-size = <0>;
+	hremote-size = <0xF00000>;
+	tgt-mem-mode = <0x2>;
+#elif __IPQ_MEM_PROFILE_512_MB__
+	/* QCN9000 tgt-mem-mode=1 layout - 30MB
+	 * +=========+==============+=========+
+	 * |  Region | Start Offset |   Size  |
+	 * +---------+--------------+---------+
+	 * | HREMOTE |  0x4E900000  |   20MB  |
+	 * +---------+--------------+---------+
+	 * | M3 Dump |  0x4FD00000  |   1MB   |
+	 * +---------+--------------+---------+
+	 * |   ETR   |  0x4FE00000  |   1MB   |
+	 * +---------+--------------+---------+
+	 * |  Caldb  |  0x4FF00000  |   8MB   |
+	 * +---------+--------------+---------+
+	 * | Pageable|  0x50700000  |   8MB   |
+	 * +==================================+
+	 */
+	base-addr = <0x4E900000>;
+	m3-dump-addr = <0x4FD00000>;
+	etr-addr = <0x4FE00000>;
+	caldb-addr = <0x4FF00000>;
+	pageable-addr = <0x50700000>;
+	caldb-size = <0x800000>;
+	hremote-size = <0x1400000>;
+	tgt-mem-mode = <0x1>;
+#else
+	/* QCN9000 tgt-mem-mode=0 layout - 45MB
+	 * +=========+==============+=========+
+	 * |  Region | Start Offset |   Size  |
+	 * +---------+--------------+---------+
+	 * | HREMOTE |  0x4E900000  |   35MB  |
+	 * +---------+--------------+---------+
+	 * | M3 Dump |  0x50C00000  |   1MB   |
+	 * +---------+--------------+---------+
+	 * |   ETR   |  0x50D00000  |   1MB   |
+	 * +---------+--------------+---------+
+	 * |  Caldb  |  0x50E00000  |   8MB   |
+	 * +---------+--------------+---------+
+	 * | Pageable|  0x51600000  |   8MB   |
+	 * +==================================+
+	 */
+	base-addr = <0x4E900000>;
+	m3-dump-addr = <0x50C00000>;
+	etr-addr = <0x50D00000>;
+	caldb-addr = <0x50E00000>;
+	pageable-addr = <0x51600000>;
+	hremote-size = <0x2300000>;
+	caldb-size = <0x800000>;
+	tgt-mem-mode = <0x0>;
+#endif
+	pageable-size = <0x800000>;
+	hremote_node = <&q6_qcn9000_region>;
 };
