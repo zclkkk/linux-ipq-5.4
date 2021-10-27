@@ -1650,6 +1650,11 @@
 		status = "ok";
 	};
 
+	gadget_diag: qti,gadget_diag@0 {
+		compatible = "qti,gadget-diag";
+		status = "disabled";
+	};
+
 	wcss: wcss-smp2p {
 		compatible = "qcom,smp2p";
 		qcom,smem = <435>, <428>;
