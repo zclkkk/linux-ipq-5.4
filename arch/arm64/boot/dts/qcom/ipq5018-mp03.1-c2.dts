@@ -7,7 +7,7 @@
 #include "ipq5018-mp03.1.dts"
 
 / {
-	model = "Qualcomm Technologies, Inc. IPQ5018/AP-MP03-C2";
+	model = "Qualcomm Technologies, Inc. IPQ5018/AP-MP03.1-C2";
 	compatible = "qcom,ipq5018-ap-mp03.1-c2", "qcom,ipq5018-mp03.1", "qcom,ipq5018";
 
 	aliases {

@@ -147,7 +147,7 @@
 };
 
 &soc {
-	qfprom: qfprom@a0000 {
+	qfprom_nvmem: qfprom_nvmem@a0000 {
 		#address-cells = <1>;
 		#size-cells = <1>;
 		compatible = "qcom,qfprom";
