@@ -464,6 +464,13 @@ static void cnss_pci_select_window(struct cnss_pci_data *pci_priv, u32 addr)
 	writel_relaxed(WINDOW_ENABLE_BIT | curr_window,
 		       QCN9000_PCIE_REMAP_BAR_CTRL_OFFSET +
 		       pci_priv->bar);
+
+	/* Introduce a delay of 10 mseconds due to emulation
+	 * Wait for the window configuration to reflect before
+	 * allowing further writes or reads
+	 */
+	if (pci_priv->device_id == QCN9224_DEVICE_ID)
+		mdelay(10);
 }
 
 static int cnss_pci_reg_read(struct cnss_pci_data *pci_priv,
