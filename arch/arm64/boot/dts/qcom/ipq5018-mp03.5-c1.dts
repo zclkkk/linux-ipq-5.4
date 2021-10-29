@@ -639,7 +639,7 @@
 	/* IPQ5018 */
 	qcom,multipd_arch;
 	qcom,rproc = <&q6_wcss_pd1>;
-	qcom,userpd-subsys-name = "4ab000.remoteproc_pd1";
+	qcom,userpd-subsys-name = "q6v5_wcss_userpd1";
 #ifdef __IPQ_MEM_PROFILE_256_MB__
 	qcom,tgt-mem-mode = <2>;
 #else
@@ -661,7 +661,7 @@
 &wifi1 {
 	/* QCN6122 5G */
 	qcom,multipd_arch;
-	qcom,userpd-subsys-name = "cd00000.remoteproc:remoteproc_pd2";
+	qcom,userpd-subsys-name = "q6v5_wcss_userpd2";
 	qcom,rproc = <&q6_wcss_pd2>;
 #ifdef __IPQ_MEM_PROFILE_256_MB__
 	qcom,tgt-mem-mode = <2>;
@@ -684,7 +684,7 @@
 &wifi2 {
 	/* QCN6122 6G */
 	qcom,multipd_arch;
-	qcom,userpd-subsys-name = "cd00000.remoteproc:remoteproc_pd3";
+	qcom,userpd-subsys-name = "q6v5_wcss_userpd3";
 	qcom,rproc = <&q6_wcss_pd3>;
 #ifdef __IPQ_MEM_PROFILE_256_MB__
 	qcom,tgt-mem-mode = <2>;

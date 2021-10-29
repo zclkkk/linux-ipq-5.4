@@ -3181,14 +3181,7 @@ int cnss_register_subsys(struct cnss_plat_data *plat_priv)
 			}
 		}
 
-		/* Assign the subsys name */
-		if (of_property_read_bool(dev->of_node, "qcom,multipd_arch"))
-			of_property_read_string(dev->of_node,
-						"qcom,userpd-subsys-name",
-						&subsys_info->subsys_desc.name);
-		else
-			subsys_info->subsys_desc.name =
-				plat_priv->rproc_handle->name;
+		subsys_info->subsys_desc.name = plat_priv->rproc_handle->name;
 
 		break;
 	case CNSS_BUS_PCI:
@@ -3907,11 +3900,11 @@ static int platform_get_qcn6122_userpd_id(struct platform_device *plat_dev,
 		return -EINVAL;
 	}
 
-	if (strcmp(subsys_name, "cd00000.remoteproc:remoteproc_pd2") == 0) {
+	if (strcmp(subsys_name, "q6v5_wcss_userpd2") == 0) {
 		*userpd_id = QCN6122_0;
 		return 0;
 	} else if (strcmp(subsys_name,
-				"cd00000.remoteproc:remoteproc_pd3") == 0) {
+				"q6v5_wcss_userpd3") == 0) {
 		*userpd_id = QCN6122_1;
 		return 0;
 	}
