@@ -1127,12 +1127,6 @@
 			qcom,udp-st-enabled;
 		};
 
-		scm_restart_reason: scm_restart_reason {
-			compatible = "qti,scm_restart_reason";
-			dload_status = <0>;
-			dload_warm_status = <0>;
-		};
-
 		apcs: syscon@b111000 {
 			compatible = "syscon";
 			reg = <0x0B111000 0x1000>;
@@ -1174,6 +1168,12 @@
 			compatible = "qcom,arm-cortex-acc";
 			reg = <0x0b198000 0x1000>;
 		};
+	};
+
+	qti,scm_restart_reason {
+		compatible = "qti,scm_restart_reason";
+		dload_status = <0>;
+		dload_warm_reset = <0>;
 	};
 
 	qcom,test@0 {
