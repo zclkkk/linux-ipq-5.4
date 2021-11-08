@@ -325,7 +325,44 @@
 &q6v5_wcss {
 	/delete-property/ qcom,multipd_arch;
 	/delete-property/ memory-region;
+	/delete-property/ qcom,rproc;
+	/delete-property/ qcom,bootargs_smem;
+	/delete-property/ boot-args;
 
+	compatible = "qcom,qcs5018-wcss-pil";
+	reg = <0x0cd00000 0x4040>,
+	      <0x004ab000 0x20>;
+	reg-names = "qdsp6",
+		    "rmb";
+	resets = <&gcc GCC_WCSSAON_RESET>,
+		 <&gcc GCC_WCSS_BCR>,
+		 <&gcc GCC_WCSS_Q6_BCR>,
+		 <&gcc GCC_CE_BCR>;
+
+	reset-names = "wcss_aon_reset",
+		      "wcss_reset",
+		      "wcss_q6_reset",
+		      "ce_reset";
+        clocks = <&gcc GCC_Q6_AXIS_CLK>,
+		 <&gcc GCC_WCSS_AHB_S_CLK>,
+		 <&gcc GCC_WCSS_ECAHB_CLK>,
+		 <&gcc GCC_WCSS_ACMT_CLK>,
+		 <&gcc GCC_WCSS_AXI_M_CLK>,
+		 <&gcc GCC_Q6_AXIM_CLK>,
+		 <&gcc GCC_Q6_AXIM2_CLK>,
+		 <&gcc GCC_Q6_AHB_CLK>,
+		 <&gcc GCC_Q6_AHB_S_CLK>,
+		 <&gcc GCC_WCSS_AXI_S_CLK>;
+	clock-names = "gcc_q6_axis_clk",
+		      "gcc_wcss_ahb_s_clk",
+		      "gcc_wcss_ecahb_clk",
+		      "gcc_wcss_acmt_clk",
+		      "gcc_wcss_axi_m_clk",
+		      "gcc_q6_axim_clk",
+		      "gcc_q6_axim2_clk",
+		      "gcc_q6_ahb_clk",
+		      "gcc_q6_ahb_s_clk",
+		      "gcc_wcss_axi_s_clk";
 	#ifdef __IPQ_MEM_PROFILE_256_MB__
 		memory-region = <&q6_region>, <&q6_etr_region>;
 	#else
@@ -333,12 +370,14 @@
 				<&q6_caldb_region>;
 	#endif
 
-	/delete-node/ q6v5_wcss_userpd1;
-	/delete-node/ q6v5_wcss_userpd2;
+	/delete-node/ q6_wcss_pd1;
+	/delete-node/ q6_wcss_pd2;
 };
 
 &wifi0 {
 	/delete-property/ qcom,multipd_arch;
+	/delete-property/ mem-region;
+	qcom,rproc = <&q6v5_wcss>;
 	mem-region = <&q6_region>;
 	qcom,bdf-addr = <0x4BA00000 0x4BA00000 0x4BA00000 0x0 0x0>;
 	qcom,caldb-addr = <0x4CA00000 0x4CA00000 0x0 0x0 0x0>;
