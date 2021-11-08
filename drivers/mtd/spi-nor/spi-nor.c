@@ -4639,7 +4639,7 @@ static void spi_nor_info_init_params(struct spi_nor *nor)
 		spi_nor_set_erase_type(&map->erase_type[i], 4096u,
 				       SPINOR_OP_BE_4K);
 		i++;
-	}
+	} else
 #else
 	if (info->flags & SECT_4K_PMC) {
 		erase_mask |= BIT(i);
@@ -4653,9 +4653,11 @@ static void spi_nor_info_init_params(struct spi_nor *nor)
 		i++;
 	}
 #endif
-	erase_mask |= BIT(i);
-	spi_nor_set_erase_type(&map->erase_type[i], info->sector_size,
-			       SPINOR_OP_SE);
+	{
+		erase_mask |= BIT(i);
+		spi_nor_set_erase_type(&map->erase_type[i], info->sector_size,
+					SPINOR_OP_SE);
+	}
 	spi_nor_init_uniform_erase_map(map, erase_mask, params->size);
 }
 
