@@ -19,6 +19,12 @@
 #include <soc/qcom/ramdump.h>
 #include "commonmhitest.h"
 
+#define PCIE_PCIE_LOCAL_REG_PCIE_LOCAL_RSV0	0x3164
+#define PCIE_REG_FOR_QRTR_NODE_INSTANCE_ID	\
+	PCIE_PCIE_LOCAL_REG_PCIE_LOCAL_RSV0
+#define QCN90XX_QRTR_INSTANCE_ID_BASE		0x20
+#define QCN92XX_QRTR_INSTANCE_ID_BASE		0x30
+
 static struct mhi_channel_config mhitest_mhi_channels[] = {
 	{
 		.num = 0,
@@ -1025,6 +1031,42 @@ int mhitest_pci_start_mhi(struct mhitest_platform *mplat)
 		MHITEST_ERR("Error not able to set mhi init. returning..\n");
 		goto out1;
 	}
+	/**
+	 * in the single wlan chipset case, plat_priv->qrtr_node_id always is 0,
+	 * wlan fw will use the hardcode 7 as the qrtr node id.
+	 * in the dual Hastings case, we will read qrtr node id
+	 * from device tree and pass to get plat_priv->qrtr_node_id,
+	 * which always is not zero. And then store this new value
+	 * to pcie register, wlan fw will read out this qrtr node id
+	 * from this register and overwrite to the hardcode one
+	 * while do initialization for ipc router.
+	 * without this change, two Hastings will use the same
+	 * qrtr node instance id, which will mess up qmi message
+	 * exchange. According to qrtr spec, every node should
+	 * have unique qrtr node id
+	 */
+	if (mplat->device_id == QCN90xx_DEVICE_ID || mplat->device_id == QCN92XX_DEVICE_ID) {
+		u32 val;
+		u32 qrtr_id;
+
+		qrtr_id = (mplat->device_id == QCN90xx_DEVICE_ID)? QCN90XX_QRTR_INSTANCE_ID_BASE:QCN92XX_QRTR_INSTANCE_ID_BASE;
+		qrtr_id += mplat->d_instance;
+
+		MHITEST_VERB("write 0x%x to PCIE_REG_FOR_QRTR_NODE_INSTANCE_ID\n", qrtr_id);
+		writel(qrtr_id, mplat->bar + PCIE_REG_FOR_QRTR_NODE_INSTANCE_ID);
+		if (ret) {
+			MHITEST_ERR("Failed to write register offset 0x%x, err = %d\n",
+				    PCIE_REG_FOR_QRTR_NODE_INSTANCE_ID, ret);
+			goto out1;
+		}
+		val = readl(mplat->bar + PCIE_REG_FOR_QRTR_NODE_INSTANCE_ID);
+
+		if (val != qrtr_id) {
+			MHITEST_ERR("qrtr node id write to register doesn't match with readout value 0x%x", val);
+			goto out1;
+		}
+	}
+
 	ret = mhitest_pci_set_mhi_state(mplat, MHI_POWER_ON);
 	if (ret) {
 		MHITEST_ERR("Error not able to POWER ON\n");
