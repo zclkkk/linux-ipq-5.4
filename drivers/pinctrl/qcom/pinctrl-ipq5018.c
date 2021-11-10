@@ -198,6 +198,8 @@ enum ipq5018_functions {
 	msm_mux_gcc_plltest,
 	msm_mux_gcc_tlmm,
 	msm_mux_gpio,
+	msm_mux_led0,
+	msm_mux_led2,
 	msm_mux_mac0,
 	msm_mux_mac1,
 	msm_mux_mdc,
@@ -506,6 +508,12 @@ static const char * const pwm3_groups[] = {
 static const char * const qdss_cti_trig_in_b1_groups[] = {
 	"gpio45",
 };
+static const char * const led0_groups[] = {
+	"gpio46", "gpio30",
+};
+static const char * const led2_groups[] = {
+	"gpio30",
+};
 
 static const char * const gpio_groups[] = {
 	"gpio0", "gpio1", "gpio2", "gpio3", "gpio4", "gpio5", "gpio6", "gpio7",
@@ -558,6 +566,8 @@ static const struct msm_function ipq5018_functions[] = {
 	FUNCTION(gcc_plltest),
 	FUNCTION(gcc_tlmm),
 	FUNCTION(gpio),
+	FUNCTION(led0),
+	FUNCTION(led2),
 	FUNCTION(mac0),
 	FUNCTION(mac1),
 	FUNCTION(mdc),
@@ -632,7 +642,7 @@ static const struct msm_pingroup ipq5018_groups[] = {
 	PINGROUP(27, audio_txmclk, wsa_swrm, audio_txmclk, blsp2_spi, btss, _, qdss_tracedata_b, _, _),
 	PINGROUP(28, audio_txbclk, wsa_swrm, blsp0_uart1, btss, qdss_tracedata_b, _, _, _, _),
 	PINGROUP(29, audio_txfsync, _, blsp0_uart1, _, qdss_tracedata_b, _, _, _, _),
-	PINGROUP(30, audio_txd, qdss_tracedata_b, _, wsis_reset, _, _, _, _, _),
+	PINGROUP(30, audio_txd, led2, led0, _, _, _, _, _, _),
 	PINGROUP(31, blsp2_spi0, blsp1_uart1, _, qdss_tracedata_b, eud_gpio, _, _, _, _),
 	PINGROUP(32, blsp2_spi0, blsp1_uart1, _, qdss_tracedata_b, eud_gpio, _, _, _, _),
 	PINGROUP(33, blsp2_i2c0, blsp2_spi0, blsp1_uart1, _, qdss_tracedata_b, eud_gpio, _, _, _),
@@ -648,7 +658,7 @@ static const struct msm_pingroup ipq5018_groups[] = {
 	PINGROUP(43, pwm1, qdss_cti_trig_in_b0, wci_txd, wci_rxd, xfem, _, _, _, _),
 	PINGROUP(44, pwm2, qdss_cti_trig_out_b1, wci_txd, wci_rxd, xfem, _, _, _, _),
 	PINGROUP(45, pwm3, qdss_cti_trig_in_b1, wci_txd, wci_rxd, xfem, _, _, _, _),
-	PINGROUP(46, _, _, _, _, _, _, _, _, _),
+	PINGROUP(46, led0, _, _, _, _, _, _, _, _),
 };
 
 static const struct msm_pinctrl_soc_data ipq5018_pinctrl = {
