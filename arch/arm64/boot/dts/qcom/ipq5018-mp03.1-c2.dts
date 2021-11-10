@@ -200,33 +200,17 @@
                                 drive-strength = <8>;
                                 bias-disable;
                         };
+
                 emmc_cmd {
                                 pins = "gpio8";
                                 function = "sdc1_cmd";
                                 drive-strength = <8>;
                                 bias-pull-up;
                         };
-                emmc_data_0 {
-                                pins = "gpio7";
-                                function = "sdc10";
-                                drive-strength = <8>;
-                                bias-disable;
-                        };
-                emmc_data_1 {
-                                pins = "gpio6";
-                                function = "sdc11";
-                                drive-strength = <8>;
-                                bias-disable;
-                        };
-                emmc_data_2 {
-                                pins = "gpio5";
-                                function = "sdc12";
-                                drive-strength = <8>;
-                                bias-disable;
-                        };
-                emmc_data_3 {
-                                pins = "gpio4";
-                                function = "sdc13";
+
+                emmc_data {
+                                pins = "gpio4", "gpio5", "gpio6", "gpio7";
+                                function = "sdc1_data";
                                 drive-strength = <8>;
                                 bias-disable;
                         };
