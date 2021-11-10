@@ -35,6 +35,13 @@
 				"dap_ahb_clk",
 				"tsctr_div2_clk",
 				"tsctr_div8_clk";
+
+		assigned-clocks = <&gcc GCC_QDSS_TSCTR_DIV2_CLK>,
+			 <&gcc GCC_QDSS_TSCTR_DIV8_CLK>;
+
+		assigned-clock-rates = <300000000>,
+					<75000000>;
+
 	};
 
 	stm: stm@6002000 {
@@ -48,9 +55,20 @@
 
 		clocks = <&gcc GCC_QDSS_DAP_CLK>,
 			 <&gcc GCC_QDSS_AT_CLK>,
-			 <&gcc GCC_QDSS_STM_CLK>;
-		clock-names = "apb_pclk", "atclk", "stm_clk";
+			 <&gcc GCC_QDSS_STM_CLK>,
+			 <&gcc GCC_SYS_NOC_QDSS_STM_AXI_CLK>;
 
+		clock-names = "apb_pclk", "atclk", "stm_clk", "stm_axi_clk";
+
+		assigned-clocks = <&gcc GCC_QDSS_DAP_CLK>,
+			 <&gcc GCC_QDSS_AT_CLK>,
+			 <&gcc GCC_QDSS_STM_CLK>,
+			 <&gcc GCC_SYS_NOC_QDSS_STM_AXI_CLK>;
+
+		assigned-clock-rates = <150000000>,
+					<240000000>,
+					<200000000>,
+					<200000000>;
 		out-ports {
 			port {
 				stm_out: endpoint {
