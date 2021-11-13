@@ -389,6 +389,42 @@ ENTRY(v7_dma_inv_range)
 ENDPROC(v7_dma_inv_range)
 
 /*
+ *	v7_dma_inv_range_no_dsb(start,end)
+ *
+ *	Invalidate the data cache within the specified region; we will
+ *	be performing a DMA operation in this region and we want to
+ *	purge old data in the cache. This API does not do
+ *	"data synchronization barrier". The caller is responsible to
+ *	do dsb after the transaction.
+ *
+ *	- start   - virtual start address of region
+ *	- end     - virtual end address of region
+ */
+ENTRY(v7_dma_inv_range_no_dsb)
+	dcache_line_size r2, r3
+	sub	r3, r2, #1
+	tst	r0, r3
+	bic	r0, r0, r3
+#ifdef CONFIG_ARM_ERRATA_764369
+	ALT_SMP(W(dsb))
+	ALT_UP(W(nop))
+#endif
+	mcrne	p15, 0, r0, c7, c14, 1		@ clean & invalidate D / U line
+	addne	r0, r0, r2
+
+	tst	r1, r3
+	bic	r1, r1, r3
+	mcrne	p15, 0, r1, c7, c14, 1		@ clean & invalidate D / U line
+	cmp	r0, r1
+1:
+	mcrlo	p15, 0, r0, c7, c6, 1		@ invalidate D / U line
+	addlo	r0, r0, r2
+	cmplo	r0, r1
+	blo	1b
+	ret	lr
+ENDPROC(v7_dma_inv_range_no_dsb)
+
+/*
  *	v7_dma_clean_range(start,end)
  *	- start   - virtual start address of region
  *	- end     - virtual end address of region
@@ -411,6 +447,31 @@ ENTRY(v7_dma_clean_range)
 ENDPROC(v7_dma_clean_range)
 
 /*
+ *	v7_dma_clean_range_no_dsb(start,end)
+ *
+ *	This API does not do "data synchronization barrier".
+ *	The caller is responsible to do dsb after the transaction.
+ *
+ *	- start   - virtual start address of region
+ *	- end     - virtual end address of region
+ */
+ENTRY(v7_dma_clean_range_no_dsb)
+	dcache_line_size r2, r3
+	sub	r3, r2, #1
+	bic	r0, r0, r3
+#ifdef CONFIG_ARM_ERRATA_764369
+	ALT_SMP(W(dsb))
+	ALT_UP(W(nop))
+#endif
+1:
+	mcr	p15, 0, r0, c7, c10, 1		@ clean D / U line
+	add	r0, r0, r2
+	cmp	r0, r1
+	blo	1b
+	ret	lr
+ENDPROC(v7_dma_clean_range_no_dsb)
+
+/*
  *	v7_dma_flush_range(start,end)
  *	- start   - virtual start address of region
  *	- end     - virtual end address of region
@@ -431,6 +492,31 @@ ENTRY(v7_dma_flush_range)
 	dsb	st
 	ret	lr
 ENDPROC(v7_dma_flush_range)
+
+/*
+ *	v7_dma_flush_range_no_dsb(start,end)
+ *
+ *	This API does not do "data synchronization barrier".
+ *	The caller is responsible to do dsb after the transaction.
+ *
+ *	- start   - virtual start address of region
+ *	- end     - virtual end address of region
+ */
+ENTRY(v7_dma_flush_range_no_dsb)
+	dcache_line_size r2, r3
+	sub	r3, r2, #1
+	bic	r0, r0, r3
+#ifdef CONFIG_ARM_ERRATA_764369
+	ALT_SMP(W(dsb))
+	ALT_UP(W(nop))
+#endif
+1:
+	mcr	p15, 0, r0, c7, c14, 1		@ clean & invalidate D / U line
+	add	r0, r0, r2
+	cmp	r0, r1
+	blo	1b
+	ret	lr
+ENDPROC(v7_dma_flush_range_no_dsb)
 
 /*
  *	dma_map_area(start, size, dir)
