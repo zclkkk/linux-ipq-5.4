@@ -5071,6 +5071,7 @@ struct wireless_dev {
 	struct list_head pmsr_list;
 	spinlock_t pmsr_lock;
 	struct work_struct pmsr_free_wk;
+	u8 mld_address[ETH_ALEN] __aligned(sizeof(u16));
 };
 
 static inline u8 *wdev_address(struct wireless_dev *wdev)
