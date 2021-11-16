@@ -234,6 +234,7 @@ static int qcom_get_pd_fw_info(struct q6_wcss *wcss, const struct firmware *fw,
 	segs[index].size = fw_info->size;
 	segs[index].v_address = ioremap(segs[index].address,
 			segs[index].size);
+	segs[index].vaddr = fw_info->vaddr;
 	return ret;
 }
 
