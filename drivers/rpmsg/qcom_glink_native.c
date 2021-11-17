@@ -409,8 +409,8 @@ static int qcom_glink_send_open_req(struct qcom_glink *glink,
 		struct glink_msg msg;
 		u8 name[GLINK_NAME_SIZE];
 	} __packed req;
-	int name_len = strlen(channel->name) + 1;
-	int req_len = ALIGN(sizeof(req.msg) + name_len, 8);
+	size_t name_len = strlen(channel->name) + 1;
+	size_t req_len = ALIGN(sizeof(req.msg) + name_len, 8);
 	int ret;
 	unsigned long flags;
 
@@ -431,6 +431,7 @@ static int qcom_glink_send_open_req(struct qcom_glink *glink,
 	req.msg.param2 = cpu_to_le32(name_len);
 	strcpy(req.name, channel->name);
 
+	req_len = (req_len > sizeof(req)) ? sizeof(req) : req_len;
 	ret = qcom_glink_tx(glink, &req, req_len, NULL, 0, true);
 	if (ret)
 		goto remove_idr;
