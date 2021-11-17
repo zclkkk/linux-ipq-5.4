@@ -667,12 +667,12 @@
 
 &pcie_x1 {
 	status = "disabled";
-	perst-gpio = <&tlmm 18 1>;
+	perst-gpio = <&tlmm 18 GPIO_ACTIVE_LOW>;
 };
 
 &pcie_x2 {
 	status = "ok";
-	perst-gpio = <&tlmm 15 1>;
+	perst-gpio = <&tlmm 15 GPIO_ACTIVE_LOW>;
 };
 
 &dwc_0 {
