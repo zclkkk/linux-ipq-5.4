@@ -4320,17 +4320,14 @@ static void cnss_pci_disable_msi(struct cnss_pci_data *pci_priv)
 
 static void cnss_qgic2m_msg_handler(struct msi_desc *desc, struct msi_msg *msg)
 {
-	struct device *dev = msi_desc_to_dev(desc);
-	struct cnss_plat_data *plat_priv = dev_get_drvdata(dev);
-
-	if (!plat_priv) {
-		pr_err("plat_priv NULL");
-		return;
-	}
-
 	desc->msg.address_lo = msg->address_lo;
 	desc->msg.address_hi = msg->address_hi;
 	desc->msg.data = msg->data;
+}
+
+static irqreturn_t dummy_irq_handler(int irq, void *context)
+{
+	return IRQ_HANDLED;
 }
 
 struct qgic2_msi *cnss_qgic2_enable_msi(struct cnss_plat_data *plat_priv)
@@ -4340,7 +4337,6 @@ struct qgic2_msi *cnss_qgic2_enable_msi(struct cnss_plat_data *plat_priv)
 	struct msi_desc *msi_desc;
 	struct cnss_msi_config *msi_config;
 	struct device *dev = &plat_priv->plat_dev->dev;
-	struct msi_msg msg;
 	struct irq_data *irq_data;
 
 	msi_config = cnss_get_msi_config_qcn6122(plat_priv);
@@ -4371,21 +4367,28 @@ struct qgic2_msi *cnss_qgic2_enable_msi(struct cnss_plat_data *plat_priv)
 	msi_desc = first_msi_entry(dev);
 	irq_data = irq_desc_get_irq_data(irq_to_desc(msi_desc->irq));
 
-	ret = irq_chip_compose_msi_msg(irq_data, &msg);
+	/* For QCN6122 device, to retrieve msi base address and irq data,
+	 * request a dummy irq  store the base address and data in qgic
+	 * private to provide the required base address/data info in
+	 * cnss_get_msi_address and cnss_get_user_msi_assignment API calls.
+	 */
+	ret = request_irq(msi_desc->irq, dummy_irq_handler,
+			  IRQF_SHARED, "dummy", qgic);
 	if (ret) {
-		cnss_pr_err("irq_chip_compose_msi_msg failed %d\n", ret);
-		platform_msi_domain_free_irqs(&plat_priv->plat_dev->dev);
-		return NULL;
+		cnss_pr_err("dummy request_irq fails %d\n", ret);
+		return ret;
 	}
 
 	qgic->irq_num = msi_desc->irq;
-	qgic->msi_gicm_base_data = msg.data;
-	qgic->msi_gicm_addr_lo = msg.address_lo;
-	qgic->msi_gicm_addr_hi = msg.address_hi;
+	qgic->msi_gicm_base_data = msi_desc->msg.data;
+	qgic->msi_gicm_addr_lo = msi_desc->msg.address_lo;
+	qgic->msi_gicm_addr_hi = msi_desc->msg.address_hi;
 
 	cnss_pr_dbg("irq %d msi addr lo 0x%x addr hi 0x%x msi data %d",
-		    msi_desc->irq, msg.address_lo, msg.address_hi, msg.data);
+		    qgic->irq_num, qgic->msi_gicm_addr_lo,
+		    qgic->msi_gicm_addr_hi, qgic->msi_gicm_base_data);
 
+	free_irq(msi_desc->irq, qgic);
 	return qgic;
 }
 EXPORT_SYMBOL(cnss_qgic2_enable_msi);
