@@ -477,9 +477,14 @@
 	status = "ok";
 };
 
+&pcie_x1 {
+	status = "disabled";
+	perst-gpio = <&tlmm 27 GPIO_ACTIVE_LOW>;
+};
+
 &pcie_x2 {
 	status = "disabled";
-	perst-gpio = <&tlmm 15 1>;
+	perst-gpio = <&tlmm 15 GPIO_ACTIVE_LOW>;
 };
 
 &dwc_0 {
@@ -492,8 +497,20 @@
 	status = "ok";
 };
 
+&pcie_x1phy {
+	status = "disabled";
+};
+
 &pcie_x2phy {
 	status = "disabled";
+};
+
+&pcie_x1_rp {
+	status = "disabled";
+
+	mhi_0: qcom,mhi@0 {
+		reg = <0 0 0 0 0 >;
+	};
 };
 
 &pcie_x2_rp {

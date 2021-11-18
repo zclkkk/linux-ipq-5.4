@@ -235,7 +235,7 @@
 
 &pcie_x2 {
         status = "ok";
-        perst-gpio = <&tlmm 15 1>;
+        perst-gpio = <&tlmm 15 GPIO_ACTIVE_LOW>;
 };
 
 &pcie_x2phy {
