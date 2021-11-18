@@ -41,6 +41,11 @@ Each PCIe PHY controller should have its own node.
 	Value type: <stringlist>
 	Definition: Should contain "core" for PHY core reset
 
+- x2:
+	Usage: optional
+	Value type: <u32>
+	Definition: Indicates if PHY is dual lane capable
+
 
 * Example
 
@@ -54,5 +59,6 @@ Each PCIe PHY controller should have its own node.
 			<&gcc GCC_PCIE1PHY_PHY_BCR>;
 		reset-names = "phy"
 				"phy_phy";
+		x2 = <1>;
 	};
 
