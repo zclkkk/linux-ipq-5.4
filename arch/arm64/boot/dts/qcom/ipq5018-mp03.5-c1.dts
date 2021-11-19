@@ -635,6 +635,13 @@
 					"spawn";
 	};
 };
+
+&i2c_0 {
+	pinctrl-0 = <&i2c_pins>;
+	pinctrl-names = "default";
+	status = "disabled";
+};
+
 &wifi0 {
 	/* IPQ5018 */
 	qcom,multipd_arch;
