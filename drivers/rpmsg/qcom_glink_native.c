@@ -110,6 +110,7 @@ struct qcom_glink {
 	int irq;
 
 	struct work_struct rx_work;
+	struct workqueue_struct *rx_wq;
 	spinlock_t rx_lock;
 	spinlock_t irq_lock;
 	struct list_head rx_queue;
@@ -175,6 +176,7 @@ struct glink_channel {
 	struct idr liids;
 	struct idr riids;
 	struct work_struct intent_work;
+	struct workqueue_struct *intent_wq;
 	struct list_head done_intents;
 
 	struct glink_core_rx_intent *buf;
@@ -265,6 +267,13 @@ static struct glink_channel *qcom_glink_alloc_channel(struct qcom_glink *glink,
 	INIT_LIST_HEAD(&channel->done_intents);
 	INIT_WORK(&channel->intent_work, qcom_glink_rx_done_work);
 
+	channel->intent_wq = alloc_workqueue("intent_wq", WQ_UNBOUND, 1);
+	if (!channel->intent_wq) {
+		pr_err("failed to create %s channel intent work queue\n",
+							channel->name);
+		return ERR_PTR(-ENOMEM);
+	}
+
 	idr_init(&channel->liids);
 	idr_init(&channel->riids);
 	kref_init(&channel->refcount);
@@ -303,6 +312,8 @@ static void qcom_glink_channel_release(struct kref *ref)
 		kfree(tmp);
 	idr_destroy(&channel->riids);
 	spin_unlock_irqrestore(&channel->intent_lock, flags);
+
+	destroy_workqueue(channel->intent_wq);
 
 	kfree(channel->name);
 	kfree(channel);
@@ -602,7 +613,7 @@ static void qcom_glink_rx_done(struct qcom_glink *glink,
 	list_add_tail(&intent->node, &channel->done_intents);
 	spin_unlock(&channel->intent_lock);
 
-	schedule_work(&channel->intent_work);
+	queue_work(channel->intent_wq, &channel->intent_work);
 }
 
 /**
@@ -837,6 +848,7 @@ struct rx_defer {
 static int qcom_glink_rx_defer(struct qcom_glink *glink, size_t extra)
 {
 	struct glink_defer_cmd *dcmd;
+	bool is_queued;
 
 	extra = ALIGN(extra, 8);
 
@@ -874,7 +886,10 @@ static int qcom_glink_rx_defer(struct qcom_glink *glink, size_t extra)
 	list_add_tail(&dcmd->node, &glink->rx_queue);
 	spin_unlock(&glink->rx_lock);
 
-	schedule_work(&glink->rx_work);
+	is_queued = queue_work(glink->rx_wq, &glink->rx_work);
+	if (is_queued == false)
+		pr_debug("Work is already on queue\n");
+
 	/* It log's the work queue schedule timestamp */
 	glinkwork_schedule[glinkwork_sche_index++].timestamp =
 				ktime_to_ms(ktime_get());
@@ -1740,6 +1755,8 @@ static void qcom_glink_cancel_rx_work(struct qcom_glink *glink)
 					ktime_to_ms(ktime_get());
 	glinkwork_cancel_index &= (RPMLOG_SIZE - 1);
 
+	destroy_workqueue(glink->rx_wq);
+
 	list_for_each_entry_safe(dcmd, tmp, &glink->rx_queue, node)
 		kfree(dcmd);
 }
@@ -1770,6 +1787,10 @@ struct qcom_glink *qcom_glink_native_probe(struct device *dev,
 	spin_lock_init(&glink->rx_lock);
 	INIT_LIST_HEAD(&glink->rx_queue);
 	INIT_WORK(&glink->rx_work, qcom_glink_work);
+
+	glink->rx_wq = alloc_workqueue("glink_rx_wq", WQ_UNBOUND, 1);
+	if (!glink->rx_wq)
+		return ERR_PTR(-ENOMEM);
 
 	spin_lock_init(&glink->idr_lock);
 	idr_init(&glink->lcids);
