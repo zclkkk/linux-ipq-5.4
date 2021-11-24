@@ -40,6 +40,7 @@
 #define SSCG_CTRL_REG_4		0xa8
 #define SSCG_CTRL_REG_5		0xac
 #define SSCG_CTRL_REG_6		0xb0
+#define PCS_INTERNAL_CONTROL_2	0x2d8
 
 #define PHY_MODE_FIXED		0x1
 
@@ -115,6 +116,7 @@ static void qca_uni_pcie_phy_init(struct qca_uni_pcie_phy *phy)
 			writel(0x419, reg + CDR_CTRL_REG_2);
 			/*set fixed offset*/
 			writel(0x200, reg + CDR_CTRL_REG_1);
+			writel(0xf101, reg + PCS_INTERNAL_CONTROL_2);
 		}
 
 		if (phy->is_x2)
