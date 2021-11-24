@@ -193,7 +193,7 @@ static int qca_uni_pcie_get_resources(struct platform_device *pdev,
 		return ret;
 	}
 
-	ret = of_property_read_u32(phy->dev->of_node, "mode_fixed", &phy->mode);
+	ret = of_property_read_u32(phy->dev->of_node, "mode-fixed", &phy->mode);
 	if (ret) {
 		dev_err(phy->dev, "%s, cannot get mode\n", __func__);
 		return ret;

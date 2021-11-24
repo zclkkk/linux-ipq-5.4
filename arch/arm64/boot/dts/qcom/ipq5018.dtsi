@@ -276,7 +276,7 @@
 				<&gcc GCC_PCIE1PHY_PHY_BCR>;
 			reset-names = "phy",
 					"phy_phy";
-			mode_fixed = <2>;
+			mode-fixed = <2>;
 			status = "disabled";
 		};
 
@@ -292,7 +292,7 @@
 				<&gcc GCC_PCIE0PHY_PHY_BCR>;
 			reset-names = "phy",
 					"phy_phy";
-			mode_fixed = <1>;
+			mode-fixed = <2>;
 			x2 = <1>;
 			status = "disabled";
 		};
