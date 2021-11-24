@@ -310,28 +310,9 @@ static void crashdump_init(struct rproc *rproc,
 		if (ret)
 			goto free_device;
 		index++;
-		wcss->state = WCSS_RESTARTING;
-	} else {
-		for_each_available_child_of_node(wcss->dev->of_node, upd_np) {
-			struct platform_device *upd_pdev;
-			struct rproc *upd_rproc;
-			struct q6_wcss *upd_wcss;
-
-			if (strstr(upd_np->name, "pd") == NULL)
-				continue;
-			upd_pdev = of_find_device_by_node(upd_np);
-			upd_rproc = platform_get_drvdata(upd_pdev);
-			upd_wcss = upd_rproc->priv;
-
-			memset(&fw_info, 0, sizeof(fw_info));
-			ret = qcom_get_pd_fw_info(upd_wcss, fw, segs, index,
-								&fw_info);
-			if (ret)
-				goto free_device;
-			index++;
-			upd_wcss->state = WCSS_RESTARTING;
-		}
 	}
+	wcss->state = WCSS_RESTARTING;
+
 	release_firmware(fw);
 	do_elf_ramdump(handle, segs, index);
 put_node:
