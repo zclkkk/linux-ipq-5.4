@@ -253,6 +253,22 @@ static void crashdump_init(struct rproc *rproc,
 	const struct firmware *fw;
 	char dev_name[BUF_SIZE];
 
+	/*
+	 * Send ramdump notification to userpd(s) if rootpd
+	 * crashed, irrespective of userpd status.
+	 */
+	for_each_available_child_of_node(wcss->dev->of_node, upd_np) {
+		struct platform_device *upd_pdev;
+		struct rproc *upd_rproc;
+
+		if (strstr(upd_np->name, "pd") == NULL)
+			continue;
+		upd_pdev = of_find_device_by_node(upd_np);
+		upd_rproc = platform_get_drvdata(upd_pdev);
+		rproc_subsys_notify(upd_rproc,
+				SUBSYS_RAMDUMP_NOTIFICATION, false);
+	}
+
 	if (wcss->pd_asid)
 		snprintf(dev_name, BUF_SIZE, "q6v5_wcss_userpd%d_mem",
 							wcss->pd_asid);
@@ -1031,6 +1047,19 @@ static int q6_wcss_stop(struct rproc *rproc)
 		struct platform_device *upd_pdev;
 		struct rproc *upd_rproc;
 		struct q6_wcss *upd_wcss;
+
+		/*
+		 * Send fatal notification to userpd(s) if rootpd
+		 * crashed, irrespective of userpd status.
+		 */
+		for_each_available_child_of_node(wcss->dev->of_node, upd_np) {
+			if (strstr(upd_np->name, "pd") == NULL)
+				continue;
+			upd_pdev = of_find_device_by_node(upd_np);
+			upd_rproc = platform_get_drvdata(upd_pdev);
+			rproc_subsys_notify(upd_rproc,
+				SUBSYS_PREPARE_FOR_FATAL_SHUTDOWN, true);
+		}
 
 		for_each_available_child_of_node(wcss->dev->of_node, upd_np) {
 			if (strstr(upd_np->name, "pd") == NULL)
