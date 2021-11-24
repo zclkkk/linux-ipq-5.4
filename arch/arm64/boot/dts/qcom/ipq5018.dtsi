@@ -692,7 +692,6 @@
 
 			phys = <&pcie_x1phy>;
 			phy-names ="pciephy";
-			force_gen2 = <1>;
 
 			ranges = <0x81000000 0 0x80200000 0x80200000
 				  0 0x00100000   /* downstream I/O */
@@ -767,7 +766,6 @@
 
 			phys = <&pcie_x2phy>;
 			phy-names ="pciephy";
-			force_gen2 = <1>;
 
 			ranges = <0x81000000 0 0xa0200000 0xa0200000
 				  0 0x00100000   /* downstream I/O */
