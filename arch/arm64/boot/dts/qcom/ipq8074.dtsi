@@ -1305,6 +1305,7 @@
 			npu-supply = <&npu_vreg>;
 		};
 
+		#ifndef __IPQ_MEM_PROFILE_256_MB__
 		nss1: nss@40800000 {
 			compatible = "qcom,nss";
 			interrupts = <0 390 0x1>, <0 391 0x1>, <0 392 0x1>,
@@ -1450,6 +1451,7 @@
 				};
 			};
 		};
+		#endif
 
 		wifi0: wifi@c0000000 {
 			compatible = "qcom,cnss-qca8074";
