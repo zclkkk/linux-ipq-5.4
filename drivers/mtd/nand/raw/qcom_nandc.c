@@ -594,7 +594,7 @@ alloc_bam_transaction(struct qcom_nand_controller *nandc)
 		(sizeof(*bam_txn->cmd_sgl) * QPIC_PER_CW_CMD_SGL) +
 		(sizeof(*bam_txn->data_sgl) * QPIC_PER_CW_DATA_SGL));
 	if (nandc->props->qpic_v2)
-		bam_txn_size += (sizeof(*bam_txn->sts_sgl) * QPIC_PER_CW_STS_SGL);
+		bam_txn_size += sizeof(*bam_txn->sts_sgl) * QPIC_PER_CW_STS_SGL * num_cw;
 
 	bam_txn_buf = devm_kzalloc(nandc->dev, bam_txn_size, GFP_KERNEL);
 	if (!bam_txn_buf)
