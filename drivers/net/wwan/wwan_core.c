@@ -226,7 +226,7 @@ struct wwan_port *wwan_create_port(struct device *parent,
 	 * pick) the WWAN device based on the provided parent device.
 	 */
 	wwandev = wwan_create_dev(parent);
-	if (IS_ERR(wwandev))
+	if (IS_ERR_OR_NULL(wwandev))
 		return ERR_CAST(wwandev);
 
 	/* A port is exposed as character device, get a minor */
