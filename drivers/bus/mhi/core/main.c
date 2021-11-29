@@ -274,7 +274,7 @@ int mhi_destroy_device(struct device *dev, void *data)
 	if (mhi_dev->dl_chan)
 		put_device(&mhi_dev->dl_chan->mhi_dev->dev);
 
-	dev_dbg(&mhi_cntrl->mhi_dev->dev, "destroy device for chan:%s\n",
+	dev_info(&mhi_cntrl->mhi_dev->dev, "destroy device for chan:%s\n",
 		 mhi_dev->name);
 
 	/* Notify the client and remove the device from MHI bus */
@@ -1502,6 +1502,10 @@ static void mhi_reset_data_chan(struct mhi_controller *mhi_cntrl,
 	tre_ring = &mhi_chan->tre_ring;
 	result.transaction_status = -ENOTCONN;
 	result.bytes_xferd = 0;
+
+	dev_info(&mhi_cntrl->mhi_dev->dev, "%s rp %p wp %p\n", __func__, \
+			tre_ring->rp, tre_ring->wp);
+
 	while (tre_ring->rp != tre_ring->wp) {
 		struct mhi_buf_info *buf_info = buf_ring->rp;
 
