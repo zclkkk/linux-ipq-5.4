@@ -325,7 +325,9 @@
 				qcom,mhi@0 {
 					reg = <0 0 0 0 0>;
 					qrtr_instance_id = <0x20>;
+#if defined(__CNSS2__)
 					memory-region = <&mhi_region0>;
+#endif
 				};
 			};
 		};
@@ -343,7 +345,9 @@
 				qcom,mhi@1 {
 					reg = <0 0 0 0 0>;
 					qrtr_instance_id = <0x21>;
+#if defined(__CNSS2__)
 					memory-region = <&mhi_region1>;
+#endif
 				};
 			};
 		};

@@ -263,8 +263,9 @@
 		qrtr_instance_id = <0x20>;
 		#address-cells = <0x2>;
 		#size-cells = <0x2>;
+#if defined(__CNSS2__)
 		memory-region = <&mhi_region1>;
-#if !defined(__CNSS2__)
+#else
 		qrtr_node_id = <0x20>;
 		base-addr = <0x4CC00000>;
 		m3-dump-addr = <0x4E000000>;
