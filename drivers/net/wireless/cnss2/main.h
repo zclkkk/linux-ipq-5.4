@@ -316,6 +316,7 @@ enum cnss_driver_event_type {
 	CNSS_DRIVER_EVENT_QDSS_TRACE_SAVE,
 	CNSS_DRIVER_EVENT_QDSS_TRACE_FREE,
 	CNSS_DRIVER_EVENT_M3_DUMP_UPLOAD_REQ,
+	CNSS_DRIVER_EVENT_QDSS_MEM_READY,
 	CNSS_DRIVER_EVENT_MAX,
 };
 
@@ -555,6 +556,7 @@ struct cnss_plat_data {
 	};
 	bool hds_support;
 	bool regdb_support;
+	bool qdss_support;
 };
 
 #ifdef CONFIG_ARCH_QCOM
@@ -615,5 +617,6 @@ int cnss_get_cpr_info(struct cnss_plat_data *plat_priv);
 int cnss_update_cpr_info(struct cnss_plat_data *plat_priv);
 void cnss_update_platform_feature_support(u8 type, u32 instance_id, u32 value);
 void coresight_abort(void);
+const char *cnss_get_fw_path(struct cnss_plat_data *plat_priv);
 
 #endif /* _CNSS_MAIN_H */
