@@ -85,6 +85,11 @@
 		method = "smc";
 	};
 
+	qseecom {
+		compatible = "ipq5018-qseecom";
+		memory-region = <&tzapp>;
+	};
+
 	firmware {
 		scm {
 			compatible = "qcom,scm";
