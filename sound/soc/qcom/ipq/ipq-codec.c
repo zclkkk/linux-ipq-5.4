@@ -288,92 +288,6 @@ static struct snd_soc_dai_ops ipq_codec_audio_ops = {
 	.shutdown	= ipq_codec_audio_shutdown,
 };
 
-static struct snd_soc_dai_driver ipq4019_codec_dais[] = {
-	{
-		.name = "qca-i2s-codec-dai",
-		.playback = {
-			.stream_name = "qca-i2s-playback",
-			.channels_min = CH_STEREO,
-			.channels_max = CH_STEREO,
-			.rates = RATE_16000_96000,
-			.formats = SNDRV_PCM_FMTBIT_S16 |
-				SNDRV_PCM_FMTBIT_S32,
-		},
-		.capture = {
-			.stream_name = "qca-i2s-capture",
-			.channels_min = CH_STEREO,
-			.channels_max = CH_STEREO,
-			.rates = RATE_16000_96000,
-			.formats = SNDRV_PCM_FMTBIT_S16 |
-				SNDRV_PCM_FMTBIT_S32,
-		},
-		.ops = &ipq_codec_audio_ops,
-		.id = I2S,
-	},
-	{
-		.name = "qca-tdm-codec-dai",
-		.playback = {
-			.stream_name = "qca-tdm-playback",
-			.channels_min = CH_STEREO,
-			.channels_max = CH_7_1,
-			.rates = RATE_16000_96000,
-			.formats = SNDRV_PCM_FMTBIT_S16 |
-				SNDRV_PCM_FMTBIT_S32,
-		},
-		.capture = {
-			.stream_name = "qca-tdm-capture",
-			.channels_min = CH_STEREO,
-			.channels_max = CH_7_1,
-			.rates = RATE_16000_96000,
-			.formats = SNDRV_PCM_FMTBIT_S16 |
-				SNDRV_PCM_FMTBIT_S32,
-		},
-		.ops = &ipq_codec_audio_ops,
-		.id = TDM,
-	},
-	{
-		.name = "qca-i2s1-codec-dai",
-		.playback = {
-			.stream_name = "qca-i2s1-playback",
-			.channels_min = CH_STEREO,
-			.channels_max = CH_STEREO,
-			.rates = RATE_16000_96000,
-			.formats = SNDRV_PCM_FMTBIT_S16 |
-				SNDRV_PCM_FMTBIT_S32,
-		},
-	},
-	{
-		.name = "qca-i2s2-codec-dai",
-		.playback = {
-			.stream_name = "qca-i2s2-playback",
-			.channels_min = CH_STEREO,
-			.channels_max = CH_STEREO,
-			.rates = RATE_16000_96000,
-			.formats = SNDRV_PCM_FMTBIT_S16 |
-				SNDRV_PCM_FMTBIT_S32,
-		},
-	},
-	{
-		.name = "qca-spdif-codec-dai",
-		.playback = {
-			.stream_name = "qca-spdif-playback",
-			.channels_min = CH_STEREO,
-			.channels_max = CH_STEREO,
-			.rates = RATE_16000_96000,
-			.formats = SNDRV_PCM_FMTBIT_S16 |
-				SNDRV_PCM_FMTBIT_S24_3,
-		},
-		.capture = {
-			.stream_name = "qca-spdif-capture",
-			.channels_min = CH_STEREO,
-			.channels_max = CH_STEREO,
-			.rates = RATE_16000_96000,
-			.formats = SNDRV_PCM_FMTBIT_S16 |
-				SNDRV_PCM_FMTBIT_S24_3,
-		},
-	},
-};
-
 static struct snd_soc_dai_driver ipq8074_codec_dais[] = {
 	{
 		.name = "qca-i2s-codec-dai",
@@ -462,7 +376,6 @@ static const struct snd_soc_codec_driver ipq_codec = {
 };
 
 static const struct of_device_id ipq_codec_of_match[] = {
-	{ .compatible = "qca,ipq4019-codec", .data = (void *)IPQ4019  },
 	{ .compatible = "qca,ipq8074-codec", .data = (void *)IPQ8074  },
 	{ /* Sentinel */ }
 };
@@ -493,14 +406,9 @@ static int ipq_codec_i2c_probe(struct i2c_client *i2c,
 
 	dev_info(&i2c->dev, "i2c regmap done\n");
 
-	if (ipq_hw == IPQ4019)
-		ret = snd_soc_register_codec(&i2c->dev,
-				&ipq_codec, ipq4019_codec_dais,
-				ARRAY_SIZE(ipq4019_codec_dais));
-	else
-		ret = snd_soc_register_codec(&i2c->dev,
-				&ipq_codec, ipq8074_codec_dais,
-				ARRAY_SIZE(ipq8074_codec_dais));
+	ret = snd_soc_register_codec(&i2c->dev,
+			&ipq_codec, ipq8074_codec_dais,
+			ARRAY_SIZE(ipq8074_codec_dais));
 
 	if (ret < 0)
 		dev_err(&i2c->dev, "snd_soc_register_codec failed (%d)\n", ret);

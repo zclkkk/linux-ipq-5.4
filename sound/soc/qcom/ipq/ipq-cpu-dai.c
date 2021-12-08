@@ -51,9 +51,6 @@ static struct clk *audio_tx_bclk;
 static struct clk *audio_tx_mclk;
 static struct clk *audio_rx_bclk;
 static struct clk *audio_rx_mclk;
-static struct clk *audio_spdif_src;
-static struct clk *audio_spdif_div2;
-static struct clk *audio_spdifinfast_src;
 
 /* Get Stereo channel ID based on I2S intf and direction */
 int ipq_get_stereo_id(struct snd_pcm_substream *substream, int intf)
@@ -111,17 +108,6 @@ u32 ipq_get_act_bit_width(u32 bit_width)
 	return __BIT_INVAL;
 }
 EXPORT_SYMBOL(ipq_get_act_bit_width);
-
-static int ipq_audio_clk_get(struct clk **clk, struct device *dev,
-					const char *id)
-{
-	*clk = devm_clk_get(dev, id);
-	if (IS_ERR(*clk)) {
-		dev_err(dev, "%s: Error in %s\n", __func__, id);
-		return PTR_ERR(*clk);
-	}
-	return 0;
-}
 
 static int ipq_audio_clk_set(struct clk *clk, struct device *dev,
 					u32 val)
@@ -319,249 +305,6 @@ static struct snd_soc_dai_ops ipq_audio_ops = {
 	.shutdown	= ipq_audio_shutdown,
 };
 
-static int ipq_spdif_hw_params(struct snd_pcm_substream *substream,
-					struct snd_pcm_hw_params *params,
-					struct snd_soc_dai *dai)
-{
-	uint32_t bit_width, channels, rate, bit_act;
-	int ret;
-	uint32_t stereo_id = ipq_get_stereo_id(substream, SPDIF);
-	uint32_t mclk, bclk;
-	struct device *dev = &(dai_priv[SPDIF].pdev->dev);
-	uint32_t spdif_bclk;
-	uint32_t spdif_mclk;
-
-	bit_width = params_format(params);
-	channels = params_channels(params);
-	rate = params_rate(params);
-	bit_act = ipq_get_act_bit_width(bit_width);
-
-	bclk = rate * bit_act * channels;
-	mclk = bclk * MCLK_MULTI;
-
-	/* SPDIF subframe is always 32 bit and 2 channels */
-	spdif_bclk = rate * 32 * 2;
-	spdif_mclk = spdif_bclk * 2;
-
-	if (substream->stream == PLAYBACK) {
-		/* Set the clocks */
-		ret = ipq_audio_clk_set(audio_tx_mclk, dev, mclk);
-		if (ret)
-			return ret;
-
-		ret = ipq_audio_clk_set(audio_tx_bclk, dev, bclk);
-		if (ret)
-			return ret;
-
-		ret = ipq_audio_clk_set(audio_spdif_src, dev, spdif_mclk);
-		if (ret)
-			return ret;
-
-		ret = ipq_audio_clk_set(audio_spdif_div2, dev, spdif_bclk);
-		if (ret)
-			return ret;
-
-		ipq_glb_clk_enable_oe(substream->stream);
-
-		/* Set MASTER mode */
-		ipq_config_master(ENABLE, stereo_id);
-
-		/* Configure bit width */
-		ret = ipq_cfg_bit_width(bit_width, stereo_id);
-		if (ret) {
-			pr_err("%s: BitWidth %d not supported\n",
-				__func__, bit_width);
-			return ret;
-		}
-
-	} else if (substream->stream == CAPTURE) {
-		/* Set the clocks */
-		ret = ipq_audio_clk_set(audio_spdifinfast_src, dev,
-						AUDIO_SPDIFINFAST);
-		if (ret)
-			return ret;
-	}
-
-	return 0;
-}
-
-static int ipq_spdif_prepare(struct snd_pcm_substream *substream,
-					struct snd_soc_dai *dai)
-{
-	dev_dbg(dai->dev, "%s:%d\n", __func__, __LINE__);
-	return 0;
-}
-
-static int ipq_spdif_startup(struct snd_pcm_substream *substream,
-					struct snd_soc_dai *dai)
-{
-	int ret = 0;
-
-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-		/* Check if the direction is enabled */
-		if (dai_priv[SPDIF].tx_enabled != ENABLE)
-			goto error;
-
-		ipq_glb_tx_data_port_en(ENABLE);
-		ipq_glb_tx_framesync_port_en(ENABLE);
-		ipq_glb_spdif_out_en(ENABLE);
-		/* Select I2S/TDM */
-		ipq_glb_audio_mode(I2S, substream->stream);
-	} else if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
-		/* Check if the direction is enabled */
-		if (dai_priv[SPDIF].rx_enabled != ENABLE)
-			goto error;
-		ipq_spdifin_ctrl_spdif_en(DISABLE);
-
-		ipq_glb_rx_data_port_en(ENABLE);
-		ipq_glb_rx_framesync_port_en(ENABLE);
-		ipq_glb_audio_mode(I2S, substream->stream);
-		ipq_spdifin_cfg();
-	}
-
-	return ret;
-error:
-	pr_err("%s: Direction not enabled\n", __func__);
-	return -EFAULT;
-}
-
-static void ipq_spdif_shutdown(struct snd_pcm_substream *substream,
-					struct snd_soc_dai *dai)
-{
-	struct device *dev = &(dai_priv[SPDIF].pdev->dev);
-
-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-		ipq_glb_tx_data_port_en(DISABLE);
-		ipq_glb_tx_framesync_port_en(DISABLE);
-
-		/* Disable the clocks */
-		ipq_audio_clk_disable(&audio_tx_bclk, dev);
-		ipq_audio_clk_disable(&audio_tx_mclk, dev);
-		ipq_audio_clk_disable(&audio_spdif_src, dev);
-		ipq_audio_clk_disable(&audio_spdif_div2, dev);
-	} else if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
-		ipq_glb_rx_data_port_en(DISABLE);
-		ipq_glb_rx_framesync_port_en(DISABLE);
-
-		/* Disable the clocks */
-		ipq_audio_clk_disable(&audio_spdifinfast_src, dev);
-	}
-}
-
-static int ipq_spdif_set_fmt(struct snd_soc_dai *dai, unsigned int fmt)
-{
-	dev_dbg(dai->dev, "%s:%d\n", __func__, __LINE__);
-	return 0;
-}
-
-static struct snd_soc_dai_ops ipq_spdif_ops = {
-	.startup	= ipq_spdif_startup,
-	.prepare	= ipq_spdif_prepare,
-	.hw_params	= ipq_spdif_hw_params,
-	.shutdown	= ipq_spdif_shutdown,
-	.set_fmt	= ipq_spdif_set_fmt,
-};
-
-static struct snd_soc_dai_driver ipq4019_cpu_dais[] = {
-	{
-		.playback = {
-			.rates		= RATE_16000_96000,
-			.formats	= SNDRV_PCM_FMTBIT_S16 |
-					SNDRV_PCM_FMTBIT_S32,
-			.channels_min	= CH_STEREO,
-			.channels_max	= CH_STEREO,
-			.rate_min	= FREQ_16000,
-			.rate_max	= FREQ_96000,
-		},
-		.capture = {
-			.rates		= RATE_16000_96000,
-			.formats	= SNDRV_PCM_FMTBIT_S16 |
-					SNDRV_PCM_FMTBIT_S32,
-			.channels_min	= CH_STEREO,
-			.channels_max	= CH_STEREO,
-			.rate_min	= FREQ_16000,
-			.rate_max	= FREQ_96000,
-		},
-		.ops = &ipq_audio_ops,
-		.id = I2S,
-		.name = "qca-i2s-dai"
-	},
-	{
-		.playback = {
-			.rates		= RATE_16000_96000,
-			.formats	= SNDRV_PCM_FMTBIT_S16 |
-					SNDRV_PCM_FMTBIT_S32,
-			.channels_min	= CH_STEREO,
-			.channels_max	= CH_7_1,
-			.rate_min	= FREQ_16000,
-			.rate_max	= FREQ_96000,
-		},
-		.capture = {
-			.rates		= RATE_16000_96000,
-			.formats	= SNDRV_PCM_FMTBIT_S16 |
-					SNDRV_PCM_FMTBIT_S32,
-			.channels_min	= CH_STEREO,
-			.channels_max	= CH_7_1,
-			.rate_min	= FREQ_16000,
-			.rate_max	= FREQ_96000,
-		},
-		.ops = &ipq_audio_ops,
-		.id = TDM,
-		.name = "qca-tdm-dai"
-	},
-	{
-		.playback = {
-			.rates		= RATE_16000_96000,
-			.formats	= SNDRV_PCM_FMTBIT_S16 |
-					SNDRV_PCM_FMTBIT_S32,
-			.channels_min	= 2,
-			.channels_max	= 2,
-			.rate_min	= FREQ_16000,
-			.rate_max	= FREQ_96000,
-		},
-		.ops = &ipq_audio_ops,
-		.id = I2S1,
-		.name = "qca-i2s1-dai"
-	},
-	{
-		.playback = {
-			.rates		= RATE_16000_96000,
-			.formats	= SNDRV_PCM_FMTBIT_S16 |
-					SNDRV_PCM_FMTBIT_S32,
-			.channels_min	= 2,
-			.channels_max	= 2,
-			.rate_min	= FREQ_16000,
-			.rate_max	= FREQ_96000,
-		},
-		.ops = &ipq_audio_ops,
-		.id = I2S2,
-		.name = "qca-i2s2-dai"
-	},
-	{
-		.playback = {
-			.rates		= RATE_16000_96000,
-			.formats        = SNDRV_PCM_FMTBIT_S16 |
-					SNDRV_PCM_FMTBIT_S24_3,
-			.channels_min   = CH_STEREO,
-			.channels_max   = CH_STEREO,
-			.rate_min       = FREQ_16000,
-			.rate_max       = FREQ_96000,
-		},
-		.capture = {
-			.rates		= RATE_16000_96000,
-			.formats        = SNDRV_PCM_FMTBIT_S16 |
-					SNDRV_PCM_FMTBIT_S24_3,
-			.channels_min   = CH_STEREO,
-			.channels_max   = CH_STEREO,
-			.rate_min       = FREQ_16000,
-			.rate_max       = FREQ_96000,
-		},
-		.ops = &ipq_spdif_ops,
-		.id = SPDIF,
-		.name = "qca-spdif-dai"
-	},
-};
-
 static struct snd_soc_dai_driver ipq8074_cpu_dais[] = {
 	{
 		.playback = {
@@ -615,31 +358,6 @@ static const struct snd_soc_component_driver ipq_i2s_component = {
 	.name           = "qca-cpu-dai",
 };
 
-struct ipq_intf_pdata ipq4019_i2s_pdata = {
-	.data = I2S,
-	.hw = IPQ4019,
-};
-
-struct ipq_intf_pdata ipq4019_tdm_pdata = {
-	.data = TDM,
-	.hw = IPQ4019,
-};
-
-struct ipq_intf_pdata ipq4019_spdif_pdata = {
-	.data = SPDIF,
-	.hw = IPQ4019,
-};
-
-struct ipq_intf_pdata ipq4019_i2s1_pdata = {
-	.data = I2S1,
-	.hw = IPQ4019,
-};
-
-struct ipq_intf_pdata ipq4019_i2s2_pdata = {
-	.data = I2S2,
-	.hw = IPQ4019,
-};
-
 struct ipq_intf_pdata ipq8074_i2s_pdata = {
 	.data = I2S,
 	.hw = IPQ8074,
@@ -651,11 +369,6 @@ struct ipq_intf_pdata ipq8074_tdm_pdata = {
 };
 
 static const struct of_device_id ipq_cpu_dai_id_table[] = {
-	{ .compatible = "qca,ipq4019-i2s", .data = &ipq4019_i2s_pdata },
-	{ .compatible = "qca,ipq4019-tdm", .data = &ipq4019_tdm_pdata },
-	{ .compatible = "qca,ipq4019-spdif", .data = &ipq4019_spdif_pdata },
-	{ .compatible = "qca,ipq4019-i2s1", .data = &ipq4019_i2s1_pdata },
-	{ .compatible = "qca,ipq4019-i2s2", .data = &ipq4019_i2s2_pdata },
 	{ .compatible = "qca,ipq8074-i2s", .data = &ipq8074_i2s_pdata },
 	{ .compatible = "qca,ipq8074-tdm", .data = &ipq8074_tdm_pdata },
 	{},
@@ -733,44 +446,23 @@ static int ipq_dai_probe(struct platform_device *pdev)
 		return PTR_ERR(audio_tx_bclk);
 	}
 
-	if (intf == SPDIF) {
-		ret = ipq_audio_clk_get(&audio_spdif_src, &pdev->dev,
-						"audio_spdif_src");
-		if (ret)
-			return ret;
+	audio_rx_mclk = devm_clk_get(&pdev->dev,
+					"audio_rx_mclk");
+	if (IS_ERR(audio_rx_mclk)) {
+		dev_err(&pdev->dev, "Could not get rx_mclk\n");
+		return PTR_ERR(audio_rx_mclk);
+	}
 
-		ret = ipq_audio_clk_get(&audio_spdif_div2, &pdev->dev,
-						"audio_spdif_div2");
-		if (ret)
-			return ret;
-
-		ret = ipq_audio_clk_get(&audio_spdifinfast_src,
-				 &pdev->dev, "audio_spdifinfast_src");
-		if (ret)
-			return ret;
-	} else {
-		audio_rx_mclk = devm_clk_get(&pdev->dev,
-						"audio_rx_mclk");
-		if (IS_ERR(audio_rx_mclk)) {
-			dev_err(&pdev->dev, "Could not get rx_mclk\n");
-			return PTR_ERR(audio_rx_mclk);
-		}
-
-		audio_rx_bclk = devm_clk_get(&pdev->dev, "audio_rx_bclk");
-		if (IS_ERR(audio_rx_bclk)) {
-			dev_err(&pdev->dev, "Could not get rx_bclk\n");
-			return PTR_ERR(audio_rx_bclk);
-		}
+	audio_rx_bclk = devm_clk_get(&pdev->dev, "audio_rx_bclk");
+	if (IS_ERR(audio_rx_bclk)) {
+		dev_err(&pdev->dev, "Could not get rx_bclk\n");
+		return PTR_ERR(audio_rx_bclk);
 	}
 
 	dai_priv[intf].pdev = pdev;
 
-	if (dai_priv[intf].ipq_hw == IPQ4019)
-		ret = snd_soc_register_component(&pdev->dev, &ipq_i2s_component,
-			 ipq4019_cpu_dais, ARRAY_SIZE(ipq4019_cpu_dais));
-	else
-		ret = snd_soc_register_component(&pdev->dev, &ipq_i2s_component,
-			 ipq8074_cpu_dais, ARRAY_SIZE(ipq8074_cpu_dais));
+	ret = snd_soc_register_component(&pdev->dev, &ipq_i2s_component,
+		 ipq8074_cpu_dais, ARRAY_SIZE(ipq8074_cpu_dais));
 	if (ret)
 		dev_err(&pdev->dev,
 			"ret: %d error registering soc dais\n", ret);

@@ -598,9 +598,6 @@ static struct snd_soc_platform_driver ipq_asoc_pcm_i2s_platform = {
 };
 
 static const struct of_device_id ipq_pcm_i2s_id_table[] = {
-	{ .compatible = "qca,ipq4019-pcm-i2s" },
-	{ .compatible = "qca,ipq4019-pcm-i2s1" },
-	{ .compatible = "qca,ipq4019-pcm-i2s2" },
 	{ .compatible = "qca,ipq8074-pcm-i2s" },
 	{ /* Sentinel */ },
 };

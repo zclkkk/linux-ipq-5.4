@@ -584,7 +584,6 @@ static struct snd_soc_platform_driver ipq_asoc_pcm_tdm_platform = {
 };
 
 static const struct of_device_id ipq_pcm_tdm_id_table[] = {
-	{ .compatible = "qca,ipq4019-pcm-tdm" },
 	{ .compatible = "qca,ipq8074-pcm-tdm" },
 	{ /* Sentinel */ },
 };
