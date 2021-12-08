@@ -136,6 +136,11 @@
 		};
 	};
 
+	pwm_pins: pwm_pinmux {
+		pins = "gpio18";
+		function = "pwm00";
+		drive-strength = <8>;
+	};
 };
 
 &soc {
@@ -261,6 +266,10 @@
 		mdiobus = <&mdio>;
 	};
 
+	pwm {
+		pinctrl-0 = <&pwm_pins>;
+		pinctrl-names = "default";
+	};
 };
 
 &qpic_bam {

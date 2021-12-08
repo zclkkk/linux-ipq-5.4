@@ -351,6 +351,17 @@
 			status = "disabled";
 		};
 
+		pwm {
+			compatible = "qti,ipq6018-pwm";
+			reg = <0x1941010 0x20>;
+			clocks = <&gcc GCC_ADSS_PWM_CLK>;
+			clock-names = "core";
+			src-freq = <100000000>;
+			pwm-base-index = <0>;
+			used-pwm-indices = <1>, <0>, <0>, <0>;
+			status = "disabled";
+		};
+
 		qpic_bam: dma@7984000 {
 			compatible = "qcom,bam-v1.7.0";
 			reg = <0x07984000 0x1a000>;
