@@ -1,4 +1,5 @@
 /* Copyright (c) 2016-2018, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022, Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -100,6 +101,13 @@ struct cnss_pci_reg {
 struct cnss_pci_debug_reg {
 	u32 offset;
 	u32 val;
+};
+
+struct cnss_ce_base_addr {
+	u32 src_base;
+	u32 dst_base;
+	u32 common_base;
+	u32 max_ce_count;
 };
 
 struct cnss_pci_data {
@@ -255,4 +263,7 @@ int cnss_pci_update_status(struct cnss_pci_data *pci_priv,
 			   enum cnss_driver_status status);
 void cnss_pci_global_reset(struct cnss_pci_data *pci_priv);
 void cnss_free_soc_info(struct cnss_plat_data *plat_priv);
+void cnss_dump_ce_reg(struct cnss_plat_data *plat_priv, enum cnss_ce_index ce,
+		      struct cnss_ce_base_addr *ce_object);
+struct cnss_ce_base_addr *register_ce_object(struct cnss_plat_data *plat_priv);
 #endif /* _CNSS_PCI_H */
