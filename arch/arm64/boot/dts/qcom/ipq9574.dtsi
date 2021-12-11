@@ -2374,7 +2374,7 @@
 			qcom,rproc = <&q6v5_wcss>;
 			qcom,bdf-addr = <0x4B700000 0x4B700000 0x4B700000
 					 0x0 0x0>;
-			qcom,caldb-addr = <0x4D800000 0x4D800000 0x0
+			qcom,caldb-addr = <0x4D800000 0x4CA00000 0x0
 					   0x0 0x0>;
 			qcom,caldb-size = <0x500000>;
 			m3-dump-addr = <0x4D600000>;
