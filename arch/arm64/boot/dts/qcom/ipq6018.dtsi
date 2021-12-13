@@ -2,7 +2,7 @@
 /*
  * IPQ6018 SoC device tree source
  *
- * Copyright (c) 2019-2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2019-2021 The Linux Foundation. All rights reserved.
  */
 
 #include <dt-bindings/interrupt-controller/arm-gic.h>
@@ -348,6 +348,17 @@
 			clock-names = "core", "iface";
 			dmas = <&blsp_dma 14>, <&blsp_dma 15>;
 			dma-names = "tx", "rx";
+			status = "disabled";
+		};
+
+		pwm {
+			compatible = "qti,ipq6018-pwm";
+			reg = <0x1941010 0x20>;
+			clocks = <&gcc GCC_ADSS_PWM_CLK>;
+			clock-names = "core";
+			src-freq = <100000000>;
+			pwm-base-index = <0>;
+			used-pwm-indices = <1>, <0>, <0>, <0>;
 			status = "disabled";
 		};
 
@@ -1642,6 +1653,27 @@
 			qcom,wlan-ramdump-dynamic = <0x400000>;
 			qrtr_node_id = <0x21>;
 			qca,auto-restart;
+			status = "disabled";
+		};
+
+		qpic_lcd: qcom_mdss_qpic@7980000 {
+			compatible = "qcom,mdss_qpic";
+			reg = <0x7980000 0x24000>;
+			interrupts = <GIC_SPI 151 IRQ_TYPE_NONE>;
+			clocks = <&gcc GCC_QPIC_CLK>,
+				<&gcc GCC_QPIC_AHB_CLK>;
+			clock-names = "core", "aon";
+			dmas = <&qpic_bam 6>;
+			dma-names = "chan";
+			status = "disabled";
+		};
+
+		qpic_lcd_panel: qcom_mdss_qpic_panel {
+			compatible = "qcom,mdss-qpic-panel";
+			label = "qpic lcd panel";
+			qcom,mdss-pan-res = <800 480>;
+			qcom,mdss-pan-bpp = <18>;
+			qcom,refresh_rate = <60>;
 			status = "disabled";
 		};
 	};
