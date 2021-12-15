@@ -231,6 +231,7 @@
 #define TOTAL_NUM_PHASE	7
 #define	AUTO_STS_VAL	0x000B000B
 #define	PAGE_SCOPE_READ	(1 << 23)
+#define	MAX_STATUS_REG	12
 
 #define nandc_set_read_loc_first(nandc, reg, cw_offset, read_size, is_last_read_loc)	\
 nandc_set_reg(nandc, reg,			\
@@ -2154,8 +2155,8 @@ static int read_page_ecc(struct qcom_nand_host *host, u8 *data_buf,
 
 		if (nandc->props->qpic_v2 && nandc->props->page_scope) {
 			read_status_data_dma(nandc, FLASH_BUF_ACC, (void *)status_buf_cw,
-					(nandc->sts_buf_size >> 2), 0);
-			status_buf_cw += (nandc->sts_buf_size >> 4);
+					MAX_STATUS_REG, 0);
+			status_buf_cw += (MAX_STATUS_REG / sizeof(u32));
 		}
 
 		/*
@@ -3572,7 +3573,8 @@ static int qcom_nand_host_init_and_register(struct qcom_nand_controller *nandc,
 	}
 
 	if (nandc->props->qpic_v2 && nandc->props->page_scope) {
-		nandc->sts_buf_size = mtd->writesize == SZ_2K ? 48 : 96;
+		nandc->sts_buf_size = (mtd->writesize / NANDC_STEP_SIZE) *
+							MAX_STATUS_REG;
 		nandc->status_buf = devm_kzalloc(nandc->dev, nandc->sts_buf_size,
 				GFP_KERNEL);
 		if (!nandc->status_buf)
