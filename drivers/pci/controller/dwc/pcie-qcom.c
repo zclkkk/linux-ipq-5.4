@@ -2369,6 +2369,7 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 	struct nvmem_cell *pcie_nvmem;
 	u8 *disable_status;
 	size_t len;
+	int x65_attached = 0;
 
 	/* If nvmem-cells present on PCIe node in DTSI, then check the QFPROM
 	 * fuses for PCIe is disabled */
@@ -2533,11 +2534,19 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 
 	pp->ops = &qcom_pcie_dw_ops;
 
-	pcie->mdm2ap_e911_irq = platform_get_irq_byname_optional(pdev,
-								"mdm2ap_e911");
+	of_property_read_u32(pdev->dev.of_node, "x65_attached", &x65_attached);
+
+	if (x65_attached) {
+		pcie->mdm2ap_e911_irq = platform_get_irq_byname(pdev,
+							"mdm2ap_e911_x65");
+	} else {
+		pcie->mdm2ap_e911_irq = platform_get_irq_byname(pdev,
+							"mdm2ap_e911");
+	}
+
 	if (pcie->mdm2ap_e911_irq >= 0) {
-		mdm2ap_e911 = devm_gpiod_get_optional(&pdev->dev, "e911",
-						      GPIOD_IN);
+		mdm2ap_e911 = devm_gpiod_get_optional(&pdev->dev,
+				(x65_attached ? "e911_x65" : "e911"), GPIOD_IN);
 		if (IS_ERR(mdm2ap_e911)) {
 			pr_err("requesting for e911 gpio failed %ld\n",
 			       PTR_ERR(mdm2ap_e911));
