@@ -3467,8 +3467,8 @@ static int qspi_execute_training(struct qcom_nand_controller *nandc,
 		ret = qcom_nandc_read_page(chip, training_data, 0, page);
 		if (ret) {
 			dev_err(nandc->dev, "Error in reading training data @ high freq");
-			ret = -EINVAL;
-			goto mem_err;
+			ret = 0;
+			break;
 		}
 		/* compare read training data with known pattern */
 		for (i = 0; i <  mtd->writesize; i += sizeof(qspi_training_block_64)) {
