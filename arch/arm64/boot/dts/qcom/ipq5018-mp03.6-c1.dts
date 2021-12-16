@@ -32,7 +32,7 @@
 
 	chosen {
 		bootargs = "console=ttyMSM0,115200,n8 rw init=/init";
-		bootargs-append = " swiotlb=1 coherent_pool=2M clk_ignore_unused";
+		bootargs-append = " swiotlb=1 coherent_pool=2M";
 		stdout-path = "serial0";
 		ethernet0 = "/soc/dp1";
 		ethernet1 = "/soc/dp2";
