@@ -339,7 +339,7 @@
 
 				qcom,mhi@1 {
 					reg = <0 0 0 0 0>;
-					qrtr_instance_id = <0x30>;
+					qrtr_instance_id = <0x31>;
 					memory-region = <&mhi_region0>;
 				};
 
@@ -358,7 +358,7 @@
 
 				qcom,mhi@2 {
 					reg = <0 0 0 0 0>;
-					qrtr_instance_id = <0x31>;
+					qrtr_instance_id = <0x32>;
 					memory-region = <&mhi_region1>;
 				};
 			};
@@ -376,7 +376,7 @@
 
 				qcom,mhi@3 {
 					reg = <0 0 0 0 0>;
-					qrtr_instance_id = <0x32>;
+					qrtr_instance_id = <0x33>;
 					memory-region = <&mhi_region2>;
 				};
 			};
@@ -514,4 +514,197 @@
 		};
 
 	};
+
+#if !defined(__IPQ_MEM_PROFILE_256_MB__)
+        mlo_chip_info0: mlo_chip0 {
+                chip_id =  /bits/ 8 <0>;
+                num_local_links =  /bits/ 8 <2>;
+                hw_link_ids =  /bits/ 8 <0x0 0x1>;
+                valid_mlo_link_ids =  /bits/ 8 <0x1 0x1>;
+        };
+
+        mlo_chip_info1: mlo_chip1 {
+                chip_id =  /bits/ 8 <1>;
+                num_local_links =  /bits/ 8 <2>;
+                hw_link_ids =  /bits/ 8 <0x2 0x3>;
+                valid_mlo_link_ids =  /bits/ 8 <0x1 0x1>;
+        };
+
+        mlo_chip_info2: mlo_chip2 {
+                chip_id =  /bits/ 8 <2>;
+                num_local_links =  /bits/ 8 <2>;
+                hw_link_ids =  /bits/ 8 <0x4 0x5>;
+                valid_mlo_link_ids =  /bits/ 8 <0x1 0x1>;
+        };
+
+        mlo_info: mlo_group0 {
+                mlo_group_id = /bits/ 8 <0>;
+                mlo_max_num_peer = /bits/ 16 <256>;
+                mlo_num_chips = /bits/ 8 <2>;
+                mlo_global_mem = <&mlo_global_mem>;
+                chips = <&mlo_chip_info0>, <&mlo_chip_info1>, <&mlo_chip_info2>;
+
+        };
+#endif
+
+};
+
+&wifi0 {
+       status = "disabled";
+};
+
+&wifi3 {
+#if !defined(__IPQ_MEM_PROFILE_256_MB__)
+#ifdef __IPQ_MEM_PROFILE_512_MB__
+        /* qcn9224 tgt-mem-mode=1 layout - 38MB
+         * +=========+==============+=========+
+         * |  Region | Start Offset |   Size  |
+         * +---------+--------------+---------+
+         * | HREMOTE |  0x4DD00000  |   20MB  |
+         * +---------+--------------+---------+
+         * | M3 Dump |  0x4F100000  |   1MB   |
+         * +---------+--------------+---------+
+         * |   ETR   |  0x4F200000  |   1MB   |
+         * +---------+--------------+---------+
+         * |  Caldb  |  0x4F300000  |   8MB   |
+         * +==================================+
+         */
+        base-addr = <0x4DD00000>;
+        m3-dump-addr = <0x4F100000>;
+        etr-addr = <0x4F200000>;
+        caldb-addr = <0x4F300000>;
+        hremote-size = <0x1400000>;
+        tgt-mem-mode = <0x1>;
+#else
+        /* qcn9224 tgt-mem-mode=0 layout - 46MB
+         * +=========+==============+=========+
+         * |  Region | Start Offset |   Size  |
+         * +---------+--------------+---------+
+         * | HREMOTE |  0x4DD00000  |   36MB  |
+         * +---------+--------------+---------+
+         * | M3 Dump |  0x50100000  |   1MB   |
+         * +---------+--------------+---------+
+         * |   ETR   |  0x50200000  |   1MB   |
+         * +---------+--------------+---------+
+         * |  Caldb  |  0x50300000  |   8MB   |
+         * +==================================+
+         */
+        base-addr = <0x4DD00000>;
+        m3-dump-addr = <0x50100000>;
+        etr-addr = <0x50200000>;
+        caldb-addr = <0x50300000>;
+        hremote-size = <0x2400000>;
+        tgt-mem-mode = <0x0>;
+#endif
+	qrtr_node_id = <0x31>;
+        hremote_node = <&qcn9224_pcie0>;
+	mlo_group_info = <&mlo_info>;
+	mlo_chip_info = <&mlo_chip_info0>;
+        caldb-size = <0x800000>;
+        status = "ok";
+#endif
+};
+
+&wifi4 {
+#if !defined(__IPQ_MEM_PROFILE_256_MB__)
+#ifdef __IPQ_MEM_PROFILE_512_MB__
+        /* qcn9224 tgt-mem-mode=1 layout - 38MB
+         * +=========+==============+=========+
+         * |  Region | Start Offset |   Size  |
+         * +---------+--------------+---------+
+         * | HREMOTE |  0x50300000  |   20MB  |
+         * +---------+--------------+---------+
+         * | M3 Dump |  0x51700000  |   1MB   |
+         * +---------+--------------+---------+
+         * |   ETR   |  0x51800000  |   1MB   |
+         * +---------+--------------+---------+
+         * |  Caldb  |  0x51900000  |   8MB   |
+         * +==================================+
+         */
+        base-addr = <0x50300000>;
+        m3-dump-addr = <0x51700000>;
+        etr-addr = <0x51800000>;
+        caldb-addr = <0x51900000>;
+        hremote-size = <0x1400000>;
+        tgt-mem-mode = <0x1>;
+#else
+        /* qcn9224 tgt-mem-mode=0 layout - 46MB
+         * +=========+==============+=========+
+         * |  Region | Start Offset |   Size  |
+         * +---------+--------------+---------+
+         * | HREMOTE |  0x50B00000  |   36MB  |
+         * +---------+--------------+---------+
+         * | M3 Dump |  0x52F00000  |   1MB   |
+         * +---------+--------------+---------+
+         * |   ETR   |  0x53000000  |   1MB   |
+         * +---------+--------------+---------+
+         * |  Caldb  |  0x53100000  |   8MB   |
+         * +==================================+
+         */
+        base-addr = <0x50B00000>;
+        m3-dump-addr = <0x52F00000>;
+        etr-addr = <0x53000000>;
+        caldb-addr = <0x53100000>;
+        hremote-size = <0x2400000>;
+        tgt-mem-mode = <0x0>;
+#endif
+	qrtr_node_id = <0x32>;
+        hremote_node = <&qcn9224_pcie1>;
+	mlo_group_info = <&mlo_info>;
+	mlo_chip_info = <&mlo_chip_info2>;
+        caldb-size = <0x800000>;
+        status = "ok";
+#endif
+};
+
+&wifi5 {
+#if !defined(__IPQ_MEM_PROFILE_256_MB__)
+#ifdef __IPQ_MEM_PROFILE_512_MB__
+        /* qcn9224 tgt-mem-mode=1 layout - 38MB
+         * +=========+==============+=========+
+         * |  Region | Start Offset |   Size  |
+         * +---------+--------------+---------+
+         * | HREMOTE |  0x4DD00000  |   20MB  |
+         * +---------+--------------+---------+
+         * | M3 Dump |  0x4F100000  |   1MB   |
+         * +---------+--------------+---------+
+         * |   ETR   |  0x4F200000  |   1MB   |
+         * +---------+--------------+---------+
+         * |  Caldb  |  0x4F300000  |   8MB   |
+         * +==================================+
+         */
+        base-addr = <0x4DD00000>;
+        m3-dump-addr = <0x4F100000>;
+        etr-addr = <0x4F200000>;
+        caldb-addr = <0x4F300000>;
+        hremote-size = <0x1400000>;
+        tgt-mem-mode = <0x1>;
+#else
+        /* qcn9224 tgt-mem-mode=0 layout - 46MB
+         * +=========+==============+=========+
+         * |  Region | Start Offset |   Size  |
+         * +---------+--------------+---------+
+         * | HREMOTE |  0x53900000  |   36MB  |
+         * +---------+--------------+---------+
+         * | M3 Dump |  0x55D00000  |   1MB   |
+         * +---------+--------------+---------+
+         * |   ETR   |  0x55E00000  |   1MB   |
+         * +---------+--------------+---------+
+         * |  Caldb  |  0x55F00000  |   8MB   |
+         * +==================================+
+         */
+        base-addr = <0x53900000>;
+        m3-dump-addr = <0x55D00000>;
+        etr-addr = <0x55E00000>;
+        caldb-addr = <0x55F00000>;
+        hremote-size = <0x2400000>;
+        tgt-mem-mode = <0x0>;
+#endif
+	qrtr_node_id = <0x33>;
+        hremote_node = <&qcn9224_pcie2>;
+        caldb-size = <0x800000>;
+	mlo_group_info = <&mlo_info>;
+	mlo_chip_info = <&mlo_chip_info2>;
+        status = "ok";
+#endif
 };

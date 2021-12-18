@@ -113,6 +113,22 @@
  * +------+--------+-----------+-----------+-----------+-----------+----------+
  * |   4  |  33MB  |    23MB   | 0x1700000 | 0x1800000 | 0x1900000 |   24MB   |
  * +======+========+===========+===========+===========+===========+==========+
+ *
+ *				QCN9224
+ *
+ * Start Address varies for each RDP, please refer RDP specific DTS file.
+ * All offsets mentioned below are with reference to the start address from DTS
+ * HREMOTE Offset is always same as Start Offset
+ *
+ * MLO uses 16MB and comes at the end of all QCN9224 memory and MHI mem nodes
+ * RDDM size of QCN9224 is 6M and part of MHI regions.
+ *
+ * +======+========+===========+===========+===========+===========+==========+
+ * | MODE | Memory |  HREMOTE  |M3 Dump Off| QDSS Off  | Caldb Off | MHI DMA  |
+ * |      |        |    SIZE   |    1MB    |    1MB    |    8MB    | RESERVED |
+ * +======+========+===========+===========+===========+===========+==========+
+ * |   0  |  45MB  |    35MB   | 0x2300000 | 0x2400000 | 0x2500000 |   26MB   |
+ * +======+========+===========+===========+===========+===========+==========+
  */
 #define MAX_TGT_MEM_MODES		5
 
