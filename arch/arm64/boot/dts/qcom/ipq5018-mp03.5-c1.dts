@@ -654,6 +654,14 @@
 		qcom,smem-state-names = "shutdown",
 					"stop",
 					"spawn";
+	#ifdef __IPQ_MEM_PROFILE_256_MB__
+		memory-region = <&q6_ipq5018_data>, <&m3_dump>,
+				<&q6_etr_region>;
+	#else
+		memory-region = <&q6_ipq5018_data>, <&m3_dump>,
+				<&q6_etr_region>, <&q6_caldb_region>;
+	#endif
+
 	};
 
 	q6_wcss_pd2: remoteproc_pd2 {
@@ -675,6 +683,14 @@
 		qcom,smem-state-names = "shutdown",
 					"stop",
 					"spawn";
+	#ifdef __IPQ_MEM_PROFILE_256_MB__
+		memory-region = <&q6_qcn6122_data1>, <&m3_dump_qcn6122_1>,
+				<&q6_qcn6122_etr_1>;
+	#else
+		memory-region = <&q6_qcn6122_data1>, <&m3_dump_qcn6122_1>,
+				<&q6_qcn6122_etr_1>, <&q6_qcn6122_caldb_1>;
+	#endif
+
 	};
 
 	q6_wcss_pd3: remoteproc_pd3 {
@@ -695,6 +711,13 @@
 		qcom,smem-state-names = "shutdown",
 					"stop",
 					"spawn";
+	#ifdef	__IPQ_MEM_PROFILE_256_MB__
+		memory-region = <&q6_qcn6122_data2>, <&m3_dump_qcn6122_2>,
+				<&q6_qcn6122_etr_2>;
+	#else
+		memory-region = <&q6_qcn6122_data2>, <&m3_dump_qcn6122_2>,
+				<&q6_qcn6122_etr_2>, <&q6_qcn6122_caldb_2>;
+	#endif
 	};
 };
 

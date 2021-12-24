@@ -376,8 +376,8 @@
 				<&q6_caldb_region>;
 	#endif
 
-	/delete-node/ q6_wcss_pd1;
-	/delete-node/ q6_wcss_pd2;
+	/delete-node/ remoteproc_pd1@4ab000;
+	/delete-node/ remoteproc_pd2;
 };
 
 &wifi0 {
@@ -395,6 +395,7 @@
 &wifi1 {
 	/delete-property/ mem-region;
 	/delete-property/ qcom,multipd_arch;
+	/delete-property/ qcom,rproc;
 	status = "disabled";
 };
 
