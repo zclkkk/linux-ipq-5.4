@@ -256,6 +256,7 @@ struct qcom_pcie {
 	uint32_t slv_addr_space_sz;
 	uint32_t num_lanes;
 	uint32_t compliance;
+	uint32_t slot_id;
 	struct work_struct handle_wake_work;
 	struct work_struct handle_e911_work;
 	int wake_irq;
@@ -2252,31 +2253,73 @@ static ssize_t rcremove_store(struct bus_type *bus, const char *buf,
 }
 static BUS_ATTR_WO(rcremove);
 
-static ssize_t slot_rescan_store(struct bus_type *bus, const char *buf,
-		size_t count)
+static void pcie_slot_remove(int val)
 {
-	unsigned long val;
 	struct pcie_port *pp;
 	struct qcom_pcie *pcie;
 
-	if (kstrtoul(buf, 0, &val) < 0)
-		return -EINVAL;
-
 	pci_lock_rescan_remove();
 
-	if (val < MAX_RC_NUM) {
+	if ((val >= 0) && (val < MAX_RC_NUM)) {
 		pcie = pcie_dev_arr[val];
 		if (pcie) {
-			if (pcie->enumerated) {
-				return 0;
-			} else {
+			if (!pcie->enumerated) {
+				pr_notice("\nPCIe: RC%d already removed", val);
+			}
+			else {
+				pr_notice("---> Removing %d", val);
 				pp = &(pcie->pci)->pp;
-				pci_create_scan_root_bus(pp);
-				pcie->enumerated = true;
+				pci_stop_root_bus(pp->root_bus);
+				pci_remove_root_bus(pp->root_bus);
+
+				qcom_ep_reset_assert(pcie);
+				phy_power_off(pcie->phy);
+
+				pcie->ops->deinit(pcie);
+				pp->root_bus = NULL;
+				pcie->enumerated = false;
+				pr_notice(" ... done<---\n");
 			}
 		}
 	}
 	pci_unlock_rescan_remove();
+}
+
+static void pcie_slot_rescan(int val)
+{
+	struct pcie_port *pp;
+	struct qcom_pcie *pcie;
+	int ret;
+
+	pci_lock_rescan_remove();
+
+	if ((val >= 0) && (val < MAX_RC_NUM)) {
+		pcie = pcie_dev_arr[val];
+		if (pcie) {
+			if (pcie->enumerated) {
+				pr_notice("PCIe: RC%d already enumerated", val);
+			} else {
+				pp = &(pcie->pci)->pp;
+				ret = pci_create_scan_root_bus(pp);
+				if (!ret)
+					pcie->enumerated = true;
+			}
+		}
+	}
+	pci_unlock_rescan_remove();
+
+
+}
+
+static ssize_t slot_rescan_store(struct bus_type *bus, const char *buf,
+		size_t count)
+{
+	unsigned long val;
+
+	if (kstrtoul(buf, 0, &val) < 0)
+		return -EINVAL;
+
+	pcie_slot_rescan(val);
 
 	return count;
 }
@@ -2286,33 +2329,11 @@ static ssize_t slot_remove_store(struct bus_type *bus, const char *buf,
 		size_t count)
 {
 	unsigned long val;
-	struct pcie_port *pp;
-	struct qcom_pcie *pcie;
 
 	if (kstrtoul(buf, 0, &val) < 0)
 		return -EINVAL;
 
-	pci_lock_rescan_remove();
-
-	if (val < MAX_RC_NUM) {
-		pcie = pcie_dev_arr[val];
-		if (pcie) {
-			if (!pcie->enumerated) {
-				return 0;
-			}
-			else {
-				pr_notice("---> Removing %ld", val);
-				pp = &(pcie->pci)->pp;
-				pcie->ops->deinit(pcie);
-				pci_stop_root_bus(pp->root_bus);
-				pci_remove_root_bus(pp->root_bus);
-				pp->root_bus = NULL;
-				pcie->enumerated = false;
-				pr_notice(" ... done<---\n");
-			}
-		}
-	}
-	pci_unlock_rescan_remove();
+	pcie_slot_remove(val);
 
 	return count;
 }
@@ -2320,14 +2341,16 @@ static BUS_ATTR_WO(slot_remove);
 
 static void handle_e911_func(struct work_struct *work)
 {
-	pci_lock_rescan_remove();
+	int slot_id;
+	struct qcom_pcie *pcie;
+
+	pcie = container_of(work, struct qcom_pcie, handle_e911_work);
+	slot_id = pcie->slot_id;
 
 	if (gpiod_get_value(mdm2ap_e911))
-		pcie_remove_bus();
+		pcie_slot_remove(slot_id);
 	else
-		pcie_rescan();
-
-	pci_unlock_rescan_remove();
+		pcie_slot_rescan(slot_id);
 }
 
 static irqreturn_t handle_mdm2ap_e911_irq(int irq, void *data)
@@ -2365,6 +2388,7 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 	uint32_t slv_addr_space_sz = 0;
 	uint32_t num_lanes = 0;
 	uint32_t compliance = 0;
+	uint32_t slot_id = -1;
 	static int rc_idx;
 	struct nvmem_cell *pcie_nvmem;
 	u8 *disable_status;
@@ -2423,6 +2447,9 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 		ret = PTR_ERR(pcie->reset);
 		goto err_pm_runtime_put;
 	}
+
+	of_property_read_u32(pdev->dev.of_node, "slot_id", &slot_id);
+	pcie->slot_id = slot_id;
 
 	of_property_read_u32(pdev->dev.of_node, "compliance", &compliance);
 	pcie->compliance = compliance;

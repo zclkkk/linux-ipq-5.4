@@ -508,6 +508,7 @@
 			      <&tlmm 22 IRQ_TYPE_LEVEL_HIGH>;
 	interrupt-names = "wake_gpio", "mdm2ap_e911", "mdm2ap_e911_x65";
 
+	slot_id = <0>;
 	link_retries_count = <100>;
 
 	status = "ok";
