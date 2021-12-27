@@ -701,8 +701,8 @@
 
 	mhi_0: qcom,mhi@0 {
 		reg = <0 0 0 0 0 >;
-		ap2mdm = <25>;
-		mdm2ap = <23>;
+		ap2mdm-gpio = <&tlmm 25 0>;
+		mdm2ap-gpio = <&tlmm 23 0>;
 
 		pinctrl-0 = <&ap2mdm_status>;
 		pinctrl-names = "default";
