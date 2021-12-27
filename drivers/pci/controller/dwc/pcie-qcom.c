@@ -2192,8 +2192,11 @@ void pcie_remove_bus(void)
 	int i;
 	struct pcie_port *pp;
 	struct qcom_pcie *pcie;
-
+#ifdef CONFIG_IPQ_APSS_5018
+	for (i = 0; i < 1; i++) {
+#else
 	for (i = 0; i < MAX_RC_NUM; i++) {
+#endif
 		pcie = pcie_dev_arr[i];
 
 		if (pcie) {
