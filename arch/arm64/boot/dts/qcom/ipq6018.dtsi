@@ -1753,7 +1753,7 @@
 			qcom,glink-channels = "rpm_requests";
 
 			regulators {
-				compatible = "qcom,rpm-mp5496-regulators";
+				compatible = "qcom,rpm-ipq6018-mp5496-regulators";
 
 				ipq6018_s2: s2 {
 					regulator-min-microvolt = <587500>;

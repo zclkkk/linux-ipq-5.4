@@ -549,7 +549,7 @@ static const struct regulator_desc pms405_pldo600 = {
 	.ops = &rpm_smps_ldo_ops,
 };
 
-static const struct regulator_desc mp5496_smpa2 = {
+static const struct regulator_desc ipq6018_mp5496_smpa2 = {
 	.linear_ranges = (struct regulator_linear_range[]) {
 		REGULATOR_LINEAR_RANGE(725000, 0, 27, 12500),
 	},
@@ -558,7 +558,7 @@ static const struct regulator_desc mp5496_smpa2 = {
 	.ops = &rpm_mp5496_ops,
 };
 
-static const struct regulator_desc mp5496_ldoa2 = {
+static const struct regulator_desc ipq6018_mp5496_ldoa2 = {
 	.linear_ranges = (struct regulator_linear_range[]) {
 		REGULATOR_LINEAR_RANGE(1800000, 0, 60, 25000),
 	},
@@ -600,7 +600,7 @@ struct rpm_regulator_data {
 	u32 id;
 	const struct regulator_desc *desc;
 	const char *supply;
-	int boot_uV; //To store the bootup voltage set by bootloaders
+	int boot_uV; /* To store the bootup voltage set by bootloaders */
 };
 
 static const struct rpm_regulator_data rpm_ipq9574_mp5496_regulators[] = {
@@ -610,9 +610,9 @@ static const struct rpm_regulator_data rpm_ipq9574_mp5496_regulators[] = {
 	{}
 };
 
-static const struct rpm_regulator_data rpm_mp5496_regulators[] = {
-	{ "s2", QCOM_SMD_RPM_SMPA, 2, &mp5496_smpa2, "s2" },
-	{ "l2", QCOM_SMD_RPM_LDOA, 2, &mp5496_ldoa2, "l2" },
+static const struct rpm_regulator_data rpm_ipq6018_mp5496_regulators[] = {
+	{ "s2", QCOM_SMD_RPM_SMPA, 2, &ipq6018_mp5496_smpa2, "s2", 875000 },
+	{ "l2", QCOM_SMD_RPM_LDOA, 2, &ipq6018_mp5496_ldoa2, "l2", 2950000 },
 	{}
 };
 
@@ -873,7 +873,7 @@ static const struct rpm_regulator_data rpm_pms405_regulators[] = {
 
 static const struct of_device_id rpm_of_match[] = {
 	{ .compatible = "qcom,rpm-ipq9574-mp5496-regulators", .data = &rpm_ipq9574_mp5496_regulators },
-	{ .compatible = "qcom,rpm-mp5496-regulators", .data = &rpm_mp5496_regulators },
+	{ .compatible = "qcom,rpm-ipq6018-mp5496-regulators", .data = &rpm_ipq6018_mp5496_regulators },
 	{ .compatible = "qcom,rpm-pm8841-regulators", .data = &rpm_pm8841_regulators },
 	{ .compatible = "qcom,rpm-pm8916-regulators", .data = &rpm_pm8916_regulators },
 	{ .compatible = "qcom,rpm-pm8941-regulators", .data = &rpm_pm8941_regulators },
