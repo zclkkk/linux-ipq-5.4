@@ -600,12 +600,13 @@ struct rpm_regulator_data {
 	u32 id;
 	const struct regulator_desc *desc;
 	const char *supply;
+	int boot_uV; //To store the bootup voltage set by bootloaders
 };
 
 static const struct rpm_regulator_data rpm_ipq9574_mp5496_regulators[] = {
-	{ "s1", QCOM_SMD_RPM_SMPA, 1, &ipq9574_mp5496_smpa1, "s1" },
-	{ "s2", QCOM_SMD_RPM_SMPA, 2, &ipq9574_mp5496_smpa2, "s2" },
-	{ "s4", QCOM_SMD_RPM_SMPA, 4, &ipq9574_mp5496_smpa4, "s4" },
+	{ "s1", QCOM_SMD_RPM_SMPA, 1, &ipq9574_mp5496_smpa1, "s1", 875000 },
+	{ "s2", QCOM_SMD_RPM_SMPA, 2, &ipq9574_mp5496_smpa2, "s2", 875000 },
+	{ "s4", QCOM_SMD_RPM_SMPA, 4, &ipq9574_mp5496_smpa4, "s4", 5 }, //5 - NOMINAL CORNER
 	{}
 };
 
@@ -915,6 +916,8 @@ static int rpm_reg_probe(struct platform_device *pdev)
 		vreg->type = reg->type;
 		vreg->id = reg->id;
 		vreg->rpm = rpm;
+		if (reg->boot_uV)
+			vreg->uV = reg->boot_uV;
 
 		memcpy(&vreg->desc, reg->desc, sizeof(vreg->desc));
 
