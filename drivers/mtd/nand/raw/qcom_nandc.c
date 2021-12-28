@@ -3467,8 +3467,8 @@ static int qspi_execute_training(struct qcom_nand_controller *nandc,
 		ret = qcom_nandc_read_page(chip, training_data, 0, page);
 		if (ret) {
 			dev_err(nandc->dev, "Error in reading training data @ high freq");
-			ret = -EINVAL;
-			goto mem_err;
+			ret = 0;
+			break;
 		}
 		/* compare read training data with known pattern */
 		for (i = 0; i <  mtd->writesize; i += sizeof(qspi_training_block_64)) {
@@ -3822,7 +3822,7 @@ static const struct qcom_nandc_props ipq9574_nandc_props = {
 	.is_bam = true,
 	.is_serial_nand = true,
 	.qpic_v2 = true,
-	.is_serial_training = false,
+	.is_serial_training = true,
 	.quad_mode = true,
 	.page_scope = true,
 	.dev_cmd_reg_start = 0x7000,
