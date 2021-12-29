@@ -65,7 +65,7 @@ uint8_t ipq_compare_hw_params(struct audio_hw_params *curr_params)
  * 1	1	N/A			-
  */
 
-static int ipq_codec_i2c_set_dfs(struct snd_soc_codec *codec, int mode)
+static int ipq_component_i2c_set_dfs(struct snd_soc_component *component, int mode)
 {
 	uint32_t reg;
 
@@ -74,12 +74,12 @@ static int ipq_codec_i2c_set_dfs(struct snd_soc_codec *codec, int mode)
 		return -EINVAL;
 	}
 
-	reg = snd_soc_read(codec, AKD4613_04_CTRL2);
+	reg = snd_soc_component_read32(component, AKD4613_04_CTRL2);
 
 	reg &= ~(AKD4613_DFS_MASK);
 	reg |= AKD4613_DFS(mode);
 
-	snd_soc_write(codec, AKD4613_04_CTRL2, reg);
+	snd_soc_component_write(component, AKD4613_04_CTRL2, reg);
 
 	return 0;
 }
@@ -93,7 +93,7 @@ static int ipq_codec_i2c_set_dfs(struct snd_soc_codec *codec, int mode)
  * 1	1	512fs		256fs		128fs
  */
 
-static int ipq_codec_i2c_set_cks(struct snd_soc_codec *codec,
+static int ipq_component_i2c_set_cks(struct snd_soc_component *component,
 					int config, int mode)
 {
 	uint32_t cks_val;
@@ -128,17 +128,17 @@ static int ipq_codec_i2c_set_cks(struct snd_soc_codec *codec,
 		return cks_val;
 	}
 
-	reg = snd_soc_read(codec, AKD4613_04_CTRL2);
+	reg = snd_soc_component_read32(component, AKD4613_04_CTRL2);
 
 	reg &= ~(AKD4613_CKS_MASK);
 	reg |= AKD4613_CKS(cks_val);
 
-	snd_soc_write(codec, AKD4613_04_CTRL2, reg);
+	snd_soc_component_write(component, AKD4613_04_CTRL2, reg);
 
 	return 0;
 }
 
-static int ipq_codec_i2c_set_tdm_mode(struct snd_soc_codec *codec,
+static int ipq_component_i2c_set_tdm_mode(struct snd_soc_component *component,
 						int tdm_mode)
 {
 	uint32_t reg;
@@ -148,61 +148,61 @@ static int ipq_codec_i2c_set_tdm_mode(struct snd_soc_codec *codec,
 		return -EINVAL;
 	}
 
-	reg = snd_soc_read(codec, AKD4613_03_CTRL1);
+	reg = snd_soc_component_read32(component, AKD4613_03_CTRL1);
 
 	reg &= ~(AKD4613_TDM_MODE_MASK);
 	reg |= AKD4613_TDM_MODE(tdm_mode);
 
-	snd_soc_write(codec, AKD4613_03_CTRL1, reg);
+	snd_soc_component_write(component, AKD4613_03_CTRL1, reg);
 
 	return 0;
 }
 
-static int ipq_codec_i2c_set_dif(struct snd_soc_codec *codec,
+static int ipq_component_i2c_set_dif(struct snd_soc_component *component,
 						int dif_val)
 {
 	uint32_t reg;
 
-	reg = snd_soc_read(codec, AKD4613_03_CTRL1);
+	reg = snd_soc_component_read32(component, AKD4613_03_CTRL1);
 
 	reg &= ~(AKD4613_DIF_MASK);
 	reg |= AKD4613_DIF(dif_val);
 
-	snd_soc_write(codec, AKD4613_03_CTRL1, reg);
+	snd_soc_component_write(component, AKD4613_03_CTRL1, reg);
 
 	return 0;
 }
 
-static void ipq_codec_i2c_write_defaults(struct snd_soc_codec *codec)
+static void ipq_component_i2c_write_defaults(struct snd_soc_component *component)
 {
 	int i;
 
 	for (i = 0; i < AK4613_MAX_REG; i++)
-		snd_soc_write(codec, i, akd4613_reg[i]);
+		snd_soc_component_write(component, i, akd4613_reg[i]);
 	udelay(10);
 }
 
-static int ipq_codec_audio_startup(struct snd_pcm_substream *substream,
+static int ipq_component_audio_startup(struct snd_pcm_substream *substream,
 					struct snd_soc_dai *dai)
 {
-	struct snd_soc_codec *codec;
+	struct snd_soc_component *component;
 
-	codec = dai->codec;
+	component = dai->component;
 
 	/* I2S and TDM cannot co-exist. CPU DAI startup would
 	 * have already checked this case, by this time.
 	 */
 	if (!dai->active)
-		ipq_codec_i2c_write_defaults(codec);
+		ipq_component_i2c_write_defaults(component);
 
 	return 0;
 }
 
-static int ipq_codec_audio_hw_params(struct snd_pcm_substream *substream,
+static int ipq_component_audio_hw_params(struct snd_pcm_substream *substream,
 					struct snd_pcm_hw_params *params,
 					struct snd_soc_dai *dai)
 {
-	struct snd_soc_codec *codec;
+	struct snd_soc_component *component;
 	int samp_rate = params_rate(params);
 	u32 bit_width = params_format(params);
 	int channels = params_channels(params);
@@ -219,13 +219,13 @@ static int ipq_codec_audio_hw_params(struct snd_pcm_substream *substream,
 	curr_params.channels = channels;
 	curr_params.bit_width = bit_act;
 
-	codec = dai->codec;
+	component = dai->component;
 
 	/*
-	 * Since CLKS in the codec are shared by I2S TX and RX channels,
+	 * Since CLKS in the component are shared by I2S TX and RX channels,
 	 * Rx and Tx when used simulatneoulsy will have to use the same channel,
 	 * sampling frequency and bit widths. So compare the settings and then
-	 * update the codec settings.
+	 * update the component settings.
 	 */
 
 	if (dai->active > 1) {
@@ -234,7 +234,7 @@ static int ipq_codec_audio_hw_params(struct snd_pcm_substream *substream,
 			pr_err("\nPlayback & capture settings do not match\n");
 			return -EINVAL;
 		}
-		/* Settings match, codec settings are already done*/
+		/* Settings match, component settings are already done*/
 		return 0;
 	}
 
@@ -259,36 +259,36 @@ static int ipq_codec_audio_hw_params(struct snd_pcm_substream *substream,
 		return -EINVAL;
 	}
 
-	ipq_codec_i2c_set_dfs(codec, dfs);
-	ipq_codec_i2c_set_cks(codec, cks, dfs);
-	ipq_codec_i2c_set_tdm_mode(codec, tdm_mode);
-	ipq_codec_i2c_set_dif(codec, dif);
+	ipq_component_i2c_set_dfs(component, dfs);
+	ipq_component_i2c_set_cks(component, cks, dfs);
+	ipq_component_i2c_set_tdm_mode(component, tdm_mode);
+	ipq_component_i2c_set_dif(component, dif);
 	udelay(10);
 
 	return 0;
 }
 
-static int ipq_codec_audio_prepare(struct snd_pcm_substream *substream,
+static int ipq_component_audio_prepare(struct snd_pcm_substream *substream,
 					struct snd_soc_dai *dai)
 {
 	dev_dbg(dai->dev, "%s:%d\n", __func__, __LINE__);
 	return 0;
 }
 
-static void ipq_codec_audio_shutdown(struct snd_pcm_substream *substream,
+static void ipq_component_audio_shutdown(struct snd_pcm_substream *substream,
 					struct snd_soc_dai *dai)
 {
 	dev_dbg(dai->dev, "%s:%d\n", __func__, __LINE__);
 }
 
-static struct snd_soc_dai_ops ipq_codec_audio_ops = {
-	.startup	= ipq_codec_audio_startup,
-	.hw_params	= ipq_codec_audio_hw_params,
-	.prepare	= ipq_codec_audio_prepare,
-	.shutdown	= ipq_codec_audio_shutdown,
+static struct snd_soc_dai_ops ipq_component_audio_ops = {
+	.startup	= ipq_component_audio_startup,
+	.hw_params	= ipq_component_audio_hw_params,
+	.prepare	= ipq_component_audio_prepare,
+	.shutdown	= ipq_component_audio_shutdown,
 };
 
-static struct snd_soc_dai_driver ipq4019_codec_dais[] = {
+static struct snd_soc_dai_driver ipq8074_component_dais[] = {
 	{
 		.name = "qca-i2s-codec-dai",
 		.playback = {
@@ -307,7 +307,7 @@ static struct snd_soc_dai_driver ipq4019_codec_dais[] = {
 			.formats = SNDRV_PCM_FMTBIT_S16 |
 				SNDRV_PCM_FMTBIT_S32,
 		},
-		.ops = &ipq_codec_audio_ops,
+		.ops = &ipq_component_audio_ops,
 		.id = I2S,
 	},
 	{
@@ -328,93 +328,7 @@ static struct snd_soc_dai_driver ipq4019_codec_dais[] = {
 			.formats = SNDRV_PCM_FMTBIT_S16 |
 				SNDRV_PCM_FMTBIT_S32,
 		},
-		.ops = &ipq_codec_audio_ops,
-		.id = TDM,
-	},
-	{
-		.name = "qca-i2s1-codec-dai",
-		.playback = {
-			.stream_name = "qca-i2s1-playback",
-			.channels_min = CH_STEREO,
-			.channels_max = CH_STEREO,
-			.rates = RATE_16000_96000,
-			.formats = SNDRV_PCM_FMTBIT_S16 |
-				SNDRV_PCM_FMTBIT_S32,
-		},
-	},
-	{
-		.name = "qca-i2s2-codec-dai",
-		.playback = {
-			.stream_name = "qca-i2s2-playback",
-			.channels_min = CH_STEREO,
-			.channels_max = CH_STEREO,
-			.rates = RATE_16000_96000,
-			.formats = SNDRV_PCM_FMTBIT_S16 |
-				SNDRV_PCM_FMTBIT_S32,
-		},
-	},
-	{
-		.name = "qca-spdif-codec-dai",
-		.playback = {
-			.stream_name = "qca-spdif-playback",
-			.channels_min = CH_STEREO,
-			.channels_max = CH_STEREO,
-			.rates = RATE_16000_96000,
-			.formats = SNDRV_PCM_FMTBIT_S16 |
-				SNDRV_PCM_FMTBIT_S24_3,
-		},
-		.capture = {
-			.stream_name = "qca-spdif-capture",
-			.channels_min = CH_STEREO,
-			.channels_max = CH_STEREO,
-			.rates = RATE_16000_96000,
-			.formats = SNDRV_PCM_FMTBIT_S16 |
-				SNDRV_PCM_FMTBIT_S24_3,
-		},
-	},
-};
-
-static struct snd_soc_dai_driver ipq8074_codec_dais[] = {
-	{
-		.name = "qca-i2s-codec-dai",
-		.playback = {
-			.stream_name = "qca-i2s-playback",
-			.channels_min = CH_STEREO,
-			.channels_max = CH_STEREO,
-			.rates = RATE_16000_96000,
-			.formats = SNDRV_PCM_FMTBIT_S16 |
-				SNDRV_PCM_FMTBIT_S32,
-		},
-		.capture = {
-			.stream_name = "qca-i2s-capture",
-			.channels_min = CH_STEREO,
-			.channels_max = CH_STEREO,
-			.rates = RATE_16000_96000,
-			.formats = SNDRV_PCM_FMTBIT_S16 |
-				SNDRV_PCM_FMTBIT_S32,
-		},
-		.ops = &ipq_codec_audio_ops,
-		.id = I2S,
-	},
-	{
-		.name = "qca-tdm-codec-dai",
-		.playback = {
-			.stream_name = "qca-tdm-playback",
-			.channels_min = CH_STEREO,
-			.channels_max = CH_7_1,
-			.rates = RATE_16000_96000,
-			.formats = SNDRV_PCM_FMTBIT_S16 |
-				SNDRV_PCM_FMTBIT_S32,
-		},
-		.capture = {
-			.stream_name = "qca-tdm-capture",
-			.channels_min = CH_STEREO,
-			.channels_max = CH_7_1,
-			.rates = RATE_16000_96000,
-			.formats = SNDRV_PCM_FMTBIT_S16 |
-				SNDRV_PCM_FMTBIT_S32,
-		},
-		.ops = &ipq_codec_audio_ops,
+		.ops = &ipq_component_audio_ops,
 		.id = TDM,
 	},
 };
@@ -440,35 +354,31 @@ static const struct regmap_config akd4613_regmap_config = {
 	.cache_type = REGCACHE_RBTREE,
 };
 
-static int ipq_codec_probe(struct snd_soc_codec *codec)
+static int ipq_component_probe(struct snd_soc_component *component)
 {
-	snd_soc_codec_init_regmap(codec, akd4613_regmap);
+	snd_soc_component_init_regmap(component, akd4613_regmap);
 	return 0;
 }
 
-static int ipq_codec_remove(struct snd_soc_codec *codec)
+static void ipq_component_remove(struct snd_soc_component *component)
 {
-	snd_soc_codec_exit_regmap(codec);
-	return 0;
+	snd_soc_component_exit_regmap(component);
+	return;
 }
 
-static const struct snd_soc_codec_driver ipq_codec = {
-	.probe = ipq_codec_probe,
-	.remove = ipq_codec_remove,
+static const struct snd_soc_component_driver ipq_component = {
+	.probe = ipq_component_probe,
+	.remove = ipq_component_remove,
 	.num_controls = 0,
-	.reg_cache_size = ARRAY_SIZE(akd4613_reg),
-	.reg_word_size = sizeof(u8),
-	.reg_cache_default = akd4613_reg,
 };
 
-static const struct of_device_id ipq_codec_of_match[] = {
-	{ .compatible = "qca,ipq4019-codec", .data = (void *)IPQ4019  },
+static const struct of_device_id ipq_component_of_match[] = {
 	{ .compatible = "qca,ipq8074-codec", .data = (void *)IPQ8074  },
 	{ /* Sentinel */ }
 };
-MODULE_DEVICE_TABLE(of, ipq_codec_of_match);
+MODULE_DEVICE_TABLE(of, ipq_component_of_match);
 
-static int ipq_codec_i2c_probe(struct i2c_client *i2c,
+static int ipq_component_i2c_probe(struct i2c_client *i2c,
 					const struct i2c_device_id *id)
 {
 	struct device *dev = &i2c->dev;
@@ -476,7 +386,7 @@ static int ipq_codec_i2c_probe(struct i2c_client *i2c,
 	const struct of_device_id *match;
 	enum ipq_hw_type ipq_hw;
 
-	match = of_match_device(ipq_codec_of_match, dev);
+	match = of_match_device(ipq_component_of_match, dev);
 	if (!match)
 		return -ENODEV;
 
@@ -493,61 +403,49 @@ static int ipq_codec_i2c_probe(struct i2c_client *i2c,
 
 	dev_info(&i2c->dev, "i2c regmap done\n");
 
-	if (ipq_hw == IPQ4019)
-		ret = snd_soc_register_codec(&i2c->dev,
-				&ipq_codec, ipq4019_codec_dais,
-				ARRAY_SIZE(ipq4019_codec_dais));
-	else
-		ret = snd_soc_register_codec(&i2c->dev,
-				&ipq_codec, ipq8074_codec_dais,
-				ARRAY_SIZE(ipq8074_codec_dais));
+	ret = devm_snd_soc_register_component(&i2c->dev,
+			&ipq_component, ipq8074_component_dais,
+			ARRAY_SIZE(ipq8074_component_dais));
 
 	if (ret < 0)
-		dev_err(&i2c->dev, "snd_soc_register_codec failed (%d)\n", ret);
+		dev_err(&i2c->dev, "snd_soc_register_component failed (%d)\n", ret);
 
 	return ret;
 }
 
-static int ipq_codec_i2c_remove(struct i2c_client *client)
-{
-	snd_soc_unregister_codec(&client->dev);
-	return 0;
-}
-
-static const struct i2c_device_id ipq_codec_i2c_id[] = {
+static const struct i2c_device_id ipq_component_i2c_id[] = {
 	{ "qca_codec", 0 },
 	{ }
 };
-MODULE_DEVICE_TABLE(i2c, ipq_codec_i2c_id);
+MODULE_DEVICE_TABLE(i2c, ipq_component_i2c_id);
 
-static struct i2c_driver ipq_codec_i2c_driver = {
+static struct i2c_driver ipq_component_i2c_driver = {
 	.driver = {
 		.name = "qca_codec",
 		.owner = THIS_MODULE,
-		.of_match_table = ipq_codec_of_match,
+		.of_match_table = ipq_component_of_match,
 	},
-	.probe = ipq_codec_i2c_probe,
-	.remove = ipq_codec_i2c_remove,
-	.id_table = ipq_codec_i2c_id,
+	.probe = ipq_component_i2c_probe,
+	.id_table = ipq_component_i2c_id,
 };
 
-static int ipq_codec_init(void)
+static int ipq_component_init(void)
 {
 	int ret;
 
-	ret = i2c_add_driver(&ipq_codec_i2c_driver);
+	ret = i2c_add_driver(&ipq_component_i2c_driver);
 	if (ret < 0)
 		pr_err("%s: %d: Failed to add I2C driver", __func__, __LINE__);
 
 	return ret;
 }
-module_init(ipq_codec_init);
+module_init(ipq_component_init);
 
-static void ipq_codec_exit(void)
+static void ipq_component_exit(void)
 {
-	i2c_del_driver(&ipq_codec_i2c_driver);
+	i2c_del_driver(&ipq_component_i2c_driver);
 }
-module_exit(ipq_codec_exit);
+module_exit(ipq_component_exit);
 
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_DESCRIPTION("IPQ Codec Driver");

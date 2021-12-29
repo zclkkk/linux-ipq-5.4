@@ -97,42 +97,6 @@ void ipq_stereo_config_enable(u32 enable, u32 stereo_id)
 }
 EXPORT_SYMBOL(ipq_stereo_config_enable);
 
-/*
- * Enable the SPDIF Stereo block for operation
- */
-void ipq_stereo_spdif_enable(uint32_t enable, uint32_t stereo_id)
-{
-	uint32_t cfg;
-
-	cfg = readl(stereo_priv[stereo_id].stereo_base
-			+ ADSS_STEREOn_STEREO0_CONFIG_REG);
-	cfg &= ~(STEREOn_CONFIG_SPDIF_ENABLE);
-	if (enable)
-		cfg |= STEREOn_CONFIG_SPDIF_ENABLE;
-	writel(cfg, stereo_priv[stereo_id].stereo_base
-			+ ADSS_STEREOn_STEREO0_CONFIG_REG);
-}
-EXPORT_SYMBOL(ipq_stereo_spdif_enable);
-
-/*
- * Enable/disable the swap within PCM sample
- */
-void ipq_stereo_spdif_pcmswap(uint32_t enable, uint32_t stereo_id)
-{
-	uint32_t cfg;
-
-	cfg = readl(stereo_priv[stereo_id].stereo_base
-		+ ADSS_STEREOn_STEREO0_CONFIG_REG);
-
-	cfg &= ~(STEREOn_CONFIG_PCM_SWAP);
-	if (enable)
-		cfg |= STEREOn_CONFIG_PCM_SWAP;
-
-	writel(cfg, stereo_priv[stereo_id].stereo_base
-		+ ADSS_STEREOn_STEREO0_CONFIG_REG);
-}
-EXPORT_SYMBOL(ipq_stereo_spdif_pcmswap);
-
 /* Configure
  * Data word size : Word size loaded into the PCM
  *			register from the MBOX FIFO.

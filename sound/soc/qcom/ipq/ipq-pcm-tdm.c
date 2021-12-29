@@ -244,18 +244,15 @@ static snd_pcm_uframes_t ipq_pcm_tdm_pointer(
 }
 
 static int ipq_pcm_tdm_copy(struct snd_pcm_substream *substream, int chan,
-				snd_pcm_uframes_t hwoff, void __user *ubuf,
-				snd_pcm_uframes_t frames)
+				unsigned long offset, void __user *ubuf,
+				unsigned long size)
 {
 	struct snd_dma_buffer *buf = &substream->dma_buffer;
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct ipq_pcm_rt_priv *pcm_rtpriv = runtime->private_data;
 	char *hwbuf;
-	u32 offset, size;
 	u32 period_size, no_of_descs;
 
-	offset = frames_to_bytes(runtime, hwoff);
-	size = frames_to_bytes(runtime, frames);
 	period_size = pcm_rtpriv->period_size;
 
 	hwbuf = buf->area + offset;
@@ -396,6 +393,7 @@ static int ipq_pcm_tdm_trigger(struct snd_pcm_substream *substream, int cmd)
 		/* Disable the I2S Stereo block */
 		ipq_stereo_config_enable(DISABLE,
 					ipq_get_stereo_id(substream, intf));
+		// fall through
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
 		/*
 		 * For e.g. the number of bytes needed to represent 1 second
@@ -529,7 +527,7 @@ static struct snd_pcm_ops ipq_asoc_pcm_tdm_ops = {
 	.prepare	= ipq_pcm_tdm_prepare,
 	.mmap		= ipq_pcm_tdm_mmap,
 	.pointer	= ipq_pcm_tdm_pointer,
-	.copy		= ipq_pcm_tdm_copy,
+	.copy_user	= ipq_pcm_tdm_copy,
 };
 
 static void ipq_asoc_pcm_tdm_free(struct snd_pcm *pcm)
@@ -577,14 +575,14 @@ static int ipq_asoc_pcm_tdm_new(struct snd_soc_pcm_runtime *prtd)
 	return ret;
 }
 
-static struct snd_soc_platform_driver ipq_asoc_pcm_tdm_platform = {
+static struct snd_soc_component_driver ipq_asoc_pcm_tdm_component = {
+	.name           = "qca-pcm-tdm",
 	.ops		= &ipq_asoc_pcm_tdm_ops,
 	.pcm_new	= ipq_asoc_pcm_tdm_new,
 	.pcm_free	= ipq_asoc_pcm_tdm_free,
 };
 
 static const struct of_device_id ipq_pcm_tdm_id_table[] = {
-	{ .compatible = "qca,ipq4019-pcm-tdm" },
 	{ .compatible = "qca,ipq8074-pcm-tdm" },
 	{ /* Sentinel */ },
 };
@@ -595,8 +593,8 @@ static int ipq_pcm_tdm_driver_probe(struct platform_device *pdev)
 	int ret;
 
 	pr_debug("%s %d\n", __func__, __LINE__);
-	ret = snd_soc_register_platform(&pdev->dev,
-			&ipq_asoc_pcm_tdm_platform);
+	ret = snd_soc_register_component(&pdev->dev,
+			&ipq_asoc_pcm_tdm_component, NULL, 0);
 	if (ret)
 		dev_err(&pdev->dev, "%s: Failed to register tdm pcm device\n",
 								__func__);
@@ -606,7 +604,7 @@ static int ipq_pcm_tdm_driver_probe(struct platform_device *pdev)
 static int ipq_pcm_tdm_driver_remove(struct platform_device *pdev)
 {
 	pr_debug("%s %d\n", __func__, __LINE__);
-	snd_soc_unregister_platform(&pdev->dev);
+	snd_soc_unregister_component(&pdev->dev);
 
 	return 0;
 }

@@ -249,18 +249,15 @@ static snd_pcm_uframes_t ipq_pcm_i2s_pointer(
 }
 
 static int ipq_pcm_i2s_copy(struct snd_pcm_substream *substream, int chan,
-				snd_pcm_uframes_t hwoff, void __user *ubuf,
-				snd_pcm_uframes_t frames)
+				unsigned long offset, void __user *ubuf,
+				unsigned long size)
 {
 	struct snd_dma_buffer *buf = &substream->dma_buffer;
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct ipq_pcm_rt_priv *pcm_rtpriv = runtime->private_data;
 	char *hwbuf;
-	u32 offset, size;
 	u32 period_size, no_of_descs;
 
-	offset = frames_to_bytes(runtime, hwoff);
-	size = frames_to_bytes(runtime, frames);
 	period_size = pcm_rtpriv->period_size;
 
 	hwbuf = buf->area + offset;
@@ -400,6 +397,7 @@ static int ipq_pcm_i2s_trigger(struct snd_pcm_substream *substream, int cmd)
 		/* Disable the I2S Stereo block */
 		ipq_stereo_config_enable(DISABLE,
 					ipq_get_stereo_id(substream, intf));
+		// fall through
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
 		/*
 		 * For e.g. the number of bytes needed to represent 1 second
@@ -541,7 +539,7 @@ static struct snd_pcm_ops ipq_asoc_pcm_i2s_ops = {
 	.prepare	= ipq_pcm_i2s_prepare,
 	.mmap		= ipq_pcm_i2s_mmap,
 	.pointer	= ipq_pcm_i2s_pointer,
-	.copy		= ipq_pcm_i2s_copy,
+	.copy_user	= ipq_pcm_i2s_copy,
 };
 
 static void ipq_asoc_pcm_i2s_free(struct snd_pcm *pcm)
@@ -591,16 +589,14 @@ static int ipq_asoc_pcm_i2s_new(struct snd_soc_pcm_runtime *prtd)
 	return ret;
 }
 
-static struct snd_soc_platform_driver ipq_asoc_pcm_i2s_platform = {
+static struct snd_soc_component_driver ipq_asoc_pcm_i2s_component = {
+	.name           = "qca-pcm-i2s",
 	.ops		= &ipq_asoc_pcm_i2s_ops,
 	.pcm_new	= ipq_asoc_pcm_i2s_new,
 	.pcm_free	= ipq_asoc_pcm_i2s_free,
 };
 
 static const struct of_device_id ipq_pcm_i2s_id_table[] = {
-	{ .compatible = "qca,ipq4019-pcm-i2s" },
-	{ .compatible = "qca,ipq4019-pcm-i2s1" },
-	{ .compatible = "qca,ipq4019-pcm-i2s2" },
 	{ .compatible = "qca,ipq8074-pcm-i2s" },
 	{ /* Sentinel */ },
 };
@@ -610,8 +606,8 @@ static int ipq_pcm_i2s_driver_probe(struct platform_device *pdev)
 {
 	int ret;
 
-	ret = snd_soc_register_platform(&pdev->dev,
-			&ipq_asoc_pcm_i2s_platform);
+	ret = snd_soc_register_component(&pdev->dev,
+			&ipq_asoc_pcm_i2s_component, NULL, 0);
 	if (ret)
 		dev_err(&pdev->dev,
 			"Failed to register i2s pcm device ret: %d\n", ret);
@@ -620,7 +616,7 @@ static int ipq_pcm_i2s_driver_probe(struct platform_device *pdev)
 
 static int ipq_pcm_i2s_driver_remove(struct platform_device *pdev)
 {
-	snd_soc_unregister_platform(&pdev->dev);
+	snd_soc_unregister_component(&pdev->dev);
 	return 0;
 }
 
