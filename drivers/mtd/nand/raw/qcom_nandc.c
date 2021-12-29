@@ -3426,7 +3426,7 @@ static int qspi_execute_training(struct qcom_nand_controller *nandc,
 	/* Read qspi training data @ low freq */
 	memset(training_data, 0xff, mtd->writesize);
 	ret = qcom_nandc_read_page(chip, training_data, 0, page);
-	if (ret) {
+	if (ret < 0) {
 		dev_err(nandc->dev, "Error in reading training data @ low freq");
 		ret = -EINVAL;
 		goto mem_err;
@@ -3465,7 +3465,7 @@ static int qspi_execute_training(struct qcom_nand_controller *nandc,
 		/* Prepare clean buffer to read */
 		memset(training_data, 0xff, mtd->writesize);
 		ret = qcom_nandc_read_page(chip, training_data, 0, page);
-		if (ret) {
+		if (ret < 0) {
 			dev_err(nandc->dev, "Error in reading training data @ high freq");
 			ret = 0;
 			break;
