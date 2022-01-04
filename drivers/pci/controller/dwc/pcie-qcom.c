@@ -104,6 +104,7 @@
 
 #define PCIE20_PARF_AXI_MSTR_WR_ADDR_HALT	0x178
 #define PCIE20_PARF_AXI_MSTR_WR_ADDR_HALT_V2	0x1A8
+#define PCIE20_PARF_AXI_MSTR_WR_ADDR_HALT_V2_MASK	0x1F
 #define PCIE20_PARF_LTSSM			0x1B0
 #define PCIE20_PARF_SID_OFFSET			0x234
 #define PCIE20_PARF_BDF_TRANSLATE_CFG		0x24C
@@ -145,6 +146,10 @@
 
 #define PCIE20_v3_PARF_SLV_ADDR_SPACE_SIZE	0x358
 #define SLV_ADDR_SPACE_SZ			0x10000000
+
+/* RATEADAPT_VAL = 256 / ((NOC frequency / PCIe AXI frequency) - 1) */
+/* RATEADAPT_VAL = 256 / ((342M / 240M) - 1) */
+#define AGGR_NOC_PCIE_1LANE_RATEADAPT_VAL	0x200
 
 #define DEVICE_TYPE_RC				0x4
 
@@ -248,6 +253,7 @@ struct qcom_pcie {
 	struct dw_pcie *pci;
 	void __iomem *parf;			/* DT parf */
 	void __iomem *elbi;			/* DT elbi */
+	void __iomem *aggr_noc;
 	union qcom_pcie_resources res;
 	struct phy *phy;
 	struct gpio_desc *reset;
@@ -257,6 +263,7 @@ struct qcom_pcie {
 	uint32_t num_lanes;
 	uint32_t compliance;
 	uint32_t slot_id;
+	uint32_t axi_wr_addr_halt;
 	struct work_struct handle_wake_work;
 	struct work_struct handle_e911_work;
 	int wake_irq;
@@ -1749,6 +1756,16 @@ static int qti_pcie_init_2_9_0_9574(struct qcom_pcie *pcie)
 
 	writel(0, pcie->parf + PCIE20_PARF_Q2A_FLUSH);
 
+	if (pcie->axi_wr_addr_halt) {
+		val = readl(pcie->parf + PCIE20_PARF_AXI_MSTR_WR_ADDR_HALT_V2);
+		val &= ~PCIE20_PARF_AXI_MSTR_WR_ADDR_HALT_V2_MASK;
+		writel(val | pcie->axi_wr_addr_halt,
+			pcie->parf + PCIE20_PARF_AXI_MSTR_WR_ADDR_HALT_V2);
+	}
+
+	if (pcie->aggr_noc != NULL && !IS_ERR(pcie->aggr_noc))
+		writel(AGGR_NOC_PCIE_1LANE_RATEADAPT_VAL, pcie->aggr_noc);
+
 	writel(BUS_MASTER_EN, pci->dbi_base + PCIE20_COMMAND_STATUS);
 
 	writel(DBI_RO_WR_EN, pci->dbi_base + PCIE20_MISC_CONTROL_1_REG);
@@ -2469,6 +2486,9 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 			     &num_lanes);
 	pcie->num_lanes = num_lanes;
 
+	of_property_read_u32(pdev->dev.of_node, "axi-halt-val",
+			     &pcie->axi_wr_addr_halt);
+
 	if (of_device_is_compatible(pdev->dev.of_node,
 					"qcom,pcie-gen3-ipq8074")) {
 		/*
@@ -2556,6 +2576,15 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 	if (IS_ERR(pcie->elbi)) {
 		ret = PTR_ERR(pcie->elbi);
 		goto err_pm_runtime_put;
+	}
+
+	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "aggr_noc");
+	if (res != NULL) {
+		pcie->aggr_noc = devm_ioremap_resource(dev, res);
+		if (IS_ERR(pcie->aggr_noc)) {
+			ret = PTR_ERR(pcie->aggr_noc);
+			goto err_pm_runtime_put;
+		}
 	}
 
 	ret = pcie->ops->get_resources(pcie);
