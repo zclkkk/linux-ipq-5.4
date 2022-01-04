@@ -1361,8 +1361,24 @@
 				      "wcss_reset",
 				      "wcss_q6_reset";
 
-			clocks = <&gcc GCC_PRNG_AHB_CLK>;
-			clock-names = "prng";
+			clocks = <&gcc GCC_PRNG_AHB_CLK>,
+					<&gcc GCC_SYS_NOC_WCSS_AHB_CLK>,
+					<&gcc GCC_Q6SS_ATBM_CLK>,
+					<&gcc GCC_Q6SS_PCLKDBG_CLK>,
+					<&gcc GCC_Q6_TSCTR_1TO2_CLK>;
+			clock-names = "prng",
+					"gcc_sys_noc_wcss_ahb_clk",
+					"gcc_q6ss_atbm_clk",
+					"gcc_q6ss_pclkdbg_clk",
+					"gcc_q6_tsctr_1to2_clk";
+			assigned-clocks = <&gcc GCC_SYS_NOC_WCSS_AHB_CLK>,
+					  <&gcc GCC_Q6SS_PCLKDBG_CLK>,
+					<&gcc GCC_Q6_TSCTR_1TO2_CLK>,
+					<&gcc GCC_Q6SS_ATBM_CLK>;
+			assigned-clock-rates = <133333333>,
+						<600000000>,
+						<600000000>,
+						<240000000>;
 
 			qcom,halt-regs = <&tcsr_q6 0xa000 0xd000 0x0>;
 
