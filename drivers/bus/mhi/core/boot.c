@@ -282,8 +282,6 @@ int mhi_download_rddm_image(struct mhi_controller *mhi_cntrl, bool in_panic)
 	 * Allocate RDDM table if specified, this table is for debugging purpose
 	 */
 	if (mhi_cntrl->disable_rddm_prealloc && mhi_cntrl->rddm_size) {
-		mhi_cntrl->seg_len = mhi_cntrl->rddm_seg_len;
-
 		ret = mhi_alloc_bhie_table(mhi_cntrl, &mhi_cntrl->rddm_image,
 				     mhi_cntrl->rddm_size, false);
 		if (ret) {
@@ -498,8 +496,14 @@ void mhi_free_bhie_table(struct mhi_controller *mhi_cntrl,
 		if (is_fbc && i == (image_info->entries - 2))
 			continue;
 
-		mhi_fw_free_coherent(mhi_cntrl, mhi_buf->len, mhi_buf->buf,
-				  mhi_buf->dma_addr);
+		if (!is_fbc && mhi_cntrl->disable_rddm_prealloc)
+			mhi_free_coherent(mhi_cntrl, mhi_buf->len,
+					mhi_buf->buf,
+					mhi_buf->dma_addr);
+		else
+			mhi_fw_free_coherent(mhi_cntrl, mhi_buf->len,
+					mhi_buf->buf,
+					mhi_buf->dma_addr);
 	}
 
 	kfree(image_info->mhi_buf);
@@ -554,7 +558,7 @@ int mhi_alloc_bhie_table(struct mhi_controller *mhi_cntrl,
 			 size_t alloc_size, bool is_fbc)
 {
 	size_t seg_size = mhi_cntrl->seg_len;
-	int segments = DIV_ROUND_UP(alloc_size, seg_size) + 1;
+	int segments = 0;
 	int i;
 	struct image_info *img_info;
 	struct mhi_buf *mhi_buf;
@@ -562,6 +566,10 @@ int mhi_alloc_bhie_table(struct mhi_controller *mhi_cntrl,
 	/* Allocate one extra entry for Dynamic Pageable in FBC */
 	if (is_fbc)
 		segments++;
+	else if (mhi_cntrl->disable_rddm_prealloc)
+		seg_size = mhi_cntrl->rddm_seg_len;
+
+	segments += DIV_ROUND_UP(alloc_size, seg_size) + 1;
 
 	img_info = kzalloc(sizeof(*img_info), GFP_KERNEL);
 	if (!img_info)
@@ -596,9 +604,17 @@ int mhi_alloc_bhie_table(struct mhi_controller *mhi_cntrl,
 			if (!mhi_buf->buf)
 				goto error_alloc_segment;
 		} else {
-			mhi_buf->buf = mhi_fw_alloc_coherent(mhi_cntrl, vec_size,
-							     &mhi_buf->dma_addr,
-							     GFP_KERNEL);
+			if (!is_fbc && mhi_cntrl->disable_rddm_prealloc)
+				mhi_buf->buf = mhi_alloc_coherent(mhi_cntrl,
+							vec_size,
+							&mhi_buf->dma_addr,
+							GFP_KERNEL);
+			else
+				mhi_buf->buf = mhi_fw_alloc_coherent(mhi_cntrl,
+							vec_size,
+							&mhi_buf->dma_addr,
+							GFP_KERNEL);
+
 			if (!mhi_buf->buf)
 				goto error_alloc_segment;
 		}
