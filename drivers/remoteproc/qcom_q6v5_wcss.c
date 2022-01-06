@@ -848,7 +848,7 @@ static int q6v5_wcss_start(struct rproc *rproc)
 	if (ret)
 		goto wcss_q6_reset;
 
-	if (wcss->q6_version != Q6V7) {
+	if (wcss->q6_version != Q6V7 && wcss->q6_version != Q6V6) {
 		if (debug_wcss)
 			writel(0x20000001, wcss->reg_base + Q6SS_DBG_CFG);
 	}
@@ -876,7 +876,7 @@ wait_for_reset:
 			dev_err(wcss->dev, "start timed out\n");
 	}
 	/*reset done clear the debug register*/
-	if (debug_wcss)
+	if (debug_wcss && wcss->q6_version != Q6V6)
 		writel(0x0, wcss->reg_base + Q6SS_DBG_CFG);
 
 	return ret;
