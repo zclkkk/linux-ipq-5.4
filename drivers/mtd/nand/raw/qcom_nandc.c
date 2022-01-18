@@ -209,11 +209,26 @@
 #define	CMD1_VAL	0xF00F3000
 #define	CMD2_VAL	0xF0FF709F
 #define	CMD3_VAL	0x3F310015
+#define	CMD3_MASK	0xfff0ffff
 #define	CMD7_VAL	0x04061F0F
 #define	CMD_VLD_VAL	0xd
 #define	SPI_NUM_ADDR	0xDA4DB
 #define	WAIT_CNT	0x10
 
+/*
+ * SPI Nand flash device ID's
+ */
+#define	SPI_FLASH_MICRON_ID		0x2c
+#define	SPI_FLASH_ESMT_DEVICE_ID	0x11
+#define	SPI_FLASH_WINBOND_ID		0xef
+#define	SPI_WINBOND_DEVICE_1		0xba
+#define	SPI_FLASH_GIGA_ID		0xc8
+
+/*
+ * Serial NAND flash commands
+ */
+#define	NAND_CMD_READID_SERIAL		0x9F
+#define	NAND_CMD_ERASE_SERIAL		0xd8
 #define	NAND_CMD_SET_FEATURE_SERIAL	0x1F
 #define	NAND_CMD_GET_FEATURE_SERIAL	0x0F
 #define	SPI_FLASH_FEATURE_REG		0xB0
@@ -531,6 +546,9 @@ struct qcom_nand_controller {
  *				device
  *
  * @quad_mode:			x4 mode for serial nand device.
+ *
+ * @check_qe_bit:		This flag will decide to check device
+ *				configuration register for quad mode or not.
  */
 struct qcom_nand_host {
 	struct nand_chip chip;
@@ -554,6 +572,7 @@ struct qcom_nand_host {
 	u32 clrflashstatus;
 	u32 clrreadstatus;
 	bool quad_mode;
+	bool check_qe_bit;
 };
 
 /*
@@ -3213,6 +3232,47 @@ static int qpic_serial_check_status(__le32 *status)
 	return 0;
 }
 
+static void qcom_check_quad_mode(struct mtd_info *mtd, struct qcom_nand_host *host)
+{
+	int i, ret;
+	struct nand_chip *chip = mtd_to_nand(mtd);
+	struct qcom_nand_controller *nandc = get_qcom_nand_controller(chip);
+	unsigned int command = NAND_CMD_READID_SERIAL;
+	u8 id_data[3];
+	u32 cmd3_val;
+
+	pre_command(host, command);
+
+	/* get the device id from device */
+	nandc->buf_count = 4;
+	read_id(host, 0x00);
+
+	ret = submit_descs(nandc);
+	if (ret)
+		dev_err(nandc->dev,
+				"failure submitting descs for command %d\n",
+				command);
+	free_descs(nandc);
+
+	post_command(host, command);
+
+	/* Read Id bytes */
+	for (i = 0; i < 3; i++)
+		id_data[i] = chip->legacy.read_byte(chip);
+	if (id_data[0] == SPI_FLASH_MICRON_ID) {
+		cmd3_val = CMD3_VAL & CMD3_MASK;
+		host->check_qe_bit = false;
+		nandc_write(nandc, dev_cmd_reg_addr(nandc, NAND_DEV_CMD3), cmd3_val);
+	} else if (id_data[0] == SPI_FLASH_GIGA_ID &&
+			id_data[1] == SPI_FLASH_ESMT_DEVICE_ID) {
+	       host->check_qe_bit = false;
+	} else if (id_data[0] == SPI_FLASH_WINBOND_ID &&
+			id_data[1] == SPI_WINBOND_DEVICE_1) {
+	       host->check_qe_bit = false;
+	} else
+		host->check_qe_bit = true;
+}
+
 static int qcom_serial_get_feature(struct qcom_nand_controller *nandc,
 		struct qcom_nand_host *host, u32 faddr)
 {
@@ -3317,6 +3377,12 @@ static int qspi_nand_device_config(struct qcom_nand_controller *nandc,
 
 	nandc->buf_count = 4;
 	memset(nandc->reg_read_buf, 0x0, nandc->buf_count);
+	qcom_check_quad_mode(mtd, host);
+
+	if (!host->check_qe_bit) {
+		host->quad_mode = true;
+		return 0;
+	}
 
 	if (nandc->props->quad_mode) {
 		/* Check if device supports x4 Mode and enable it if not enabled*/
