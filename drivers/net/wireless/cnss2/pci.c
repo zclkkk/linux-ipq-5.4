@@ -252,7 +252,6 @@ static DEFINE_SPINLOCK(pci_reg_window_lock);
 #define MAX_RAMDUMP_TRANSFER_WAIT_CNT		50 /* x 20msec */
 #define MAX_SOC_GLOBAL_RESET_WAIT_CNT		50 /* x 20msec */
 #define BHI_ERRDBG1 (0x34)
-#define BHI_ERRDBG3 (0x3C)
 
 #define SBL_LOG_SIZE_MASK			0xFFFF
 #define DEVICE_RDDM_COOKIE			0xCAFECACE
@@ -1463,7 +1462,7 @@ out:
 		 * mode and is able to do RDDM, RDDM cookie would be set.
 		 * Dump SBL SRAM memory only if RDDM cookie is not set.
 		 */
-		if (!mhi_scan_rddm_cookie(pci_priv->mhi_ctrl, BHI_ERRDBG3,
+		if (!mhi_scan_rddm_cookie(pci_priv->mhi_ctrl,
 					  DEVICE_RDDM_COOKIE))
 			cnss_pci_dump_bl_sram_mem(pci_priv);
 	}
@@ -5429,7 +5428,7 @@ static void cnss_boot_debug_timeout_hdlr(struct timer_list *t)
 	if (test_bit(CNSS_MHI_POWER_ON, &pci_priv->mhi_state))
 		return;
 
-	if (mhi_scan_rddm_cookie(pci_priv->mhi_ctrl, BHI_ERRDBG3,
+	if (mhi_scan_rddm_cookie(pci_priv->mhi_ctrl,
 				 DEVICE_RDDM_COOKIE))
 		return;
 
