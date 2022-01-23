@@ -515,37 +515,6 @@
 		};
 
 	};
-
-#if !defined(__IPQ_MEM_PROFILE_256_MB__)
-	mlo_chip_info0: mlo_chip0 {
-		chip_id =  /bits/ 8 <0>;
-		num_local_links =  /bits/ 8 <1>;
-		hw_link_ids =  /bits/ 8 <0x0 0x1>;
-		valid_mlo_link_ids =  /bits/ 8 <0x1 0x1>;
-	};
-
-	mlo_chip_info1: mlo_chip1 {
-		chip_id =  /bits/ 8 <1>;
-		num_local_links =  /bits/ 8 <1>;
-		hw_link_ids =  /bits/ 8 <0x2 0x3>;
-		valid_mlo_link_ids =  /bits/ 8 <0x1 0x1>;
-	};
-
-	mlo_chip_info2: mlo_chip2 {
-		chip_id =  /bits/ 8 <2>;
-		num_local_links =  /bits/ 8 <1>;
-		hw_link_ids =  /bits/ 8 <0x4 0x5>;
-		valid_mlo_link_ids =  /bits/ 8 <0x1 0x1>;
-	};
-
-	mlo_info: mlo_group0 {
-		mlo_group_id = /bits/ 8 <0>;
-		mlo_max_num_peer = /bits/ 16 <256>;
-		mlo_num_chips = /bits/ 8 <3>;
-		mlo_global_mem = <&mlo_global_mem>;
-		chips = <&mlo_chip_info0>, <&mlo_chip_info1>, <&mlo_chip_info2>;
-	};
-#endif
 };
 
 &wifi0 {
@@ -600,8 +569,6 @@
 	hremote_node = <&qcn9224_pcie0>;
 	caldb-size = <0x800000>;
 	board_id = <0x01>;
-	mlo_group_info = <&mlo_info>;
-	mlo_chip_info = <&mlo_chip_info0>;
 	status = "ok";
 #endif
 };
@@ -653,8 +620,6 @@
 	hremote_node = <&qcn9224_pcie1>;
 	caldb-size = <0x800000>;
 	board_id = <0x04>;
-	mlo_group_info = <&mlo_info>;
-	mlo_chip_info = <&mlo_chip_info1>;
 	status = "ok";
 #endif
 };
@@ -706,8 +671,6 @@
 	hremote_node = <&qcn9224_pcie2>;
 	caldb-size = <0x800000>;
 	board_id = <0x02>;
-	mlo_group_info = <&mlo_info>;
-	mlo_chip_info = <&mlo_chip_info2>;
 	status = "ok";
 #endif
 };
