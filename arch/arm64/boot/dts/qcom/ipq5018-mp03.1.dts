@@ -317,10 +317,6 @@
 	};
 
 	soc {
-		serial@78af000 {
-			status = "ok";
-		};
-
 		blsp1_uart2: serial@78b0000 {
 			pinctrl-0 = <&blsp1_uart_pins>;
 			pinctrl-names = "default";
@@ -499,7 +495,6 @@
 		pcm: pcm@0xA3C0000{
 			pinctrl-0 = <&audio_pins>;
 			pinctrl-names = "default";
-			status = "disabled";
 		};
 	};
 
@@ -694,7 +689,6 @@
 };
 
 &pcie_x1 {
-	status = "disabled";
 	perst-gpio = <&tlmm 18 GPIO_ACTIVE_LOW>;
 };
 
@@ -704,18 +698,6 @@
 };
 
 &wcss {
-	status = "ok";
-};
-
-&tcsr_mutex {
-	status = "ok";
-};
-
-&apcs_glb {
-	status = "ok";
-};
-
-&tcsr_q6_block {
 	status = "ok";
 };
 
@@ -731,7 +713,6 @@
 &i2c_0 {
 	pinctrl-0 = <&i2c_pins>;
 	pinctrl-names = "default";
-	status = "disabled";
 };
 
 &blsp1_uart1 {
@@ -744,10 +725,6 @@
 
 &hs_m31phy_0 {
 	status = "ok";
-};
-
-&pcie_x1phy {
-	status = "disabled";
 };
 
 &pcie_x2phy {

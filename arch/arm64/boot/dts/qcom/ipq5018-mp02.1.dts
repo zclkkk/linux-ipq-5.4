@@ -502,12 +502,10 @@
 };
 
 &pcie_x1 {
-	status = "disabled";
 	perst-gpio = <&tlmm 27 GPIO_ACTIVE_LOW>;
 };
 
 &pcie_x2 {
-	status = "disabled";
 	perst-gpio = <&tlmm 15 GPIO_ACTIVE_LOW>;
 };
 
@@ -521,13 +519,6 @@
 	status = "ok";
 };
 
-&pcie_x1phy {
-	status = "disabled";
-};
-
-&pcie_x2phy {
-	status = "disabled";
-};
 
 &pcie_x1_rp {
 	status = "disabled";
@@ -675,7 +666,6 @@
 &i2c_0 {
 	pinctrl-0 = <&i2c_pins>;
 	pinctrl-names = "default";
-	status = "disabled";
 };
 
 &wifi0 {
