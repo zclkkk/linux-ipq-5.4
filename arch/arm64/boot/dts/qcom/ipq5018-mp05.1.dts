@@ -121,7 +121,7 @@
 		};
 
 	#if defined(__CNSS2__)
-		mhi_region1: dma_pool1@4da00000 {
+		mhi_region0: dma_pool1@4da00000 {
 			compatible = "shared-dma-pool";
 			no-map;
 			reg = <0x0 0x4DA00000 0x0 0x00B00000>;
@@ -176,11 +176,11 @@
 	 * | caldb  |  0x4CA00000  |           2MB           |
 	 * +--------+--------------+-------------------------+
 	 * |        |              |                         |
-	 * |QCN9224 |  0x4CC00000  |          38MB           |
+	 * |QCN9224 |  0x4CC00000  |          46MB           |
 	 * |        |              |                         |
 	 * +--------+--------------+-------------------------+
 	 * |        |              |                         |
-	 * |  MHI1  |  0x4F200000  |          11MB           |
+	 * |  MHI0  |  0x4FA00000  |           26MB          |
 	 * |        |              |                         |
 	 * +--------+--------------+-------------------------+
 	 * |                                                 |
@@ -210,14 +210,14 @@
 
 		qcn9224_pcie0: qcn9224_pcie0@4cc00000 {
 			no-map;
-			reg = <0x0 0x4CC00000 0x0 0x02600000>;
+			reg = <0x0 0x4CC00000 0x0 0x02E00000>;
 		};
 
 	#if defined(__CNSS2__)
-		mhi_region1: dma_pool1@4f200000 {
+		mhi_region0: dma_pool1@4FA00000 {
 			compatible = "shared-dma-pool";
 			no-map;
-			reg = <0x0 0x4f200000 0x0 0x00B00000>;
+			reg = <0x0 0x4FA00000 0x0 0x01A00000>;
 		};
 	#endif
 	#else
@@ -269,11 +269,11 @@
 	 * | caldb  |  0x4CA00000  |           2MB           |
 	 * +--------+--------------+-------------------------+
 	 * |        |              |                         |
-	 * |QCN9224 |  0x4CC00000  |          53MB           |
+	 * |QCN9224 |  0x4CC00000  |          46MB           |
 	 * |        |              |                         |
 	 * +--------+--------------+-------------------------+
 	 * |        |              |                         |
-	 * |  MHI1  |  0x50100000  |           11MB          |
+	 * |  MHI0  |  0x4FA00000  |           26MB          |
 	 * |        |              |                         |
 	 * +--------+--------------+-------------------------+
 	 * |                                                 |
@@ -303,14 +303,14 @@
 
 		qcn9224_pcie0: qcn9224_pcie0@4cc00000 {
 			no-map;
-			reg = <0x0 0x4CC00000 0x0 0x03500000>;
+			reg = <0x0 0x4CC00000 0x0 0x02E00000>;
 		};
 
 	#if defined(__CNSS2__)
-		mhi_region1: dma_pool1@50100000 {
+		mhi_region0: dma_pool1@4FA00000 {
 			compatible = "shared-dma-pool";
 			no-map;
-			reg = <0x0 0x50100000 0x0 0x00B00000>;
+			reg = <0x0 0x4FA00000 0x0 0x01A00000>;
 		};
 	#endif
 	#endif
@@ -740,7 +740,48 @@
 	mhi_1: qcom,mhi@1 {
 		reg = <0 0 0 0 0 >;
 #if defined(__CNSS2__)
-		memory-region = <&mhi_region1>;
+		qrtr_node_id = <0x30>;
+		memory-region = <&mhi_region0>;
 #endif
 	};
+};
+
+&wifi0 {
+	mem-region = <&q6_region>;
+	qcom,board_id = <0x24>;
+
+	qcom,bdf-addr = <0x4BA00000 0x4BA00000 0x4BA00000
+		0x0 0x0>;
+	qcom,caldb-addr = <0x4CA00000 0x4CA00000 0x0 0x0 0x0>;
+	qcom,caldb-size = <0x200000>;
+	status = "ok";
+};
+
+&wifi5 {
+#if !defined(__IPQ_MEM_PROFILE_256_MB__)
+	/* qcn9224 tgt-mem-mode=0 layout - 46MB
+	 * +=========+==============+=========+
+	 * |  Region | Start Offset |   Size  |
+	 * +---------+--------------+---------+
+	 * | HREMOTE |  0x4CC00000  |   36MB  |
+	 * +---------+--------------+---------+
+	 * | M3 Dump |  0x4F000000  |   1MB   |
+	 * +---------+--------------+---------+
+	 * |   ETR   |  0x4F100000  |   1MB   |
+	 * +---------+--------------+---------+
+	 * |  Caldb  |  0x4F200000  |   8MB   |
+	 * +==================================+
+	 */
+	base-addr = <0x4CC00000>;
+	m3-dump-addr = <0x4F000000>;
+	etr-addr = <0x4F100000>;
+	caldb-addr = <0x4F200000>;
+	hremote-size = <0x2400000>;
+	tgt-mem-mode = <0x0>;
+	qrtr_node_id = <0x30>;
+	hremote_node = <&qcn9224_pcie0>;
+	caldb-size = <0x800000>;
+	board_id = <0x02>;
+	status = "ok";
+#endif
 };
