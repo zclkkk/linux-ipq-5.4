@@ -456,6 +456,10 @@ static inline int cnss_set_bar_addr(struct device *dev, void __iomem *mem)
 {
 	return -EINVAL;
 }
+void cnss_set_led_gpio(int led_gpio, unsigned int value, unsigned int flags)
+{
+	return;
+}
 #else
 extern int cnss_wlan_register_driver(struct cnss_wlan_driver *driver);
 extern int cnss_wlan_register_driver_ops(struct cnss_wlan_driver *driver);
@@ -559,5 +563,6 @@ int cnss_reg_read(struct device *dev, u32 addr, u32 *val);
 int cnss_reg_write(struct device *dev, u32 addr, u32 val);
 int cnss_get_dev_link_ids(struct device *dev, u8 *link_ids, int max_elements);
 int cnss_set_bar_addr(struct device *dev, void __iomem *mem);
+void cnss_set_led_gpio(int led_gpio, unsigned int value, unsigned int flags);
 #endif
 #endif /* _NET_CNSS2_H */
