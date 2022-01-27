@@ -1226,6 +1226,17 @@
 			compatible = "qca,ipq5018-pcm-lb";
 			status = "disabled";
 		};
+
+		pwm: pwm@0x1941010 {
+			compatible = "qti,ipq5018-pwm";
+			reg = <0x1941010 0x20>;
+			clocks = <&gcc GCC_ADSS_PWM_CLK>;
+			clock-names = "core";
+			src-freq = <100000000>;
+			pwm-base-index = <0>;
+			used-pwm-indices = <1>, <1>, <1>, <1>;
+			status = "disabled";
+		};
 	};
 
 	qti,scm_restart_reason {
