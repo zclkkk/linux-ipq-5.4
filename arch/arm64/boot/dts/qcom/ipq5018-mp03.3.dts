@@ -755,6 +755,10 @@
 	device-power-gpio = <&tlmm 24 1>;
 };
 
+&eud {
+	status = "ok";
+};
+
 &pcie_x1 {
 	status = "disabled";
 	perst-gpio = <&tlmm 18 GPIO_ACTIVE_LOW>;
