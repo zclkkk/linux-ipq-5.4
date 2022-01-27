@@ -68,6 +68,10 @@
 #define PCIE_CAP_CPL_TIMEOUT_DISABLE		0x10
 #define PCIE30_GEN3_RELATED_OFF			0x890
 
+#define PCIE_DEVICE_CONTROL_STATUS		0x78
+#define PCIE_CAP_MAX_PAYLOAD_SIZE_CS_MASK 	GENMASK(7, 5)
+#define PCIE_CAP_MAX_PAYLOAD_SIZE_CS_OFFSET(x) 	((x) << 5)
+
 #define RXEQ_RGRDLESS_RXTS			BIT(13)
 #define GEN3_ZRXDC_NONCOMPL			BIT(0)
 
@@ -272,6 +276,7 @@ struct qcom_pcie {
 	uint32_t compliance;
 	uint32_t slot_id;
 	uint32_t axi_wr_addr_halt;
+	uint32_t max_payload_size;
 	struct work_struct handle_wake_work;
 	struct work_struct handle_e911_work;
 	int wake_irq;
@@ -1812,6 +1817,13 @@ static int qti_pcie_init_2_9_0_9574(struct qcom_pcie *pcie)
 	writel(PCIE_CAP_CPL_TIMEOUT_DISABLE, pci->dbi_base +
 		PCIE20_DEVICE_CONTROL2_STATUS2);
 
+	if (pcie->max_payload_size) {
+		val = readl(pci->dbi_base + PCIE_DEVICE_CONTROL_STATUS);
+		val &= ~PCIE_CAP_MAX_PAYLOAD_SIZE_CS_MASK;
+		val |= PCIE_CAP_MAX_PAYLOAD_SIZE_CS_OFFSET(pcie->max_payload_size);
+		writel(val, pci->dbi_base + PCIE_DEVICE_CONTROL_STATUS);
+	}
+
 	qcom_pcie_set_link_speed(pci->dbi_base, pcie->max_speed, SPEED_GEN3);
 
 	for (i = 0;i < 256;i++)
@@ -2521,6 +2533,9 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 
 	of_property_read_u32(pdev->dev.of_node, "axi-halt-val",
 			     &pcie->axi_wr_addr_halt);
+
+	of_property_read_u32(pdev->dev.of_node, "max-payload-size",
+			     &pcie->max_payload_size);
 
 	if (of_device_is_compatible(pdev->dev.of_node,
 					"qcom,pcie-gen3-ipq8074")) {
