@@ -539,7 +539,7 @@ static int cnss_cal_db_mem_update(struct cnss_plat_data *plat_priv,
 		snprintf(filename, sizeof(filename),
 			 CNSS_CAL_DB_FILE_PREFIX CNSS_CAL_DB_FILE_SUFFIX);
 
-	cnss_pr_info("%s: File Operation %u size %lu file name %s\n", __func__,
+	cnss_pr_info("%s: File Operation %u size %u file name %s\n", __func__,
 		     op, *size, filename);
 
 	if (*size == 0) {

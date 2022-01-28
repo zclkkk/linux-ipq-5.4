@@ -2603,7 +2603,7 @@ static void cnss_wlfw_fw_mem_ready_ind_cb(struct qmi_handle *qmi_wlfw,
 			cnss_cal_file_download_to_mem(plat_priv,
 						      &cal_file_size);
 			plat_priv->cal_file_size = cal_file_size;
-			cnss_pr_dbg("%s: Cold boot support enabled. Driver mode %u. CALDB downloaded, file size %lu\n",
+			cnss_pr_dbg("%s: Cold boot support enabled. Driver mode %u. CALDB downloaded, file size %u\n",
 				    __func__, driver_mode,
 				    plat_priv->cal_file_size);
 		}
@@ -2713,7 +2713,7 @@ int cnss_wlfw_cal_report_req_send_sync(struct cnss_plat_data *plat_priv,
 	int ret = 0;
 	int resp_error_msg = 0;
 
-	cnss_pr_dbg("Sending cal file report request. File size: %d, state: 0x%x\n",
+	cnss_pr_dbg("Sending cal file report request. File size: %d, state: 0x%lx\n",
 		    cal_file_download_size, plat_priv->driver_state);
 
 	req = kzalloc(sizeof(*req), GFP_KERNEL);
@@ -2779,7 +2779,7 @@ static void cnss_wlfw_cal_done_ind_cb(struct qmi_handle *qmi_wlfw,
 	struct cnss_cal_info *cal_info;
 	const struct wlfw_cal_done_ind_msg_v01 *ind = data;
 
-	cnss_pr_dbg("Received Cal done indication. File size: %d\n",
+	cnss_pr_dbg("Received Cal done indication. File size: %lld\n",
 		    ind->cal_file_upload_size);
 	cnss_pr_info("Calibration took %d ms\n",
 		     jiffies_to_msecs(jiffies - plat_priv->cal_time));
