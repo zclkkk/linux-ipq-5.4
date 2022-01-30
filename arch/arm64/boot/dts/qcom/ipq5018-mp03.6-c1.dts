@@ -643,6 +643,10 @@
 	device-power-gpio = <&tlmm 24 1>;
 };
 
+&eud {
+	status = "ok";
+};
+
 &pcie_x1 {
 	interrupts-extended = <&tlmm 19 0>, <&tlmm 0 0>;
 	interrupt-names = "wake_gpio", "mdm2ap_e911";

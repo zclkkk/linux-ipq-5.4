@@ -497,6 +497,10 @@
 	status = "ok";
 };
 
+&eud {
+	status = "ok";
+};
+
 &pcie_x1 {
 	status = "disabled";
 	perst-gpio = <&tlmm 27 GPIO_ACTIVE_LOW>;
