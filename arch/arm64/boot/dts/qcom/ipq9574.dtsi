@@ -2119,6 +2119,9 @@
 					<0 0 0 4 &intc 0 83
 					 IRQ_TYPE_LEVEL_HIGH>; /* int_d */
 
+			interrupts = <GIC_SPI 51 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "global_irq";
+
 			/* clocks and clock-names are used to enable the clock in CBCR */
 			clocks = <&gcc GCC_PCIE0_AHB_CLK>,
 				 <&gcc GCC_PCIE0_AUX_CLK>,
@@ -2194,6 +2197,9 @@
 					<0 0 0 4 &intc 0 85
 					 IRQ_TYPE_LEVEL_HIGH>; /* int_d */
 
+			interrupts = <GIC_SPI 25 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "global_irq";
+
 			/* clocks and clock-names are used to enable the clock in CBCR */
 			clocks = <&gcc GCC_PCIE1_AHB_CLK>,
 				 <&gcc GCC_PCIE1_AUX_CLK>,
@@ -2268,6 +2274,9 @@
 					<0 0 0 4 &intc 0 187
 					 IRQ_TYPE_LEVEL_HIGH>; /* int_d */
 
+			interrupts = <GIC_SPI 125 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "global_irq";
+
 			/* clocks and clock-names are used to enable the clock in CBCR */
 			clocks = <&gcc GCC_PCIE2_AHB_CLK>,
 				 <&gcc GCC_PCIE2_AUX_CLK>,
@@ -2341,6 +2350,9 @@
 					 IRQ_TYPE_LEVEL_HIGH>, /* int_c */
 					<0 0 0 4 &intc 0 192
 					 IRQ_TYPE_LEVEL_HIGH>; /* int_d */
+
+			interrupts = <GIC_SPI 188 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "global_irq";
 
 			/* clocks and clock-names are used to enable the clock in CBCR */
 			clocks = <&gcc GCC_PCIE3_AHB_CLK>,
