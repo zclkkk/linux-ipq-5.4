@@ -1876,5 +1876,4 @@
 };
 
 #include "ipq6018-coresight.dtsi"
-#include "ipq6018-cpr-regulator.dtsi"
 #include "ipq6018-thermal.dtsi"
