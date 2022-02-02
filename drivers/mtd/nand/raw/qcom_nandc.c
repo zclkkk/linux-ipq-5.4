@@ -232,7 +232,12 @@
 #define	NAND_CMD_SET_FEATURE_SERIAL	0x1F
 #define	NAND_CMD_GET_FEATURE_SERIAL	0x0F
 #define	SPI_FLASH_FEATURE_REG		0xB0
+
+/*
+ * Serial NAND flash status register bits
+ */
 #define	SPI_FLASH_QUAD_MODE		0x1
+#define	SPI_NAND_BUF_BIT(x)		(1 << x)
 
 /* QSPI NAND CMD reg bits value */
 #define	SPI_WP		(1 << 28)
@@ -3370,13 +3375,71 @@ static int qcom_serial_set_feature(struct qcom_nand_controller *nandc,
 }
 
 
+static bool config_buf_bit(struct mtd_info *mtd, struct qcom_nand_host *host, u8 *pos)
+{
+	int i, ret;
+	struct nand_chip *chip = mtd_to_nand(mtd);
+	struct qcom_nand_controller *nandc = get_qcom_nand_controller(chip);
+	unsigned int command = NAND_CMD_READID_SERIAL;
+	u8 id_data[3];
+
+	pre_command(host, command);
+
+	/* get the device id from device */
+	nandc->buf_count = 4;
+	read_id(host, 0x00);
+
+	ret = submit_descs(nandc);
+	if (ret)
+		dev_err(nandc->dev, "failure submitting descs for command %d\n",
+				command);
+	free_descs(nandc);
+
+	post_command(host, command);
+
+	/* Read Id bytes */
+	for (i = 0; i < 2; i++)
+		id_data[i] = chip->legacy.read_byte(chip);
+/* Add device ID here if SPI Nand supports BUF_BIT to configure */
+	switch (id_data[0]) {
+	case SPI_FLASH_WINBOND_ID:
+		*pos = 3;
+		return true;
+	default:
+		return false;
+	}
+}
+
 static int qspi_nand_device_config(struct qcom_nand_controller *nandc,
 				   struct qcom_nand_host *host, struct mtd_info *mtd)
 {
 	int status = 0;
-
+	u8 buf_bit_pos = 0;
 	nandc->buf_count = 4;
 	memset(nandc->reg_read_buf, 0x0, nandc->buf_count);
+	/* Configure BUF bit for SPI Nand device
+	 * Read the id and compare for device id
+	 */
+	if (config_buf_bit(mtd, host, &buf_bit_pos)) {
+		status = qcom_serial_get_feature(nandc, host, SPI_FLASH_FEATURE_REG);
+		if (status < 0) {
+			dev_err(nandc->dev,"Error in getting feature Continous buff");
+			return status;
+		}
+
+		if (!((status >> 8) & SPI_NAND_BUF_BIT(buf_bit_pos))) {
+			dev_dbg(nandc->dev, "Continous buffer mode not enabled on power on\n");
+			dev_dbg(nandc->dev, "Issuing set feature command enbale it\n");
+			status = qcom_serial_set_feature(nandc, host, SPI_FLASH_FEATURE_REG,
+					SPI_NAND_BUF_BIT(buf_bit_pos) | (status >> 8));
+			if (status < 0) {
+				dev_err(nandc->dev,"Error in setting feature Quad mode.");
+				return status;
+			}
+		} else {
+			dev_dbg(nandc->dev, "Continous buffer mode enabled on power on\n");
+		}
+	}
 	qcom_check_quad_mode(mtd, host);
 
 	if (!host->check_qe_bit) {
