@@ -185,11 +185,11 @@
 		};
 
 		qpic_bam: dma@7984000{
-			status = "disabled";
+			status = "ok";
 		};
 
 		nand: qpic-nand@79b0000 {
-			status = "disabled";
+			status = "ok";
 		};
 
 		spi_0: spi@78b5000 { /* BLSP1 QUP0 */
