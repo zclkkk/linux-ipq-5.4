@@ -701,11 +701,8 @@ clk_alpha_pll_brammo_determine_rate(struct clk_hw *hw,
 				    struct clk_rate_request *req)
 {
 	struct clk_alpha_pll *pll = to_clk_alpha_pll(hw);
-	u32 l, alpha_width;
+	u32 l, alpha_width = pll_alpha_width(pll);
 	u64 a;
-
-	alpha_width = (pll_alpha_width(pll) > 32) ?
-				ALPHA_REG_16BIT_WIDTH : ALPHA_REG_BITWIDTH;
 
 	req->rate = alpha_pll_round_rate(req->rate, req->best_parent_rate, &l,
 					 &a, alpha_width);
