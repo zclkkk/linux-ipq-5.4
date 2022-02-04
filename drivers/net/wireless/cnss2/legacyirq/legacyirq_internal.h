@@ -546,8 +546,8 @@ struct legacy2virtual_irqdata {
 	int pci_legacy_irq;     //linux irq for the actual PCI intx IRQ
 	void *regbase;          //virtual BAR
 	int stats[maxirq][INTX_MAX_INTERRUPTS];
-	int schedlatency[maxirq][INTX_MAX_BUCKET];
-	int executiontime[maxirq][INTX_MAX_BUCKET];
+	int schedlatency[INTX_MAX_INTERRUPTS][INTX_MAX_BUCKET];
+	int executiontime[INTX_MAX_INTERRUPTS][INTX_MAX_BUCKET];
 };
 
 struct dentry *irq_root_dentry;

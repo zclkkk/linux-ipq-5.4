@@ -241,12 +241,10 @@ static ssize_t cnss_statdebug_debug_write(struct file *fp,
 	struct legacy2virtual_irqdata *lvirq =
 		((struct seq_file *)fp->private_data)->private;
 	char buf[64];
-	char filter_s[64] = {0};
-	char *cmd, *filter_s_pos = NULL;
+	char *cmd;
 	unsigned int len = 0;
 	int option = 0;
 	int i;
-	int filter = 0;
 
 	if (!lvirq) {
 		pr_emerg("lvirq is not intialized\n");
@@ -280,20 +278,7 @@ static ssize_t cnss_statdebug_debug_write(struct file *fp,
 	} else {
 		option = maxirq;
 	}
-	filter_s_pos = strstr(cmd, "filter");
-	if (filter_s_pos)  {
-		filter = 1;
-		len = strlen(filter_s_pos);
-		memset(filter_s, 0, sizeof(filter_s));
-		memcpy(filter_s, filter_s_pos+6, len - 6);
-		len=strlen(filter_s);
-		/*remove the newline character at last */
-		filter_s[len-1] = 0;
-	}
 	for (i = 0; i < INTX_MAX_INTERRUPTS; i++) {
-		if (filter && !strstr(intx_irqname[i], filter_s))
-			continue;
-
 		switch (option) {
 		case enableirq:
 			if(lvirq->stats[enableirq][i]) {
@@ -461,7 +446,7 @@ static const struct file_operations cnss_statdebug_debug_fops = {
 static int qcom_qcn9224_probe(struct platform_device *pdev)
 {
 	int ret;
-	struct device_node *n, *irqnode;
+	struct device_node *n, *irqnode = NULL;
 	u32 node_id = 0;
 	struct legacy2virtual_irqdata *lvirq;
 	char name[10];

@@ -284,6 +284,9 @@ void *cnss_get_plat_dev_by_bus_dev(struct device *dev)
 {
 	struct cnss_plat_data *plat_priv = cnss_bus_dev_to_plat_priv(dev);
 
+	if (!plat_priv)
+		return NULL;
+
 	return plat_priv->plat_dev;
 }
 EXPORT_SYMBOL(cnss_get_plat_dev_by_bus_dev);
