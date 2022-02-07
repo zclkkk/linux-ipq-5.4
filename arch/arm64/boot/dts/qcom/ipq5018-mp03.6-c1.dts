@@ -439,22 +439,9 @@
 			mdiobus = <&mdio1>;
 		};
 
-		lpass: lpass@0xA000000{
-			status = "disabled";
-		};
-
-		pcm: pcm@0xA3C0000{
-			status = "disabled";
-		};
-
-		pcm_lb: pcm_lb@0 {
-			status = "disabled";
-		};
-
 		pcm: pcm@0xA3C0000{
 			pinctrl-0 = <&audio_pins>;
 			pinctrl-names = "default";
-			status = "disabled";
 		};
 	};
 

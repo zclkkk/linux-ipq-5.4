@@ -499,7 +499,6 @@
 		pcm: pcm@0xA3C0000{
 			pinctrl-0 = <&audio_pins>;
 			pinctrl-names = "default";
-			status = "disabled";
 		};
 	};
 
@@ -666,7 +665,6 @@
 };
 
 &pcie_x1 {
-	status = "disabled";
 	perst-gpio = <&tlmm 18 GPIO_ACTIVE_LOW>;
 };
 
@@ -703,7 +701,6 @@
 &i2c_0 {
 	pinctrl-0 = <&i2c_pins>;
 	pinctrl-names = "default";
-	status = "disabled";
 };
 
 &blsp1_uart1 {
@@ -716,10 +713,6 @@
 
 &hs_m31phy_0 {
 	status = "ok";
-};
-
-&pcie_x1phy {
-	status = "disabled";
 };
 
 &pcie_x2phy {
