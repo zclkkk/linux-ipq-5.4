@@ -30,6 +30,7 @@
 #ifdef CONFIG_CNSS2_QCA9574_SUPPORT
 #include <soc/qcom/socinfo.h>
 #endif
+#include "legacyirq/legacyirq.h"
 
 #include "main.h"
 #include "debug.h"
@@ -62,6 +63,9 @@
 #define CNSS_BDF_TYPE_DEFAULT		CNSS_BDF_ELF
 #define CNSS_TIME_SYNC_PERIOD_DEFAULT	900000
 #define DEFAULT_FW_FILE_NAME		"amss.bin"
+
+#define CNSS_INTX_SUPPORT_MASK          0xF
+#define CNSS_INTX_SUPPORT_SHIFT         4
 
 #define MAX_NUMBER_OF_SOCS 4
 #define CNSS_PROBE_ORDER_MASK 0xF
@@ -133,6 +137,10 @@ MODULE_PARM_DESC(disable_regdb_bmap, "Bitmap to Disable RegDB download");
 static unsigned int probe_order;
 module_param(probe_order, uint, 0644);
 MODULE_PARM_DESC(probe_order, "Probe order");
+
+static int enable_intx_bmap;
+module_param(enable_intx_bmap, int, 0644);
+MODULE_PARM_DESC(enable_intx_bmap, "enable_intx_bmap");
 
 #define FW_READY_DELAY	100  /* in msecs */
 
@@ -271,6 +279,17 @@ void *cnss_get_plat_priv_dev_by_pci_dev(void *pci_dev)
 	}
 	return NULL;
 }
+
+void *cnss_get_plat_dev_by_bus_dev(struct device *dev)
+{
+	struct cnss_plat_data *plat_priv = cnss_bus_dev_to_plat_priv(dev);
+
+	if (!plat_priv)
+		return NULL;
+
+	return plat_priv->plat_dev;
+}
+EXPORT_SYMBOL(cnss_get_plat_dev_by_bus_dev);
 
 struct cnss_plat_data *cnss_get_plat_priv_by_qrtr_node_id(int node_id)
 {
@@ -2141,6 +2160,14 @@ int cnss_wlan_register_driver(struct cnss_wlan_driver *driver_ops)
 		     plat_priv->device_id == QCN9224_DEVICE_ID) &&
 		    plat_priv->pci_dev &&
 		    (strcmp(driver_ops->name, "pld_pcie") == 0)) {
+			if (plat_priv->enable_intx && plat_priv->device_id == QCN9224_DEVICE_ID) {
+				plat_priv->lvirq = cnss_get_lvirq_by_qrtr_id(plat_priv->qrtr_node_id);
+				if (!plat_priv->lvirq) {
+					CNSS_ASSERT(0);
+					return -EINVAL;
+				}
+			}
+
 			cnss_pci_init(plat_priv);
 			plat_priv->driver_ops = driver_ops;
 			set_bit(CNSS_DRIVER_LOADING, &plat_priv->driver_state);
@@ -4516,6 +4543,22 @@ static void cnss_fill_probe_order(struct cnss_plat_data *plat_priv)
 	}
 }
 
+static void cnss_get_legacy_intx_support(struct cnss_plat_data *plat_priv)
+{
+	int enable_intx;
+	if(enable_intx_bmap) {
+		enable_intx = (enable_intx_bmap & CNSS_INTX_SUPPORT_MASK);
+		enable_intx_bmap >>= CNSS_INTX_SUPPORT_SHIFT;
+		if(enable_intx)
+			plat_priv->enable_intx = true;
+	} else if (of_property_read_bool(plat_priv->plat_dev->dev.of_node,
+					 "enable-intx")) {
+		plat_priv->enable_intx = true;
+	} else {
+		plat_priv->enable_intx = false;
+	}
+}
+
 static int cnss_probe(struct platform_device *plat_dev)
 {
 	int ret = 0;
@@ -4703,6 +4746,7 @@ static int cnss_probe(struct platform_device *plat_dev)
 		goto out;
 
 	cnss_fill_probe_order(plat_priv);
+	cnss_get_legacy_intx_support(plat_priv);
 	cnss_set_mod_param_feature_support(plat_priv, CALDATA);
 	cnss_set_mod_param_feature_support(plat_priv, REGDB);
 	cnss_set_plat_priv(plat_dev, plat_priv);
