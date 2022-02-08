@@ -4567,6 +4567,8 @@ static int cnss_probe(struct platform_device *plat_dev)
 	const struct platform_device_id *device_id;
 	u32 node_id = 0, userpd_id = 0, node_id_base;
 	const int *soc_version;
+	const char *firmware_name = NULL;
+	u32 firmware_name_len;
 
 	if (cnss_get_plat_priv(plat_dev)) {
 		pr_err("Driver is already initialized!\n");
@@ -4694,10 +4696,32 @@ static int cnss_probe(struct platform_device *plat_dev)
 			break;
 		}
 
-		snprintf(plat_priv->firmware_name,
-			 sizeof(plat_priv->firmware_name),
-			 "%s%s", cnss_get_fw_path(plat_priv),
-			 DEFAULT_FW_FILE_NAME);
+		firmware_name_len = strlen(cnss_get_fw_path(plat_priv));
+		firmware_name = of_get_property(plat_dev->dev.of_node,
+						"firmware_name", NULL);
+
+		/* If firmware_name not defined in DTS, use default FW name */
+		if (!firmware_name)
+			firmware_name = DEFAULT_FW_FILE_NAME;
+
+		firmware_name_len += strlen(firmware_name);
+		if (firmware_name_len > PATH_MAX) {
+			cnss_pr_err("firmware_name_len too long %d",
+				    firmware_name_len);
+			ret = -EINVAL;
+			goto out;
+		}
+
+		plat_priv->firmware_name = kzalloc(firmware_name_len + 1,
+						   GFP_KERNEL);
+		if (!plat_priv->firmware_name) {
+			cnss_pr_err("Failed to allocate memory for fw_name");
+			ret = -ENOMEM;
+			goto out;
+		}
+
+		snprintf(plat_priv->firmware_name, firmware_name_len + 1,
+			 "%s%s", cnss_get_fw_path(plat_priv), firmware_name);
 		break;
 	case QCA8074_DEVICE_ID:
 	case QCA8074V2_DEVICE_ID:
@@ -4869,6 +4893,7 @@ static int cnss_remove(struct platform_device *plat_dev)
 	cnss_put_resources(plat_priv);
 	cnss_rproc_unregister(plat_priv);
 	platform_set_drvdata(plat_dev, NULL);
+	kfree(plat_priv->firmware_name);
 
 	return 0;
 }
