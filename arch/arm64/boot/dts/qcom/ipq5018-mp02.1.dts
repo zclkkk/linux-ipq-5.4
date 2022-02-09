@@ -675,7 +675,7 @@
 	qcom,bdf-addr = <0 0 0x4C400000 0 0>;
 	qcom,caldb-addr = <0 0 0 0 0>;
 	qcom,caldb-size = <0x0>;
-	qcom,userpd-subsys-name = "4ab000.remoteproc_pd1";
+	qcom,userpd-subsys-name = "q6v5_wcss_userpd1";
 	qcom,rproc = <&q6_wcss_pd1>;
 	mem-region = <&q6_ipq5018_data>;
 	status = "ok";
@@ -690,7 +690,7 @@
 	qcom,bdf-addr = <0 0 0x4D300000 0 0>;
 	qcom,caldb-addr = <0 0 0 0 0>;
 	qcom,caldb-size = <0x0>;
-	qcom,userpd-subsys-name = "cd00000.remoteproc:remoteproc_pd2";
+	qcom,userpd-subsys-name = "q6v5_wcss_userpd2";
 	qcom,rproc = <&q6_wcss_pd2>;
 	mem-region = <&q6_qcn6122_data1>;
 	status = "ok";
@@ -705,7 +705,7 @@
 	qcom,bdf-addr = <0 0 0x4E200000 0 0>;
 	qcom,caldb-addr = <0 0 0 0 0>;
 	qcom,caldb-size = <0x0>;
-	qcom,userpd-subsys-name = "cd00000.remoteproc:remoteproc_pd3";
+	qcom,userpd-subsys-name = "q6v5_wcss_userpd3";
 	qcom,rproc = <&q6_wcss_pd3>;
 	mem-region = <&q6_qcn6122_data2>;
 	status = "ok";
