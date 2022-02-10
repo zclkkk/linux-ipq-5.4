@@ -189,6 +189,8 @@
 		};
 
 		nand: qpic-nand@79b0000 {
+			pinctrl-0 = <&qspi_nand_pins>;
+			pinctrl-names = "default";
 			status = "ok";
 		};
 
@@ -377,6 +379,29 @@
 			pins = "gpio10", "gpio11", "gpio12", "gpio13";
 			function = "blsp0_spi";
 			drive-strength = <2>;
+			bias-disable;
+		};
+	};
+
+	qspi_nand_pins: qspi_nand_pins {
+		qspi_clock {
+			pins = "gpio9";
+			function = "qspi_clk";
+			drive-strength = <8>;
+			bias-disable;
+		};
+
+		qspi_cs {
+			pins = "gpio8";
+			function = "qspi_cs";
+			drive-strength = <8>;
+			bias-disable;
+		};
+
+		qspi_data {
+			pins = "gpio4", "gpio5", "gpio6", "gpio7";
+			function = "qspi_data";
+			drive-strength = <8>;
 			bias-disable;
 		};
 	};
