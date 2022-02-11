@@ -266,6 +266,7 @@ static int mini_dump_release(struct inode *inode, struct file *file)
 
 	device_destroy(dump_class, MKDEV(dump_major_dev, dump_minor_dev));
 	class_destroy(dump_class);
+	unregister_chrdev(dump_major_dev, "minidump");
 
 	dump_major = 0;
 	dump_class = NULL;
