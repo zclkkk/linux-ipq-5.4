@@ -127,6 +127,7 @@ struct q6v5_wcss {
 
 	void __iomem *reg_base;
 	void __iomem *rmb_base;
+	void __iomem *wcmn_base;
 
 	struct regmap *halt_map;
 	u32 halt_q6;
@@ -802,6 +803,7 @@ static int q6v5_wcss_start(struct rproc *rproc)
 {
 	struct q6v5_wcss *wcss = rproc->priv;
 	int ret;
+	uint32_t val;
 
 	ret = clk_prepare_enable(wcss->prng_clk);
 	if (ret) {
@@ -875,9 +877,30 @@ wait_for_reset:
 		else
 			dev_err(wcss->dev, "start timed out\n");
 	}
+
 	/*reset done clear the debug register*/
 	if (debug_wcss && wcss->q6_version != Q6V6)
 		writel(0x0, wcss->reg_base + Q6SS_DBG_CFG);
+
+	if (wcss->wcmn_base) {
+		/* Read the version registers to make sure WCSS is out of reset
+		 * Q6SS_WLAN_QDSP6SS_VERSION = 0x30010000
+		 * WCMN_WCSS_WCMN_R0_WCSS_CORE_HW_VERSION = 0x10000000
+		 */
+		val = readl(wcss->reg_base);
+		if (val != 0x30010000) {
+			dev_err(wcss->dev, "Invalid QDSP6SS Version : 0x%x\n", val);
+			return -EINVAL;
+		}
+		dev_info(wcss->dev, "QDSP6SS Version : 0x%x\n", val);
+
+		val = readl(wcss->wcmn_base);
+		if (val != 0x10000000) {
+			dev_err(wcss->dev, "Invalid WCSS Version : 0x%x\n", val);
+			return -EINVAL;
+		}
+		dev_info(wcss->dev, "WCSS Version : 0x%x\n", val);
+	}
 
 	return ret;
 
@@ -1641,6 +1664,15 @@ static int q6v5_wcss_init_mmio(struct q6v5_wcss *wcss,
 		wcss->rmb_base = devm_ioremap_resource(&pdev->dev, res);
 		if (IS_ERR(wcss->rmb_base))
 			return PTR_ERR(wcss->rmb_base);
+
+		res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "wcmn");
+		if (res) {
+			wcss->wcmn_base = ioremap(res->start, resource_size(res));
+			if (!wcss->wcmn_base) {
+				dev_err(&pdev->dev, "wcmn ioremap failed\n");
+				return -ENOMEM;
+			}
+		}
 	}
 
 	syscon = of_parse_phandle(pdev->dev.of_node,
@@ -2100,7 +2132,10 @@ free_rproc:
 static int q6v5_wcss_remove(struct platform_device *pdev)
 {
 	struct rproc *rproc = platform_get_drvdata(pdev);
+	struct q6v5_wcss *wcss = rproc->priv;
 
+	if (wcss->wcmn_base)
+		iounmap(wcss->wcmn_base);
 	rproc_del(rproc);
 	rproc_free(rproc);
 
