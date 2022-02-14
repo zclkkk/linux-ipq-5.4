@@ -259,6 +259,36 @@ struct page *__wrap_alloc_pages(gfp_t gfp_mask,
 }
 EXPORT_SYMBOL(__wrap_alloc_pages);
 
+struct page *
+__wrap___alloc_pages(gfp_t gfp_mask, unsigned int order, int preferred_nid)
+{
+	struct page *page = __alloc_pages(gfp_mask, order, preferred_nid);
+
+	if (page && debug_mem_usage_enabled) {
+		void *stack[9] = {0};
+		get_stacktrace(stack);
+		debug_object_trace_init(page_address(page), stack,
+					(1 << order) * PAGE_SIZE);
+	}
+
+	return page;
+}
+
+static inline struct page *
+__wrap___alloc_pages_node(int nid, gfp_t gfp_mask, unsigned int order)
+{
+	struct page *page = __alloc_pages_node(nid, gfp_mask, order);
+
+	if (page && debug_mem_usage_enabled) {
+		void *stack[9] = {0};
+		get_stacktrace(stack);
+		debug_object_trace_init(page_address(page), stack,
+					(1 << order) * PAGE_SIZE);
+	}
+
+	return page;
+}
+
 struct page *__wrap_alloc_pages_node(int node, gfp_t gfp_mask,
 			unsigned int order)
 {
@@ -832,3 +862,32 @@ void *__init __wrap_alloc_large_system_hash(const char *tablename,
 	return addr;
 }
 EXPORT_SYMBOL(__wrap_alloc_large_system_hash);
+
+#ifdef CONFIG_NUMA
+void *__wrap___kmalloc_node_track_caller(size_t size, gfp_t gfpflags,
+					int node, unsigned long caller)
+{
+	void *addr = __kmalloc_node_track_caller(size, gfpflags, node, caller);
+
+	if (addr && debug_mem_usage_enabled) {
+		void *stack[9] = {0};
+		get_stacktrace(stack);
+		debug_object_trace_init(addr, stack, size);
+	}
+
+	return addr;
+}
+#endif
+
+void *__wrap___kmalloc_track_caller(size_t size, gfp_t gfpflags, unsigned long caller)
+{
+	void *addr = __kmalloc_track_caller(size, gfpflags, caller);
+
+	if (addr && debug_mem_usage_enabled) {
+		void *stack[9] = {0};
+		get_stacktrace(stack);
+		debug_object_trace_init(addr, stack, size);
+	}
+
+	return addr;
+}

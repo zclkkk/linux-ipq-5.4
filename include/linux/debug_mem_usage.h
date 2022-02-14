@@ -33,6 +33,9 @@
 #define kzalloc_node			__wrap_kzalloc_node
 #define kfree				__wrap_kfree
 
+#define __kmalloc_track_caller		__wrap___kmalloc_track_caller
+#define __kmalloc_node_track_caller	__warp___kmalloc_node_track_caller
+
 #define kmem_cache_alloc		__wrap_kmem_cache_alloc
 #define kmem_cache_alloc_node		__wrap_kmem_cache_alloc_node
 #define kmem_cache_alloc_node_trace	__wrap_kmem_cache_alloc_node_trace
@@ -49,6 +52,8 @@
 #define alloc_pages			__wrap_alloc_pages
 #endif
 
+#define __alloc_pages			__wrap___alloc_pages
+#define __alloc_pages_node		__wrap___alloc_pages_node
 #define alloc_pages_node		__wrap_alloc_pages_node
 #define __alloc_pages_nodemask		__wrap___alloc_pages_nodemask
 #define free_pages			__wrap_free_pages
