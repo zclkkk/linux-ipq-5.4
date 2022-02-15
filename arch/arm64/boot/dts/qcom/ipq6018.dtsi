@@ -17,6 +17,8 @@
 	#address-cells = <2>;
 	#size-cells = <2>;
 	interrupt-parent = <&intc>;
+	qcom,board-id = <0x8 0x0>;
+	qcom,pmic-id = <0x0 0x0 0x0 0x0>;
 
 	clocks {
 		sleep_clk: sleep-clk {
