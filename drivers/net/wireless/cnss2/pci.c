@@ -5840,7 +5840,7 @@ int cnss_pci_probe(struct pci_dev *pci_dev,
 			if (ret)
 				goto disable_bus;
 		} else {
-			cnss_pci_enable_legacy_intx(pci_priv, pci_dev);
+			cnss_pci_enable_legacy_intx(pci_priv->bar, pci_dev);
 		}
 		ret = cnss_pci_register_mhi(pci_priv);
 		if (ret) {
