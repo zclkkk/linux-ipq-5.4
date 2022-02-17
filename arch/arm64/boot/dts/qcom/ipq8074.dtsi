@@ -94,6 +94,10 @@
 		status = "ok";
 	};
 
+	srd_trace: srd_trace {
+		compatible = "srd";
+	};
+
 	soc: soc {
 		#address-cells = <0x1>;
 		#size-cells = <0x1>;

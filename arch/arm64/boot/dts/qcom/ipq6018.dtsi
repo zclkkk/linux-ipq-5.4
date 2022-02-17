@@ -233,6 +233,10 @@
 		status = "ok";
 	};
 
+	srd_trace: srd_trace {
+		compatible = "srd";
+	};
+
 	soc: soc {
 		#address-cells = <1>;
 		#size-cells = <1>;
