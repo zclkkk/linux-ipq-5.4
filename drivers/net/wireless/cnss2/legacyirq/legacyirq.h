@@ -18,7 +18,7 @@ void set_lvirq_bar(void *lvirq, void *bar);
 void clear_lvirq_bar(void *lvirq);
 int qcn9224_unregister_legacy_irq(void *lvirq, int irq);
 int qcn9224_register_legacy_irq(void *lvirq, int irq);
-void cnss_pci_enable_legacy_intx(struct cnss_pci_data *pci_priv,
+void cnss_pci_enable_legacy_intx(void __iomem *bar,
 				 struct pci_dev *pci_dev);
 
 #endif /* __LEGACY_IRQ_H */

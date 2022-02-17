@@ -54,24 +54,25 @@ static inline void update_execution_time(struct legacy2virtual_irqdata *lvirq,
 		lvirq->executiontime[irq][BUCKET_B7]++;
 }
 
-void cnss_pci_enable_legacy_intx(struct cnss_pci_data *pci_priv,
+void cnss_pci_enable_legacy_intx(void __iomem *bar,
 		struct pci_dev *pci_dev)
 {
 	writel(QCN9224_ENABLE_LEGACY_INTTERUPT_BIT,
-	       pci_priv->bar + QCN9224_LEGACY_INTX_COMMON);
+	       bar + QCN9224_LEGACY_INTX_COMMON);
 	writel(PCIE_LOCALREG_LEGACY_INTX_EN_BNK0_VAL,
-	       pci_priv->bar + PCIE_LOCALREG_LEGACY_INTX_EN_BNK0);
+	       bar + PCIE_LOCALREG_LEGACY_INTX_EN_BNK0);
 	writel(PCIE_LOCALREG_LEGACY_INTX_EN_BNK1_VAL,
-	       pci_priv->bar + PCIE_LOCALREG_LEGACY_INTX_EN_BNK1);
+	       bar + PCIE_LOCALREG_LEGACY_INTX_EN_BNK1);
 	writel(PCIE_LOCALREG_LEGACY_INTX_EN_BNK2_VAL,
-	       pci_priv->bar + PCIE_LOCALREG_LEGACY_INTX_EN_BNK2);
+	       bar + PCIE_LOCALREG_LEGACY_INTX_EN_BNK2);
 	writel(PCIE_LOCALREG_LEGACY_INTX_EN_BNK3_VAL,
-	       pci_priv->bar + PCIE_LOCALREG_LEGACY_INTX_EN_BNK3);
+	       bar + PCIE_LOCALREG_LEGACY_INTX_EN_BNK3);
 	writel(PCIE_LOCALREG_LEGACY_INTX_EN_BNK4_VAL,
-	       pci_priv->bar + PCIE_LOCALREG_LEGACY_INTX_EN_BNK4);
+	       bar + PCIE_LOCALREG_LEGACY_INTX_EN_BNK4);
 	pci_intx(pci_dev, 1);
 
 }
+EXPORT_SYMBOL(cnss_pci_enable_legacy_intx);
 
 void set_lvirq_bar(void *lvirqptr, void *bar)
 {
@@ -79,6 +80,7 @@ void set_lvirq_bar(void *lvirqptr, void *bar)
 		(struct legacy2virtual_irqdata *)lvirqptr;
 	lvirq->regbase = bar;
 }
+EXPORT_SYMBOL(set_lvirq_bar);
 
 void clear_lvirq_bar(void *lvirqptr)
 {
@@ -86,6 +88,7 @@ void clear_lvirq_bar(void *lvirqptr)
 		(struct legacy2virtual_irqdata *)lvirqptr;
 	lvirq->regbase = NULL;
 }
+EXPORT_SYMBOL(clear_lvirq_bar);
 
 static inline int is_irq_set_in(int *isr, int bit)
 {
