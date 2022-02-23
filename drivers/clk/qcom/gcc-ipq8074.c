@@ -724,6 +724,8 @@ static struct clk_branch gcc_sleep_clk_src = {
 };
 
 static const struct freq_tbl ftbl_blsp1_qup_i2c_apps_clk_src[] = {
+	F(7680000, P_XO, 2.5, 0, 0),
+	F(9600000, P_XO, 2, 0, 0),
 	F(19200000, P_XO, 1, 0, 0),
 	F(25000000, P_GPLL0_DIV2, 16, 0, 0),
 	F(50000000, P_GPLL0, 16, 0, 0),
