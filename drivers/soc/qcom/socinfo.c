@@ -115,6 +115,8 @@ struct socinfo {
 	__le32 foundry_id;
 	/* Version 10 */
 	__le32 serial_num;
+	__le32 oem_id;
+	__le32 prod_id;
 	/* Version 11 */
 	__le32 num_pmics;
 	__le32 pmic_array_offset;
@@ -472,6 +474,16 @@ static int qcom_socinfo_probe(struct platform_device *pdev)
 		qs->attr.serial_number = devm_kasprintf(&pdev->dev, GFP_KERNEL,
 							"%u",
 							le32_to_cpu(info->serial_num));
+
+	if (offsetof(struct socinfo, oem_id) <= item_size)
+		qs->attr.oem_id = devm_kasprintf(&pdev->dev, GFP_KERNEL,
+							"%u",
+							le32_to_cpu(info->oem_id));
+
+	if (offsetof(struct socinfo, prod_id) <= item_size)
+		qs->attr.prod_id = devm_kasprintf(&pdev->dev, GFP_KERNEL,
+							"%u",
+							le32_to_cpu(info->prod_id));
 
 	qs->soc_dev = soc_device_register(&qs->attr);
 	if (IS_ERR(qs->soc_dev))
