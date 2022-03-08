@@ -442,6 +442,12 @@
 			qcom,rx-page-mode = <0>;
 		};
 
+		nss-macsec1 {
+			compatible = "qcom,nss-macsec";
+			phy_addr = <0x1c>;
+			mdiobus = <&mdio1>;
+		};
+
 		rpm_etm0 {
 			status = "disabled";
 		};
