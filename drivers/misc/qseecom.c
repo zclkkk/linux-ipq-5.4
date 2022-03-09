@@ -163,6 +163,64 @@ show_qsee_app_log_buf(struct device *dev, struct device_attribute *attr,
 	return count;
 }
 
+/*
+ * show_aes_derive_key()
+ * Function to derive aes_key and get key_handle
+ */
+static ssize_t show_aes_derive_key(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	int rc = 0, i = 0;
+	struct qti_storage_service_derive_key_cmd_t *req_ptr;
+	size_t req_size = 0;
+	size_t dma_buf_size = 0;
+	dma_addr_t dma_req_addr = 0;
+	const char *message = NULL;
+	int message_len = 0;
+
+	if (!source_data || !context_data_len || !bindings_data) {
+		pr_info("Provide the required src data, bindings data and context data before encrypt/decrypt\n");
+		return -EINVAL;
+	}
+
+	dev = qdev;
+
+	req_size = sizeof(struct qti_storage_service_derive_key_cmd_t);
+	dma_buf_size = PAGE_SIZE * (1 << get_order(req_size));
+	req_ptr = (struct qti_storage_service_derive_key_cmd_t *)
+					dma_alloc_coherent(dev, dma_buf_size,
+					&dma_req_addr, GFP_KERNEL);
+	if (!req_ptr)
+		return -ENOMEM;
+
+	req_ptr->policy.key_type = DEFAULT_KEY_TYPE;
+	req_ptr->policy.destination = DEFAULT_POLICY_DESTINATION;
+	req_ptr->hw_key_bindings.bindings = bindings_data;
+	req_ptr->source = source_data;
+	req_ptr->key = (u64) dma_key_handle;
+	req_ptr->mixing_key = 0;
+
+	for (i = 0; i < MAX_CONTEXT_BUFFER_LEN; i++)
+		req_ptr->hw_key_bindings.context[i] = context_data[i];
+	req_ptr->hw_key_bindings.context_len = context_data_len;
+
+	rc = qti_scm_aes(dma_req_addr, req_size, QTI_CMD_AES_DERIVE_KEY);
+	if (!rc) {
+		message = "AES Key derive successful\n\0";
+	} else {
+		pr_err("SCM call failed..return value = %d\n", rc);
+		message = "AES Key derive failed\n\0";
+	}
+
+	pr_debug("key_handle is: %lu\n", (unsigned long)*key_handle);
+
+	message_len = strlen(message) + 1;
+	memcpy(buf, message, message_len);
+
+	dma_free_coherent(dev, dma_buf_size, req_ptr, dma_req_addr);
+	return message_len;
+}
+
 static ssize_t
 generate_key_blob(struct device *dev, struct device_attribute *attr, char *buf)
 {
@@ -538,6 +596,86 @@ store_iv_data(struct device *dev, struct device_attribute *attr,
 	return count;
 }
 
+/*
+ * store_source_data()
+ * Function to provide source which is required for derive key
+ */
+static ssize_t
+store_source_data(struct device *dev, struct device_attribute *attr,
+                        const char *buf, size_t count)
+{
+	if ((count - 1) == 0) {
+		pr_err("Input cannot be NULL!\n");
+		return -EINVAL;
+	}
+
+	if (kstrtouint(buf, 10, (unsigned int *)&source_data) || source_data > (U32_MAX / 10)) {
+		pr_err("Please enter a valid unsigned integer less than %u\n",
+			(U32_MAX / 10));
+		return -EINVAL;
+	}
+	pr_debug("source_data = %lu\n", (unsigned long)source_data);
+
+	return count;
+}
+
+/*
+ * store_bindings_data()
+ * Function to provide bindings bit mask which is required for derive key
+ */
+static ssize_t
+store_bindings_data(struct device *dev, struct device_attribute *attr,
+                        const char *buf, size_t count)
+{
+	if ((count - 1) == 0) {
+		pr_err("Input cannot be NULL!\n");
+		return -EINVAL;
+	}
+
+	if (kstrtouint(buf, 10, (unsigned int *)&bindings_data) || bindings_data > (U32_MAX / 10)) {
+		pr_err("Please enter a valid unsigned integer less than %u\n",
+			(U32_MAX / 10));
+		return -EINVAL;
+	}
+	pr_debug("bindings_data = %lu\n", (unsigned long)bindings_data);
+
+	return count;
+}
+
+/*
+ * store_context_data()
+ * Function provide context(salt) to be mixed which is required for derive key
+ */
+static ssize_t
+store_context_data(struct device *dev, struct device_attribute *attr,
+                        const char *buf, size_t count)
+{
+	int i = 0;
+
+	for (i = 0; i < MAX_CONTEXT_BUFFER_LEN; i++)
+		context_data[i] = 0;
+	context_data_len = MAX_CONTEXT_BUFFER_LEN;
+
+	if (count > ((MAX_CONTEXT_BUFFER_LEN * 2) + 1)) {
+		pr_info("Invalid input\n");
+		pr_info("Context data length is %lu bytes\n",
+		       (unsigned long)count);
+		pr_info("Context data length must be less than 64 bytes\n");
+		return -EINVAL;
+	}
+
+	for (i = 0; i < MAX_CONTEXT_BUFFER_LEN; i++) {
+		sscanf(buf, "%2hhx", &context_data[i]);
+		buf += 2;
+	}
+
+	pr_debug("context_data is :\n");
+	for (i = 0; i < MAX_CONTEXT_BUFFER_LEN; i++)
+		pr_debug("0x%02x\n", (unsigned int)context_data[i]);
+
+	return count;
+}
+
 static ssize_t
 store_aes_mode_qtiapp(struct device *dev, struct device_attribute *attr,
                const char *buf, size_t count)
@@ -726,7 +864,7 @@ show_encrypted_data(struct device *dev, struct device_attribute *attr,
 	}
 
 	/* dma_resp_addr and resp_size required are passed in req str itself */
-	rc = qti_scm_aes(dma_req_addr, req_size, 0, 0,
+	rc = qti_scm_aes(dma_req_addr, req_size,
 			CLIENT_CMD_CRYPTO_AES_ENCRYPT);
 
 	dma_unmap_single(dev, dma_req_addr, req_size, DMA_TO_DEVICE);
@@ -869,7 +1007,7 @@ show_decrypted_data(struct device *dev, struct device_attribute *attr, char *buf
 	}
 
 	/* dma_resp_addr and resp_size required are passed in req str itself */
-	rc = qti_scm_aes(dma_req_addr, req_size, 0, 0,
+	rc = qti_scm_aes(dma_req_addr, req_size,
 			CLIENT_CMD_CRYPTO_AES_DECRYPT);
 
 	dma_unmap_single(dev, dma_output_data, output_len, DMA_FROM_DEVICE);
@@ -2054,11 +2192,15 @@ static int __init rsa_sec_key_init(void)
 static int __init sec_key_init(void)
 {
 	int err = 0;
+	struct device *dev = NULL;
+	size_t dma_buf_size = 0;
 	struct page *key_page = NULL;
 	struct page *key_blob_page = NULL;
 	struct page *sealed_buf_page = NULL;
 	struct page *unsealed_buf_page = NULL;
 	struct page *iv_page = NULL;
+
+	dev = qdev;
 
 	sec_kobj = kobject_create_and_add("sec_key", NULL);
 
@@ -2078,14 +2220,18 @@ static int __init sec_key_init(void)
 	key_page = alloc_pages(GFP_KERNEL, get_order(KEY_SIZE));
 	key_blob_page = alloc_pages(GFP_KERNEL, get_order(KEY_BLOB_SIZE));
 	sealed_buf_page = alloc_pages(GFP_KERNEL,
-				     get_order(MAX_ENCRYPTED_DATA_SIZE));
+					get_order(MAX_ENCRYPTED_DATA_SIZE));
 	unsealed_buf_page = alloc_pages(GFP_KERNEL,
-				       get_order(MAX_PLAIN_DATA_SIZE));
+					get_order(MAX_PLAIN_DATA_SIZE));
 	iv_page = alloc_pages(GFP_KERNEL,
-				get_order(AES_BLOCK_SIZE));
+					get_order(AES_BLOCK_SIZE));
+	dma_buf_size = PAGE_SIZE * (1 << get_order(MAX_KEY_HANDLE_SIZE));
+	key_handle = dma_alloc_coherent(dev, dma_buf_size,
+					&dma_key_handle, GFP_KERNEL);
 
 	if (!key_page || !key_blob_page ||
-	   !sealed_buf_page || !unsealed_buf_page || !iv_page) {
+	   !sealed_buf_page || !unsealed_buf_page || !iv_page ||
+	   !key_handle) {
 		pr_err("Cannot allocate memory for secure-key ops\n");
 		if (key_page)
 			free_pages((unsigned long)page_address(key_page),
@@ -2107,6 +2253,13 @@ static int __init sec_key_init(void)
 		if (iv_page)
 			free_pages((unsigned long)page_address(iv_page),
 				get_order(AES_BLOCK_SIZE));
+
+		if (key_handle) {
+			dma_buf_size = PAGE_SIZE *
+					(1 << get_order(MAX_KEY_HANDLE_SIZE));
+			dma_free_coherent(dev, dma_buf_size,
+					key_handle, dma_key_handle);
+		}
 
 		sysfs_remove_group(sec_kobj, &sec_key_attr_grp);
 		kobject_put(sec_kobj);
