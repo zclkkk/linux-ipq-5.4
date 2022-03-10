@@ -323,7 +323,9 @@
 			status = "ok";
 			pinctrl-0 = <&qspi_nand_pins>;
 			pinctrl-names = "default";
-
+			qcom,io_macro_max_clk = <320000000>;
+			qcom,io_macro_clk_rates = <24000000 100000000 200000000 \
+						  320000000>;
 			nand@0 {
 				reg = <0>;
 				#address-cells = <1>;
