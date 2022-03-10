@@ -489,6 +489,55 @@ static size_t rsa_sign_data_len;
 static uint8_t *rsa_plain_data_buf;
 static size_t rsa_plain_data_len;
 
+
+void *buf_rsa_key_blob = NULL;
+void *buf_rsa_import_modulus = NULL;
+void *buf_rsa_import_public_exponent = NULL;
+void *buf_rsa_import_pvt_exponent = NULL;
+void *buf_rsa_sign_data_buf = NULL;
+void *buf_rsa_plain_data_buf = NULL;
+
+dma_addr_t dma_rsa_key_blob = 0;
+dma_addr_t dma_rsa_import_modulus = 0;
+dma_addr_t dma_rsa_import_public_exponent = 0;
+dma_addr_t dma_rsa_import_pvt_exponent = 0;
+dma_addr_t dma_rsa_sign_data_buf = 0;
+dma_addr_t dma_rsa_plain_data_buf = 0;
+
+void *buf_key = NULL;
+void *buf_key_blob = NULL;
+void *buf_sealed_buf = NULL;
+void *buf_unsealed_buf = NULL;
+void *buf_iv = NULL;
+
+dma_addr_t dma_key = 0;
+dma_addr_t dma_key_blob = 0;
+dma_addr_t dma_sealed_data = 0;
+dma_addr_t dma_unsealed_data = 0;
+dma_addr_t dma_iv_data = 0;
+
+void *buf_aes_sealed_buf = NULL;
+void *buf_aes_unsealed_buf = NULL;
+void *buf_aes_iv = NULL;
+
+dma_addr_t dma_aes_sealed_buf = 0;
+dma_addr_t dma_aes_unsealed_buf = 0;
+dma_addr_t dma_aes_ivdata = 0;
+
+void *buf_rsa_unsealed_buf = NULL;
+void *buf_rsa_sealed_buf = NULL;
+void *buf_rsa_label = NULL;
+void *buf_rsa_n_key = NULL;
+void *buf_rsa_e_key = NULL;
+void *buf_rsa_d_key = NULL;
+
+dma_addr_t dma_rsa_unsealed_buf = 0;
+dma_addr_t dma_rsa_sealed_buf = 0;
+dma_addr_t dma_rsa_label = 0;
+dma_addr_t dma_rsa_n_key = 0;
+dma_addr_t dma_rsa_e_key = 0;
+dma_addr_t dma_rsa_d_key = 0;
+
 struct kobject *qtiapp_kobj;
 struct attribute_group qtiapp_attr_grp;
 struct kobject *qtiapp_aes_kobj;
