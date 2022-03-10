@@ -214,7 +214,7 @@ struct qti_storage_service_unseal_data_resp_t {
 };
 
 struct qti_crypto_service_encrypt_data_cmd_t {
-	uint64_t  type;
+	uint64_t type;
 	uint64_t mode;
 	uint64_t plain_data;
 	uint64_t plain_data_len;
@@ -224,8 +224,13 @@ struct qti_crypto_service_encrypt_data_cmd_t {
 	uint64_t output_len;
 };
 
+struct qti_crypto_service_encrypt_data_cmd_t_v2 {
+	uint64_t key_handle;
+	struct qti_crypto_service_encrypt_data_cmd_t v1;
+};
+
 struct qti_crypto_service_decrypt_data_cmd_t {
-	uint64_t  type;
+	uint64_t type;
 	uint64_t mode;
 	uint64_t encrypted_data;
 	uint64_t encrypted_dlen;
@@ -233,6 +238,11 @@ struct qti_crypto_service_decrypt_data_cmd_t {
 	uint64_t iv_len;
 	uint64_t output_buffer;
 	uint64_t output_len;
+};
+
+struct qti_crypto_service_decrypt_data_cmd_t_v2 {
+	uint64_t key_handle;
+	struct qti_crypto_service_decrypt_data_cmd_t v1;
 };
 
 struct qti_storage_service_rsa_key_t {

@@ -21,6 +21,7 @@ struct qseecom_props {
 	const int function;
 	bool libraries_inbuilt;
 	bool logging_support_enabled;
+	bool aes_v2;
 };
 
 const struct qseecom_props qseecom_props_ipq807x = {
@@ -29,12 +30,14 @@ const struct qseecom_props qseecom_props_ipq807x = {
 					FUSE_WRITE),
 	.libraries_inbuilt = false,
 	.logging_support_enabled = true,
+	.aes_v2 = false,
 };
 
 const struct qseecom_props qseecom_props_ipq6018 = {
 	.function = (MUL | CRYPTO | AES_SEC_KEY | RSA_SEC_KEY),
 	.libraries_inbuilt = false,
 	.logging_support_enabled = true,
+	.aes_v2 = false,
 };
 
 const struct qseecom_props qseecom_props_ipq5018 = {
@@ -42,12 +45,14 @@ const struct qseecom_props qseecom_props_ipq5018 = {
 					FUSE | MISC | RSA_TZAPP | FUSE_WRITE),
 	.libraries_inbuilt = false,
 	.logging_support_enabled = true,
+	.aes_v2 = false,
 };
 
 const struct qseecom_props qseecom_props_ipq9574 = {
 	.function = (MUL | CRYPTO | AES_SEC_KEY | RSA_SEC_KEY),
 	.libraries_inbuilt = false,
 	.logging_support_enabled = true,
+	.aes_v2 = true,
 };
 
 static const struct of_device_id qseecom_of_table[] = {
@@ -784,7 +789,120 @@ store_aes_encrypted_data_qtiapp(struct device *dev, struct device_attribute *att
 	return count;
 }
 
+static ssize_t
+show_aes_v2_encrypted_data(struct device *dev, struct device_attribute *attr,
+			char *buf)
+{
+	int rc = 0;
+	struct qti_crypto_service_encrypt_data_cmd_t_v2 *req_ptr = NULL;
+	uint64_t req_size = 0;
+	size_t dma_buf_size = 0;
+	uint64_t output_len = 0;
+	dma_addr_t dma_req_addr = 0;
+	dma_addr_t dma_plain_data = 0;
+	dma_addr_t dma_output_data = 0;
+	dma_addr_t dma_iv_data = 0;
 
+	sealed_buf = memset(sealed_buf, 0, MAX_ENCRYPTED_DATA_SIZE);
+	output_len = decrypted_len;
+
+	if (decrypted_len <= 0 || decrypted_len % AES_BLOCK_SIZE) {
+		pr_err("Invalid input %lld\n", decrypted_len);
+		pr_info("Input data length for encryption should be multiple"
+			" of AES block size(16)\n");
+		return -EINVAL;
+	}
+	if (!key_handle) {
+		pr_info("Derive the required key handle before encrypt/decrypt\n");
+		return -EINVAL;
+	}
+
+	dev = qdev;
+
+	req_size = sizeof(struct qti_crypto_service_encrypt_data_cmd_t_v2);
+	dma_buf_size = PAGE_SIZE * (1 << get_order(req_size));
+	req_ptr = (struct qti_crypto_service_encrypt_data_cmd_t_v2 *)
+					dma_alloc_coherent(dev, dma_buf_size,
+					&dma_req_addr, GFP_KERNEL);
+
+	if (!req_ptr)
+		return -ENOMEM;
+
+	dma_plain_data = dma_map_single(dev, unsealed_buf, decrypted_len,
+				       DMA_TO_DEVICE);
+	rc = dma_mapping_error(dev, dma_plain_data);
+	if (rc) {
+		pr_err("DMA Mapping Error(plain data)\n");
+		goto err_end;
+	}
+
+	dma_output_data = dma_map_single(dev, sealed_buf, output_len,
+					DMA_FROM_DEVICE);
+	rc = dma_mapping_error(dev, dma_output_data);
+	if (rc) {
+		pr_err("DMA Mapping Error(output data)\n");
+		goto err_map_output_data;
+	}
+
+	dma_iv_data = dma_map_single(dev, ivdata, AES_BLOCK_SIZE,
+					DMA_TO_DEVICE);
+	rc = dma_mapping_error(dev, dma_iv_data);
+	if (rc) {
+		pr_err("DMA Mapping Error(iv data)\n");
+		goto err_map_iv_data;
+	}
+
+	req_ptr->key_handle = (unsigned long)*key_handle;
+	pr_info("key_handle is: %lu", (unsigned long)req_ptr->key_handle);
+	req_ptr->v1.type = type;
+	req_ptr->v1.mode = mode;
+	req_ptr->v1.iv = (req_ptr->v1.mode == 0 ? 0 : (u64)dma_iv_data);
+	req_ptr->v1.iv_len = AES_BLOCK_SIZE;
+	req_ptr->v1.plain_data = (u64)dma_plain_data;
+	req_ptr->v1.output_buffer = (u64)dma_output_data;
+	req_ptr->v1.plain_data_len = decrypted_len;
+	req_ptr->v1.output_len = output_len;
+
+	/* dma_resp_addr and resp_size required are passed in req str itself */
+	rc = qti_scm_aes(dma_req_addr, req_size,
+			CLIENT_CMD_CRYPTO_AES_ENCRYPT);
+
+	dma_unmap_single(dev, dma_iv_data, AES_BLOCK_SIZE, DMA_TO_DEVICE);
+	dma_unmap_single(dev, dma_output_data, output_len, DMA_FROM_DEVICE);
+	dma_unmap_single(dev, dma_plain_data, decrypted_len, DMA_TO_DEVICE);
+
+	if (rc) {
+		pr_err("Response status failure..return value = %d\n", rc);
+		goto err_end;
+	}
+
+	if (mode == QTI_CRYPTO_SERVICE_AES_MODE_CBC && ivdata)
+		print_hex_dump(KERN_INFO, "IV data(CBC): ", DUMP_PREFIX_NONE, 16, 1,
+				ivdata, AES_BLOCK_SIZE, false);
+	else
+		pr_info("IV data(ECB): NULL\n");
+
+	memcpy(buf, sealed_buf, req_ptr->v1.output_len);
+	encrypted_len = req_ptr->v1.output_len;
+
+goto end;
+
+err_map_iv_data:
+	dma_unmap_single(dev, dma_output_data, output_len, DMA_FROM_DEVICE);
+
+err_map_output_data:
+	dma_unmap_single(dev, dma_plain_data, decrypted_len, DMA_TO_DEVICE);
+
+err_end:
+	dma_free_coherent(dev, dma_buf_size, req_ptr, dma_req_addr);
+
+	return rc;
+
+end:
+	dma_free_coherent(dev, dma_buf_size, req_ptr, dma_req_addr);
+
+	return encrypted_len;
+}
 
 static ssize_t
 show_encrypted_data(struct device *dev, struct device_attribute *attr,
@@ -800,6 +918,11 @@ show_encrypted_data(struct device *dev, struct device_attribute *attr,
 	dma_addr_t dma_output_data = 0;
 	dma_addr_t dma_iv_data = 0;
 	struct page *req_page = NULL;
+
+	if (props->aes_v2) {
+		rc = show_aes_v2_encrypted_data(dev, attr, buf);
+		return rc;
+	}
 
 	sealed_buf = memset(sealed_buf, 0, MAX_ENCRYPTED_DATA_SIZE);
 	output_len = decrypted_len;
@@ -931,6 +1054,118 @@ store_encrypted_data(struct device *dev, struct device_attribute *attr,
 }
 
 static ssize_t
+show_aes_v2_decrypted_data(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	int rc = 0;
+	struct qti_crypto_service_decrypt_data_cmd_t_v2 *req_ptr = NULL;
+	uint64_t req_size = 0;
+	size_t dma_buf_size = 0;
+	uint64_t output_len = 0;
+	dma_addr_t dma_req_addr = 0;
+	dma_addr_t dma_sealed_data = 0;
+	dma_addr_t dma_output_data = 0;
+	dma_addr_t dma_iv_data = 0;
+
+	unsealed_buf = memset(unsealed_buf, 0, MAX_PLAIN_DATA_SIZE);
+	output_len = encrypted_len;
+
+	if (encrypted_len <= 0 || encrypted_len % AES_BLOCK_SIZE) {
+		pr_err("Invalid input %lld\n", encrypted_len);
+		pr_info("Encrypted data length for decryption should be multiple"
+			" of AES block size(16)\n");
+		return -EINVAL;
+	}
+	if (!type) {
+		pr_info("aes type needed for decryption\n");
+		return -EINVAL;
+	}
+	if (!key_handle) {
+		pr_info("Derive the required key handle before encrypt/decrypt\n");
+		return -EINVAL;
+	}
+
+	dev = qdev;
+
+	req_size = sizeof(struct qti_crypto_service_decrypt_data_cmd_t_v2);
+	dma_buf_size = PAGE_SIZE * (1 << get_order(req_size));
+	req_ptr = (struct qti_crypto_service_decrypt_data_cmd_t_v2 *)
+					dma_alloc_coherent(dev, dma_buf_size,
+						  &dma_req_addr, GFP_KERNEL);
+
+	if (!req_ptr)
+		return -ENOMEM;
+
+	dma_sealed_data = dma_map_single(dev, sealed_buf, encrypted_len,
+					DMA_TO_DEVICE);
+	rc = dma_mapping_error(dev, dma_sealed_data);
+	if (rc) {
+		pr_err("DMA Mapping Error(sealed data)\n");
+		goto err_end;
+	}
+
+	dma_output_data = dma_map_single(dev, unsealed_buf, output_len,
+					DMA_FROM_DEVICE);
+	rc = dma_mapping_error(dev, dma_output_data);
+	if (rc) {
+		pr_err("DMA Mapping Error(output data)\n");
+		goto err_map_output_data;
+	}
+
+	dma_iv_data = dma_map_single(dev, ivdata, AES_BLOCK_SIZE,
+					DMA_TO_DEVICE);
+	rc = dma_mapping_error(dev, dma_iv_data);
+	if (rc) {
+		pr_err("DMA Mapping Error(iv data)\n");
+		goto err_map_iv_data;
+	}
+
+	req_ptr->key_handle = (unsigned long)*key_handle;
+	pr_info("key_handle is: %lu", (unsigned long)req_ptr->key_handle);
+	req_ptr->v1.type = type;
+	req_ptr->v1.mode = mode;
+	req_ptr->v1.encrypted_data = (u64)dma_sealed_data;
+	req_ptr->v1.output_buffer = (u64)dma_output_data;
+	req_ptr->v1.iv = (req_ptr->v1.mode == 0 ? 0 : (u64)dma_iv_data);
+	req_ptr->v1.iv_len = AES_BLOCK_SIZE;
+	req_ptr->v1.encrypted_dlen = encrypted_len;
+	req_ptr->v1.output_len = output_len;
+
+	/* dma_resp_addr and resp_size required are passed in req str itself */
+	rc = qti_scm_aes(dma_req_addr, req_size,
+			CLIENT_CMD_CRYPTO_AES_DECRYPT);
+
+	dma_unmap_single(dev, dma_iv_data, AES_BLOCK_SIZE, DMA_TO_DEVICE);
+	dma_unmap_single(dev, dma_output_data, output_len, DMA_FROM_DEVICE);
+	dma_unmap_single(dev, dma_sealed_data, encrypted_len, DMA_TO_DEVICE);
+
+	if (rc) {
+		pr_err("Response status failure..return value = %d\n", rc);
+		goto err_end;
+	}
+
+	decrypted_len = req_ptr->v1.output_len;
+	memcpy(buf, unsealed_buf, decrypted_len);
+
+goto end;
+
+err_map_iv_data:
+	dma_unmap_single(dev, dma_output_data, output_len, DMA_FROM_DEVICE);
+
+err_map_output_data:
+	dma_unmap_single(dev, dma_sealed_data, encrypted_len, DMA_TO_DEVICE);
+
+err_end:
+	dma_free_coherent(dev, dma_buf_size, req_ptr, dma_req_addr);
+
+	return rc;
+
+end:
+	dma_free_coherent(dev, dma_buf_size, req_ptr, dma_req_addr);
+
+	return decrypted_len;
+}
+
+static ssize_t
 show_decrypted_data(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	int rc = 0;
@@ -943,6 +1178,11 @@ show_decrypted_data(struct device *dev, struct device_attribute *attr, char *buf
 	dma_addr_t dma_output_data = 0;
 	dma_addr_t dma_iv_data = 0;
 	struct page *req_page = NULL;
+
+	if (props->aes_v2) {
+		rc = show_aes_v2_decrypted_data(dev, attr, buf);
+		return rc;
+	}
 
 	unsealed_buf = memset(unsealed_buf, 0, MAX_PLAIN_DATA_SIZE);
 	output_len = encrypted_len;
