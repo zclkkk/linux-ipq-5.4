@@ -62,8 +62,23 @@
 	};
 
 	soc {
+		pinctrl@1000000 {
+			serial_0_pins: serial0-pinmux {
+				pins = "gpio18", "gpio19";
+				function = "blsp0_uart";
+				drive-strength = <8>;
+				bias-pull-down;
+			};
+		};
+
 		gcc: gcc@1800000 {
 			gcc-use-dummy;
+		};
+
+		serial@78af000 {
+			pinctrl-0 = <&serial_0_pins>;
+			pinctrl-names = "default";
+			status = "ok";
 		};
 
 		acc0: clock-controller@b188000 {
