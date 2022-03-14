@@ -367,7 +367,7 @@
 					* |  Caldb  |  0x50300000  |   8MB   |
 					* +==================================+
 					*/
-					ath-memory-region = <&qcn9224_pcie0>;
+					memory-region = <&qcn9224_pcie0>;
 					qcom,board_id = <0x01>;
 
 				};
@@ -409,7 +409,7 @@
 					* |  Caldb  |  0x53100000  |   8MB   |
 					* +==================================+
 					*/
-					ath-memory-region = <&qcn9224_pcie1>;
+					memory-region = <&qcn9224_pcie1>;
 					qcom,board_id = <0x04>;
 				};
 #endif
@@ -451,7 +451,7 @@
 					 * |  Caldb  |  0x55F00000  |   8MB   |
 					 * +==================================+
 					 */
-					ath-memory-region = <&qcn9224_pcie2>;
+					memory-region = <&qcn9224_pcie2>;
 					qcom,board_id = <0x02>;
 				};
 #endif
