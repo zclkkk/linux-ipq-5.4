@@ -61,6 +61,8 @@
 #define CLIENT_CMD53_RUN_LOG_BITMASK_TEST	53
 #define CLIENT_CMD18_RUN_FUSE_TEST	18
 #define CLIENT_CMD13_RUN_MISC_TEST	13
+#define CLIENT_CMD121_RUN_KEY_DERIVE_TEST	121
+
 #define MAX_INPUT_SIZE			4096
 #define QSEE_64				64
 #define QSEE_32				32
@@ -412,6 +414,7 @@ static size_t enc_len;
 static size_t dec_len;
 static int basic_data_len;
 static int context_data_len;
+static int aes_context_data_len;
 static int mdt_size;
 static int seg_size;
 static int auth_size;
@@ -423,6 +426,9 @@ static uint64_t aes_encrypted_len;
 static uint8_t *aes_unsealed_buf;
 static uint64_t aes_decrypted_len;
 static uint8_t *aes_ivdata;
+static uint8_t aes_context_data[MAX_CONTEXT_BUFFER_LEN];
+static dma_addr_t __aligned(sizeof(dma_addr_t) * 8) aes_source_data;
+static dma_addr_t __aligned(sizeof(dma_addr_t) * 8) aes_bindings_data;
 static uint64_t aes_ivdata_len;
 static uint64_t aes_type;
 static uint64_t aes_mode;
@@ -447,6 +453,8 @@ static uint64_t is_fec_enable;
 
 static uint8_t *key_handle;
 dma_addr_t dma_key_handle;
+static uint8_t *aes_key_handle;
+dma_addr_t dma_aes_key_handle;
 
 static struct kobject *sec_kobj;
 static uint8_t *key;
@@ -525,7 +533,8 @@ enum qti_app_cmd_ids {
 	QTI_APP_AES_ENCRYPT_ID,
 	QTI_APP_AES_DECRYPT_ID,
 	QTI_APP_RSA_ENC_DEC_ID,
-	QTI_APP_FUSE_BLOW_ID
+	QTI_APP_FUSE_BLOW_ID,
+	QTI_APP_KEY_DERIVE_TEST
 };
 
 static ssize_t show_qsee_app_log_buf(struct device *dev,
@@ -687,6 +696,9 @@ static ssize_t store_misc_input(struct device *dev,
 static ssize_t show_qsee_app_id(struct device *dev,
 				   struct device_attribute *attr, char *buf);
 
+static ssize_t show_aes_derive_key_qtiapp(struct device *dev,
+				struct device_attribute *attr, char *buf);
+
 static ssize_t store_aes_type_qtiapp(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count);
@@ -694,6 +706,18 @@ static ssize_t store_aes_type_qtiapp(struct device *dev,
 static ssize_t store_aes_mode_qtiapp(struct device *dev,
 					struct device_attribute *attr,
 					const char *buf, size_t count);
+
+static ssize_t store_source_data_qtiapp(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count);
+
+static ssize_t store_context_data_qtiapp(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count);
+
+static ssize_t store_bindings_data_qtiapp(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count);
 
 static ssize_t store_iv_data_qtiapp(struct device *dev,
 				struct device_attribute *attr,
@@ -773,11 +797,15 @@ static DEVICE_ATTR(fuse, 0644, NULL, store_fuse_input);
 static DEVICE_ATTR(misc, 0644, NULL, store_misc_input);
 static DEVICE_ATTR(qsee_app_id, 0644, show_qsee_app_id, NULL);
 
+static DEVICE_ATTR(derive_key_aes, 0644, show_aes_derive_key_qtiapp, NULL);
 static DEVICE_ATTR(encrypt_aes, 0644, show_aes_encrypted_data_qtiapp, store_aes_decrypted_data_qtiapp);
 static DEVICE_ATTR(decrypt_aes, 0644, show_aes_decrypted_data_qtiapp, store_aes_encrypted_data_qtiapp);
 static DEVICE_ATTR(ivdata_aes, 0644, NULL, store_iv_data_qtiapp);
 static DEVICE_ATTR(type_aes, 0644, NULL, store_aes_type_qtiapp);
 static DEVICE_ATTR(mode_aes, 0644, NULL, store_aes_mode_qtiapp);
+static DEVICE_ATTR(context_data_aes, 0644, NULL, store_context_data_qtiapp);
+static DEVICE_ATTR(source_data_aes, 0644, NULL, store_source_data_qtiapp);
+static DEVICE_ATTR(bindings_data_aes, 0644, NULL, store_bindings_data_qtiapp);
 
 static DEVICE_ATTR(encrypt_rsa, 0644, show_encrypted_rsa_data_qtiapp, store_decrypted_rsa_data_qtiapp);
 static DEVICE_ATTR(decrypt_rsa, 0644, show_decrypted_rsa_data_qtiapp, store_encrypted_rsa_data_qtiapp);
@@ -847,11 +875,15 @@ static struct attribute *rsa_sec_key_attrs[] = {
 };
 
 static struct attribute *qtiapp_aes_attrs[] = {
+	&dev_attr_derive_key_aes.attr,
 	&dev_attr_encrypt_aes.attr,
 	&dev_attr_decrypt_aes.attr,
 	&dev_attr_ivdata_aes.attr,
 	&dev_attr_type_aes.attr,
 	&dev_attr_mode_aes.attr,
+	&dev_attr_context_data_aes.attr,
+	&dev_attr_source_data_aes.attr,
+	&dev_attr_bindings_data_aes.attr,
 	NULL,
 };
 
