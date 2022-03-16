@@ -7,6 +7,8 @@
  */
 
 #include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/clock/qcom,gcc-devsoc.h>
+#include <dt-bindings/reset/qcom,gcc-devsoc.h>
 
 
 / {
@@ -180,11 +182,9 @@
 			compatible = "qcom,msm-uartdm-v1.4", "qcom,msm-uartdm";
 			reg = <0x078af000 0x200>;
 			interrupts = <GIC_SPI 290 IRQ_TYPE_LEVEL_HIGH>;
-			/*
-			 *clocks = <&gcc GCC_BLSP1_UART1_APPS_CLK>,
-			 *         <&gcc GCC_BLSP1_AHB_CLK>;
-			 *clock-names = "core", "iface";
-			 */
+			clocks = <&gcc GCC_BLSP1_UART1_APPS_CLK>,
+				 <&gcc GCC_BLSP1_AHB_CLK>;
+			clock-names = "core", "iface";
 			status = "disabled";
 		};
 
@@ -192,11 +192,9 @@
 			compatible = "qcom,msm-uartdm-v1.4", "qcom,msm-uartdm";
 			reg = <0x078b0000 0x200>;
 			interrupts = <GIC_SPI 291 IRQ_TYPE_LEVEL_HIGH>;
-			/*
-			 *clocks = <&gcc GCC_BLSP1_UART2_APPS_CLK>,
-			 *         <&gcc GCC_BLSP1_AHB_CLK>;
-			 *clock-names = "core", "iface";
-			 */
+			clocks = <&gcc GCC_BLSP1_UART2_APPS_CLK>,
+				 <&gcc GCC_BLSP1_AHB_CLK>;
+			clock-names = "core", "iface";
 			status = "disabled";
 		};
 	};
