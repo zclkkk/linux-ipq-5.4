@@ -791,8 +791,8 @@ int __qti_scm_tls_hardening(struct device *dev, uint32_t req_addr,
 	return ret;
 }
 
-int __qti_scm_aes(struct device *dev, uint32_t req_addr, uint32_t req_size,
-		  uint32_t resp_addr, uint32_t resp_size, u32 cmd_id)
+int __qti_scm_aes(struct device *dev, uint32_t req_addr,
+		  uint32_t req_size, u32 cmd_id)
 {
 	int ret = 0;
 	__le32 scm_ret;
