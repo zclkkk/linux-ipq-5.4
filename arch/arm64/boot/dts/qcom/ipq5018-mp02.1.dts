@@ -22,7 +22,7 @@
 	#address-cells = <0x2>;
 	#size-cells = <0x2>;
 	model = "Qualcomm Technologies, Inc. IPQ5018/AP-MP02.1";
-	compatible = "qcom,ipq5018-mp02.1", "qcom,ipq5018";
+	compatible = "qcom,ipq5018-ap-mp02.1", "qcom,ipq5018-mp02.1", "qcom,ipq5018";
 	interrupt-parent = <&intc>;
 
 	MP_256;
