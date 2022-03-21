@@ -249,19 +249,13 @@ enum devsoc_functions {
 	msm_mux_qdss_tracectl_b,
 	msm_mux_qdss_tracedata_a,
 	msm_mux_qdss_tracedata_b,
-	msm_mux_qspi0,
-	msm_mux_qspi1,
-	msm_mux_qspi2,
-	msm_mux_qspi3,
+	msm_mux_qspi_data,
 	msm_mux_qspi_clk,
 	msm_mux_qspi_cs,
 	msm_mux_resout,
 	msm_mux_rx0,
 	msm_mux_rx1,
-	msm_mux_sdc0,
-	msm_mux_sdc1,
-	msm_mux_sdc2,
-	msm_mux_sdc3,
+	msm_mux_sdc_data,
 	msm_mux_sdc_clk,
 	msm_mux_sdc_cmd,
 	msm_mux_tsens_max,
@@ -538,23 +532,17 @@ static const char * const qdss_tracedata_b_groups[] = {
 	"gpio36", "gpio37", "gpio38", "gpio39", "gpio40", "gpio41", "gpio42",
 	"gpio43", "gpio52",
 };
-static const char * const qspi0_groups[] = {
-	"gpio11",
-};
-static const char * const qspi1_groups[] = {
-	"gpio10",
-};
-static const char * const qspi2_groups[] = {
-	"gpio9",
-};
-static const char * const qspi3_groups[] = {
-	"gpio8",
-};
 static const char * const qspi_clk_groups[] = {
 	"gpio13",
 };
 static const char * const qspi_cs_groups[] = {
 	"gpio12",
+};
+static const char * const qspi_data_groups[] = {
+	"gpio8",
+	"gpio9",
+	"gpio10",
+	"gpio11",
 };
 static const char * const resout_groups[] = {
 	"gpio20",
@@ -565,23 +553,17 @@ static const char * const rx0_groups[] = {
 static const char * const rx1_groups[] = {
 	"gpio45",
 };
-static const char * const sdc0_groups[] = {
-	"gpio11",
-};
-static const char * const sdc1_groups[] = {
-	"gpio10",
-};
-static const char * const sdc2_groups[] = {
-	"gpio9",
-};
-static const char * const sdc3_groups[] = {
-	"gpio8",
-};
 static const char * const sdc_clk_groups[] = {
 	"gpio13",
 };
 static const char * const sdc_cmd_groups[] = {
 	"gpio12",
+};
+static const char * const sdc_data_groups[] = {
+	"gpio8",
+	"gpio9",
+	"gpio10",
+	"gpio11",
 };
 static const char * const tsens_max_groups[] = {
 	"gpio28",
@@ -741,19 +723,13 @@ static const struct msm_function devsoc_functions[] = {
 	FUNCTION(qdss_tracectl_b),
 	FUNCTION(qdss_tracedata_a),
 	FUNCTION(qdss_tracedata_b),
-	FUNCTION(qspi0),
-	FUNCTION(qspi1),
-	FUNCTION(qspi2),
-	FUNCTION(qspi3),
+	FUNCTION(qspi_data),
 	FUNCTION(qspi_clk),
 	FUNCTION(qspi_cs),
 	FUNCTION(resout),
 	FUNCTION(rx0),
 	FUNCTION(rx1),
-	FUNCTION(sdc0),
-	FUNCTION(sdc1),
-	FUNCTION(sdc2),
-	FUNCTION(sdc3),
+	FUNCTION(sdc_data),
 	FUNCTION(sdc_clk),
 	FUNCTION(sdc_cmd),
 	FUNCTION(tsens_max),
@@ -795,11 +771,11 @@ static const struct msm_pingroup devsoc_groups[] = {
 	PINGROUP(6, qdss_cti_trig_out_a1, wci6, wci6, xfem6, _, _, _, _,
 		 _),
 	PINGROUP(7, qdss_cti_trig_in_a1, wci7, wci7, xfem7, _, _, _, _, _),
-	PINGROUP(8, sdc3, qspi3, pwm3, qdss_traceclk_a, _, _, _, _, _),
-	PINGROUP(9, sdc2, qspi2, pwm3, qdss_tracectl_a, _, atest_tic, _, _,
+	PINGROUP(8, sdc_data, qspi_data, pwm3, qdss_traceclk_a, _, _, _, _, _),
+	PINGROUP(9, sdc_data, qspi_data, pwm3, qdss_tracectl_a, _, atest_tic, _, _,
 		 _),
-	PINGROUP(10, sdc1, qspi1, pwm3, qdss_tracedata_a, _, _, _, _, _),
-	PINGROUP(11, sdc0, qspi0, pwm3, qdss_tracedata_a, _, _, _, _, _),
+	PINGROUP(10, sdc_data, qspi_data, pwm3, qdss_tracedata_a, _, _, _, _, _),
+	PINGROUP(11, sdc_data, qspi_data, pwm3, qdss_tracedata_a, _, _, _, _, _),
 	PINGROUP(12, sdc_cmd, qspi_cs, qdss_tracedata_a, _, _, _, _, _,
 		 _),
 	PINGROUP(13, sdc_clk, qspi_clk, qdss_tracedata_a, _, _, _, _, _,
