@@ -35,7 +35,7 @@
 	chosen {
 		linux,initrd-end = <0x47000000>;
 		linux,initrd-start = <0x45000000>;
-		bootargs = "root=/dev/ram0 rw init=/init nosmp";
+		bootargs = "root=/dev/ram0 rw init=/init";
 		stdout-path = "serial0";
 	};
 
