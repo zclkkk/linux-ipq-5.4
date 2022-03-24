@@ -106,7 +106,6 @@
 #define MAX_HALT_REG		4
 
 #define WCNSS_PAS_ID		6
-#define MAX_SEGMENTS		2
 
 static int debug_wcss;
 static const struct wcss_data wcss_ipq6018_res_init;
@@ -222,8 +221,9 @@ static void crashdump_init(struct rproc *rproc, struct rproc_dump_segment *segme
 {
 	void *handle;
 	struct device_node *node = NULL, *np = NULL;
-	struct ramdump_segment segs[MAX_SEGMENTS] = {0};
+	struct ramdump_segment *segs;
 	int ret, index = 0;
+	int num_segs;
 
 	handle = create_ramdump_device("q6mem", &rproc->dev);
 	if (!handle) {
@@ -239,7 +239,22 @@ static void crashdump_init(struct rproc *rproc, struct rproc_dump_segment *segme
 	}
 
 	np = rproc->dev.parent->of_node;
-	while (index < MAX_SEGMENTS) {
+
+	num_segs = of_count_phandle_with_args(np, "memory-region", NULL);
+	if (num_segs <= 0) {
+		dev_err(&rproc->dev, "Could not find memory regions to dump");
+		goto free_device;
+	}
+
+	dev_dbg(&rproc->dev, "number of segments to be dumped: %d\n", num_segs);
+
+	segs = kzalloc(num_segs * sizeof(struct ramdump_segment), GFP_KERNEL);
+	if (!segs) {
+		dev_err(&rproc->dev, "Could not allocate memory for ramdump segments");
+		goto free_device;
+	}
+
+	while (index < num_segs) {
 		node = of_parse_phandle(np, "memory-region", index);
 		if (!node)
 			break;
@@ -268,6 +283,7 @@ static void crashdump_init(struct rproc *rproc, struct rproc_dump_segment *segme
 	do_elf_ramdump(handle, segs, index);
 
 put_node:
+	kfree(segs);
 	of_node_put(np);
 free_device:
 	destroy_ramdump_device(handle);
