@@ -27,7 +27,7 @@
 #include <soc/qcom/ramdump.h>
 #include <linux/dma-mapping.h>
 
-#define RAMDUMP_WAIT_MSECS	120000
+#define RAMDUMP_WAIT_MSECS	600000
 #define MAX_DEVICE 5
 
 struct ramdump_device {
