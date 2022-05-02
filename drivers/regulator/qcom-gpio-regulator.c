@@ -83,7 +83,7 @@ static int gpio_regulator_probe(struct platform_device *pdev)
 	u64 cpr_fuse;
 	int fused_volt;
 	int volt_select;
-	bool fix_volt_max;
+	bool fix_volt_max = false;
 	int ret;
 
 	match = of_match_device(gpio_regulator_match_table, dev);
